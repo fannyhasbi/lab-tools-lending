@@ -1,49 +1,33 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
 
 	"github.com/fannyhasbi/lab-tools-lending/service"
 	"github.com/fannyhasbi/lab-tools-lending/types"
+	"github.com/labstack/echo/v4"
 )
 
-func WebhookHandler(res http.ResponseWriter, req *http.Request) {
-	// First, decode the JSON response body
-	if req.Method != http.MethodPost {
-		fmt.Println("Method not allowed")
-		return
-	}
-
-	body := &types.WebhookRequest{}
-	if err := json.NewDecoder(req.Body).Decode(body); err != nil {
+func WebhookHandler(c echo.Context) error {
+	body := new(types.WebhookRequest)
+	if err := c.Bind(body); err != nil {
 		fmt.Println("could not decode request body", err)
-		return
+		return err
 	}
 
 	match, err := regexp.MatchString("^/", body.Message.Text)
 	if err != nil {
 		fmt.Println("regex error")
-		return
+		return err
 	}
 
 	if match {
 		commandHandler(body)
-		return
 	}
 
-	// if err := service.SendLocation(body.Message.Chat.ID); err != nil {
-	// 	fmt.Println("error in sending reply:", err)
-	// 	return
-	// }
-
-	fmt.Println("reply sent")
-}
-
-func getCommand(message string) string {
-	return message[1:]
+	return c.String(http.StatusOK, "OK")
 }
 
 func commandHandler(body *types.WebhookRequest) {
@@ -54,6 +38,10 @@ func commandHandler(body *types.WebhookRequest) {
 	case types.Command().Help:
 		helpHandler(body)
 	}
+}
+
+func getCommand(message string) string {
+	return message[1:]
 }
 
 func helpHandler(body *types.WebhookRequest) {

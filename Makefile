@@ -1,4 +1,5 @@
 appname := peminjaman-testing
+personalChatID := 284324420
 
 run:
 	@go run main.go
