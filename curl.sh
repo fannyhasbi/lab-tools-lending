@@ -1,0 +1,1 @@
+curl -F "url=https://b83f66b57187.ngrok.io"  https://api.telegram.org/bot1701903841:AAHBGnkqTsEPggVwNt56oNMVW2ynnWbv2OI/setWebhook
