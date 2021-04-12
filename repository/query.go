@@ -5,6 +5,6 @@ type QueryResult struct {
 	Error  error
 }
 
-type ToolsQuery interface {
-	GetTools() QueryResult
+type ToolQuery interface {
+	GetTool() QueryResult
 }

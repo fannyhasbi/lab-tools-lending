@@ -7,27 +7,27 @@ import (
 	"github.com/fannyhasbi/lab-tools-lending/types"
 )
 
-type ToolsQueryPostgres struct {
+type ToolQueryPostgres struct {
 	DB *sql.DB
 }
 
-func NewToolsQueryPostgres(DB *sql.DB) repository.ToolsQuery {
-	return &ToolsQueryPostgres{
+func NewToolQueryPostgres(DB *sql.DB) repository.ToolQuery {
+	return &ToolQueryPostgres{
 		DB: DB,
 	}
 }
 
-func (tq ToolsQueryPostgres) GetTools() repository.QueryResult {
+func (tq ToolQueryPostgres) GetTool() repository.QueryResult {
 	rows, err := tq.DB.Query(`SELECT * FROM tools`)
 
-	articles := []types.Tools{}
+	articles := []types.Tool{}
 	result := repository.QueryResult{}
 
 	if err != nil {
 		result.Error = err
 	} else {
 		for rows.Next() {
-			temp := types.Tools{}
+			temp := types.Tool{}
 			rows.Scan(
 				&temp.ID,
 				&temp.Name,

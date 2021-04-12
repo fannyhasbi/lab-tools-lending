@@ -24,34 +24,23 @@ func WebhookHandler(c echo.Context) error {
 		return err
 	}
 
+	messageService := service.NewMessageService(*body)
+
 	if match {
-		commandHandler(body)
+		commandHandler(body.Message.Text, messageService)
 	}
 
 	return c.String(http.StatusOK, "OK")
 }
 
-func commandHandler(body *types.WebhookRequest) {
-	commandStr := helper.GetCommand(body.Message.Text)
+func commandHandler(message string, ms *service.MessageService) {
+	commandStr := helper.GetCommand(message)
 	fmt.Printf("The command is : %s\n", commandStr)
 
 	switch commandStr {
 	case types.Command().Help:
-		helpHandler(body)
+		ms.Help()
 	default:
-		unknownCommandHandler(body.Message.Chat.ID)
-	}
-}
-
-func helpHandler(body *types.WebhookRequest) {
-	if err := service.SayPolo(body.Message.Chat.ID); err != nil {
-		fmt.Println("error in sending reply:", err)
-		return
-	}
-}
-
-func unknownCommandHandler(chatID int64) {
-	if err := service.UnknownCommand(chatID); err != nil {
-		fmt.Println("erro in sending reply: ")
+		ms.Unknown()
 	}
 }
