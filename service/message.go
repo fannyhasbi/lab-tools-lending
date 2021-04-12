@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
@@ -44,8 +45,8 @@ func (ms *MessageService) sendMessage(message string) error {
 }
 
 func (ms *MessageService) Help() error {
-	if err := ms.sendMessage("Polo!"); err != nil {
-		fmt.Println("error in sending reply:", err)
+	if err := ms.sendMessage("Halo ini adalah pesan bantuan!"); err != nil {
+		log.Println("error in sending reply:", err)
 		return err
 	}
 
@@ -54,7 +55,7 @@ func (ms *MessageService) Help() error {
 
 func (ms *MessageService) Unknown() error {
 	if err := ms.sendMessage("Sorry, unknown command"); err != nil {
-		fmt.Println("error in sending reply:", err)
+		log.Println("error in sending reply:", err)
 		return err
 	}
 

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 
@@ -14,13 +14,13 @@ import (
 func WebhookHandler(c echo.Context) error {
 	body := new(types.WebhookRequest)
 	if err := c.Bind(body); err != nil {
-		fmt.Println("could not decode request body", err)
+		log.Println("could not decode request body", err)
 		return err
 	}
 
 	match, err := regexp.MatchString("^/", body.Message.Text)
 	if err != nil {
-		fmt.Println("regex error")
+		log.Println("regex error", err)
 		return err
 	}
 
@@ -35,7 +35,7 @@ func WebhookHandler(c echo.Context) error {
 
 func commandHandler(message string, ms *service.MessageService) {
 	commandStr := helper.GetCommand(message)
-	fmt.Printf("The command is : %s\n", commandStr)
+	log.Printf("The command is : %s\n", commandStr)
 
 	switch commandStr {
 	case types.Command().Help:

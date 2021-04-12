@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/handler"
@@ -13,7 +13,7 @@ func main() {
 	e := echo.New()
 	e.POST("/", handler.WebhookHandler)
 
-	fmt.Printf("Server running on port %s\n", config.GetPort())
+	log.Printf("Server running on port %s\n", config.GetPort())
 	e.Logger.Fatal(e.Start(":" + config.GetPort()))
 
 	// http.ListenAndServe(":"+config.GetPort(), http.HandlerFunc(handler.WebhookHandler))
