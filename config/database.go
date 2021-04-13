@@ -30,18 +30,13 @@ func InitPostgresDB() *sql.DB {
 		"file://database/migration",
 		connStr,
 	)
-	log.Println("checkpoint 1")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("checkpoint 2")
-
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		log.Fatal(err)
 	}
-
-	log.Println("checkpoint 3")
 
 	return db
 }
