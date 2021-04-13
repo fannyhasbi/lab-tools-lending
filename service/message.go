@@ -44,6 +44,14 @@ func (ms *MessageService) sendMessage(message string) error {
 	return nil
 }
 
+func (ms *MessageService) Error() error {
+	if err := ms.sendMessage("Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi."); err != nil {
+		log.Println("error in sending reply:", err)
+		return err
+	}
+	return nil
+}
+
 func (ms *MessageService) Help() error {
 	if err := ms.sendMessage("Halo ini adalah pesan bantuan!"); err != nil {
 		log.Println("error in sending reply:", err)
@@ -63,9 +71,6 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	chatSessionService := NewChatSessionService()
-	fmt.Printf("#%v", chatSessionService)
-
 	if err := ms.sendMessage("Mantap"); err != nil {
 		log.Println("error in sending reply", err)
 		return err
