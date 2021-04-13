@@ -40,6 +40,8 @@ func commandHandler(message string, ms *service.MessageService) {
 	switch commandStr {
 	case types.Command().Help:
 		ms.Help()
+	case types.Command().Check:
+		ms.Check()
 	default:
 		ms.Unknown()
 	}

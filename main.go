@@ -5,11 +5,15 @@ import (
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/handler"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 
 	"github.com/labstack/echo/v4"
 )
 
 func main() {
+	godotenv.Load()
+
 	e := echo.New()
 	e.POST("/", handler.WebhookHandler)
 

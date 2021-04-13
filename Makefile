@@ -2,6 +2,9 @@ appname := peminjaman-testing
 personalChatID := 284324420
 port := 3000
 
+include .env
+export $(shell sed 's/=.*//' .env)
+
 run:
 	@go run main.go
 
@@ -17,3 +20,13 @@ change-server:
 deploy: test
 	heroku container:push web -a $(appname) && \
 	heroku container:release web -a $(appname)
+
+migrate-up:
+	migrate -path database/migration \
+		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
+		-verbose up
+
+migrate-down:
+	migrate -path database/migration \
+		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
+		-verbose down
