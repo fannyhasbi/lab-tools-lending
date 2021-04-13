@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   nim VARCHAR(20),
   batch SMALLINT,
   address VARCHAR(500),
+  created_at TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (id)
 );
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 func WebhookHandler(c echo.Context) error {
 	var messageService *service.MessageService
+	var userService *service.UserService
 	var chatSessionService *service.ChatSessionService
 
 	body := new(types.WebhookRequest)
@@ -34,13 +36,22 @@ func WebhookHandler(c echo.Context) error {
 		ChatID: body.Message.Chat.ID,
 	}
 
-	// cek apakah chatID sudah ada di db, jika belum maka harus daftar
+	userService = service.NewUserService()
+	user, err = userService.FindByChatID(body.Message.Chat.ID)
+	if err == sql.ErrNoRows {
+
+	} else if err != nil {
+		log.Println(err)
+		messageService.Error()
+	}
+
+	log.Println(user)
 
 	chatSessionService = service.NewChatSessionService()
 	chatSessions, err := chatSessionService.GetChatSessions(user)
 	if err != nil {
 		log.Println(err)
-		messageService.Error()
+		return messageService.Error()
 	}
 
 	var chatSessionDetails []types.ChatSessionDetail
@@ -49,41 +60,42 @@ func WebhookHandler(c echo.Context) error {
 			chatSessionDetails, err = chatSessionService.GetChatSessionDetails(chatSessions[0])
 			if err != nil {
 				log.Println(err)
-				messageService.Error()
+				return messageService.Error()
 			}
 		}
 
 		if len(chatSessionDetails) > 0 {
-			sessionHandler(chatSessionDetails[0].Topic, body.Message.Text, messageService)
+			return sessionHandler(chatSessionDetails[0].Topic, body.Message.Text, messageService)
 		}
 	}
 
 	if match {
-		commandHandler(body.Message.Text, messageService)
+		return commandHandler(body.Message.Text, messageService)
 	}
 
 	return c.String(http.StatusOK, "OK")
 }
 
-func commandHandler(message string, ms *service.MessageService) {
+func commandHandler(message string, ms *service.MessageService) error {
 	commandStr := helper.GetCommand(message)
 	log.Printf("The command is : %s\n", commandStr)
 
 	switch commandStr {
 	case types.Command().Help:
-		ms.Help()
+		return ms.Help()
 	case types.Command().Check:
-		ms.Check()
+		return ms.Check()
 	default:
-		ms.Unknown()
+		return ms.Unknown()
 	}
 }
 
-func sessionHandler(topic, message string, ms *service.MessageService) {
+func sessionHandler(topic, message string, ms *service.MessageService) error {
 	switch topic {
 	case types.ChatSessionTopic["register"]:
 		fmt.Println("Yoyoy")
+		return nil
 	default:
-		ms.Unknown()
+		return ms.Unknown()
 	}
 }
