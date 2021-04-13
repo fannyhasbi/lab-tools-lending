@@ -2,16 +2,11 @@ package postgres
 
 import (
 	"testing"
-	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/fannyhasbi/lab-tools-lending/types"
 	"github.com/stretchr/testify/assert"
 )
-
-func timeNow() string {
-	return time.Now().Format(time.RFC3339)
-}
 
 func TestCanGetChatSession(t *testing.T) {
 	db, mock, _ := sqlmock.New()
@@ -25,7 +20,7 @@ func TestCanGetChatSession(t *testing.T) {
 	query := NewChatSessionQueryPostgres(db)
 
 	rows := sqlmock.NewRows([]string{"id", "status", "created_at"}).
-		AddRow(1, types.ChatSessionStatus["progress"], timeNow())
+		AddRow(1, types.ChatSessionStatus["progress"], timeNowString())
 
 	mock.ExpectQuery("^SELECT(.*)FROM chat_sessions(.*)WHERE user_id = (.*) ORDER BY id DESC").
 		WillReturnRows(rows)
@@ -46,7 +41,7 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 	query := NewChatSessionQueryPostgres(db)
 
 	rows := sqlmock.NewRows([]string{"id", "topic", "created_at"}).
-		AddRow(1, types.ChatSessionTopic["register"], timeNow())
+		AddRow(1, types.ChatSessionTopic["register"], timeNowString())
 
 	mock.ExpectQuery("^SELECT(.*)FROM chat_session_details(.*)WHERE chat_session_id = (.*) ORDER BY id DESC").
 		WillReturnRows(rows)

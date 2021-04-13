@@ -13,6 +13,7 @@ import (
 
 func main() {
 	godotenv.Load()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	e := echo.New()
 	e.POST("/", handler.WebhookHandler)
