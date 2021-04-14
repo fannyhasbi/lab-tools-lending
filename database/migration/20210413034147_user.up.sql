@@ -1,8 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL NOT NULL,
-  chat_id INT NOT NULL,
+  id BIGINT NOT NULL,
   name VARCHAR(100) NOT NULL,
-  nim VARCHAR(20),
+  nim VARCHAR(20) NOT NULL,
   batch SMALLINT,
   address VARCHAR(500),
   created_at TIMESTAMP DEFAULT NOW(),
@@ -10,4 +9,3 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS users_id_idx ON users ("id");
-CREATE INDEX IF NOT EXISTS users_chat_id_idx ON users ("chat_id");

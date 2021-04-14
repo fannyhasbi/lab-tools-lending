@@ -13,8 +13,7 @@ func TestCanGetChatSession(t *testing.T) {
 	defer db.Close()
 
 	user := types.User{
-		ID:     123,
-		ChatID: 321,
+		ID: 123,
 	}
 
 	query := NewChatSessionQueryPostgres(db)
@@ -40,8 +39,8 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 
 	query := NewChatSessionQueryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "topic", "created_at"}).
-		AddRow(1, types.ChatSessionTopic["register"], timeNowString())
+	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at"}).
+		AddRow(1, types.ChatSessionTopic["register"], chatSession.ID, timeNowString())
 
 	mock.ExpectQuery("^SELECT(.*)FROM chat_session_details(.*)WHERE chat_session_id = (.*) ORDER BY id DESC").
 		WillReturnRows(rows)
@@ -49,4 +48,8 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 	result := query.GetDetail(chatSession)
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.([]types.ChatSessionDetail)
+		assert.Greater(t, len(r), 0)
+	})
 }

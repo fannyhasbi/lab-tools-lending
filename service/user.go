@@ -28,11 +28,32 @@ func NewUserService() *UserService {
 	}
 }
 
-func (us UserService) FindByChatID(chatID int64) (types.User, error) {
-	result := us.Query.FindByChatID(chatID)
+func (us UserService) SaveUser(user types.User) (types.User, error) {
+	result, err := us.Repository.Save(&user)
+	if err != nil {
+		return types.User{}, err
+	}
 
+	return result, nil
+}
+
+func (us UserService) UpdateUser(user types.User) (types.User, error) {
+	result, err := us.Repository.Update(&user)
+	if err != nil {
+		return types.User{}, err
+	}
+
+	return result, nil
+}
+
+func (us UserService) DeleteUser(id int64) error {
+	return us.Repository.Delete(id)
+}
+
+func (us UserService) FindByID(id int64) (types.User, error) {
+	result := us.Query.FindByID(id)
 	if result.Error == sql.ErrNoRows {
-		return types.User{ChatID: chatID}, result.Error
+		return types.User{ID: id}, result.Error
 	}
 
 	if result.Error != nil {

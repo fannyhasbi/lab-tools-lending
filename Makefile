@@ -1,5 +1,4 @@
 appname := peminjaman-testing
-personalChatID := 284324420
 port := 3000
 
 include .env

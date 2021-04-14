@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -16,10 +17,17 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	e := echo.New()
+
+	// middleware
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		log.Println("[REQUEST]", string(reqBody))
+		log.Println("[RESPONSE]", string(resBody))
+	}))
+
+	e.Use(middleware.Logger())
+
 	e.POST("/", handler.WebhookHandler)
 
 	log.Printf("Server running on port %s\n", config.GetPort())
 	e.Logger.Fatal(e.Start(":" + config.GetPort()))
-
-	// http.ListenAndServe(":"+config.GetPort(), http.HandlerFunc(handler.WebhookHandler))
 }

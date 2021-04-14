@@ -45,3 +45,33 @@ func (cs ChatSessionService) GetChatSessionDetails(chatSession types.ChatSession
 
 	return result.Result.([]types.ChatSessionDetail), nil
 }
+
+func (cs ChatSessionService) SaveChatSession(chatSession types.ChatSession) (types.ChatSession, error) {
+	result, err := cs.Repository.Save(&chatSession)
+	if err != nil {
+		return types.ChatSession{}, err
+	}
+
+	return result, nil
+}
+
+func (cs ChatSessionService) UpdateChatSessionStatus(id int64, status types.ChatSessionStatusType) error {
+	return cs.Repository.UpdateStatus(id, status)
+}
+
+func (cs ChatSessionService) DeleteChatSession(id int64) error {
+	return cs.Repository.Delete(id)
+}
+
+func (cs ChatSessionService) SaveChatSessionDetail(chatSessionDetail types.ChatSessionDetail) (types.ChatSessionDetail, error) {
+	result, err := cs.Repository.SaveDetail(&chatSessionDetail)
+	if err != nil {
+		return types.ChatSessionDetail{}, err
+	}
+
+	return result, nil
+}
+
+func (cs ChatSessionService) DeleteChatSessionDetailByChatSessionID(id int64) error {
+	return cs.Repository.DeleteDetailByChatSessionID(id)
+}

@@ -8,6 +8,9 @@ type ChatSessionQuery interface {
 }
 
 type ChatSessionRepository interface {
-	Save(chatSession *types.ChatSession) error
-	Update(chatSession *types.ChatSession) error
+	Save(chatSession *types.ChatSession) (types.ChatSession, error)
+	UpdateStatus(id int64, status types.ChatSessionStatusType) error
+	Delete(id int64) error
+	SaveDetail(chatSessionDetail *types.ChatSessionDetail) (types.ChatSessionDetail, error)
+	DeleteDetailByChatSessionID(id int64) error
 }
