@@ -185,16 +185,7 @@ func (ms *MessageService) Register() error {
 		return err
 	}
 
-	acceptedTopicTypeList := []types.TopicType{
-		types.Topic["register_init"],
-		types.Topic["register_confirm"],
-		types.Topic["register_complete"],
-	}
-
-	if user.IsRegistered() &&
-		len(ms.ChatSessionDetails) > 0 &&
-		!helper.TopicInSlice(ms.ChatSessionDetails[0].Topic, acceptedTopicTypeList) {
-
+	if user.IsRegistered() && len(ms.ChatSessionDetails) == 0 {
 		reqBody := types.MessageRequest{
 			Text: "Tidak bisa melakukan pendaftaran kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
 		}
