@@ -50,6 +50,6 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {
 		r := result.Result.([]types.ChatSessionDetail)
-		assert.Greater(t, len(r), 0)
+		assert.Equal(t, len(r), 1)
 	})
 }

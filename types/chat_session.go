@@ -30,5 +30,8 @@ var (
 		"register_init":     "RGR_init",
 		"register_confirm":  "RGR_confirm",
 		"register_complete": "RGR_complete",
+
+		"borrow_init":    "BRW_init",
+		"borrow_confirm": "BRW_confirm",
 	}
 )

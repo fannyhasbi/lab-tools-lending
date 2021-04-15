@@ -29,12 +29,6 @@ func WebhookHandler(c echo.Context) error {
 	bodyBytes, _ = ioutil.ReadAll(c.Request().Body)
 	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
-	body = new(types.WebhookRequest)
-	if err := json.Unmarshal(bodyBytes, body); err != nil {
-		log.Println("could not decode request body", err)
-		return err
-	}
-
 	callbackBody = new(types.InlineCallbackQuery)
 	if err := json.Unmarshal(bodyBytes, callbackBody); err != nil {
 		log.Println("could not decode request body", err)
@@ -42,14 +36,20 @@ func WebhookHandler(c echo.Context) error {
 	}
 
 	// check whether it is an inline callback query request or common
-	if body.Message.Chat.ID == 0 {
-		senderID = callbackBody.CallbackQuery.From.ID
-		messageText = callbackBody.CallbackQuery.Data
-		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeInlineCallback)
-	} else {
+	if callbackBody.CallbackQuery.From.ID == 0 {
+		body = new(types.WebhookRequest)
+		if err := json.Unmarshal(bodyBytes, body); err != nil {
+			log.Println("could not decode request body", err)
+			return err
+		}
+
 		senderID = body.Message.Chat.ID
 		messageText = body.Message.Text
 		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeCommon)
+	} else {
+		senderID = callbackBody.CallbackQuery.From.ID
+		messageText = callbackBody.CallbackQuery.Data
+		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeInlineCallback)
 	}
 
 	user := types.User{ID: senderID}
@@ -122,6 +122,8 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 	switch topic {
 	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
+	case types.Topic["borrow_init"], types.Topic["borrow_confirm"]:
+		return ms.Borrow()
 	default:
 		return ms.Unknown()
 	}

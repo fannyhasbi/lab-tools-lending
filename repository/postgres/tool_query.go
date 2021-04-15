@@ -17,6 +17,33 @@ func NewToolQueryPostgres(DB *sql.DB) repository.ToolQuery {
 	}
 }
 
+func (tq ToolQueryPostgres) FindByID(id int64) repository.QueryResult {
+	row := tq.DB.QueryRow(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE id = $1`, id)
+
+	tool := types.Tool{}
+	result := repository.QueryResult{}
+
+	err := row.Scan(
+		&tool.ID,
+		&tool.Name,
+		&tool.Brand,
+		&tool.ProductType,
+		&tool.Weight,
+		&tool.Stock,
+		&tool.AdditionalInformation,
+		&tool.CreatedAt,
+		&tool.UpdatedAt,
+	)
+
+	if err != nil {
+		result.Error = err
+		return result
+	}
+
+	result.Result = tool
+	return result
+}
+
 func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
 	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0`)
 
