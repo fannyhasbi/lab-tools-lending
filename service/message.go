@@ -17,19 +17,20 @@ import (
 )
 
 type MessageService struct {
-	SenderID           int64
-	MessageText        string
-	ChatSessionDetails []types.ChatSessionDetail
+	messageText        string
+	user               types.User
+	chatSessionDetails []types.ChatSessionDetail
 
-	ChatSessionService *ChatSessionService
-	UserService        *UserService
+	chatSessionService *ChatSessionService
+	userService        *UserService
 }
 
 func NewMessageService(senderID int64, text string, requestType string) *MessageService {
 	ms := &MessageService{
-		SenderID:    senderID,
-		MessageText: text,
+		messageText: text,
 	}
+
+	ms.user = types.User{ID: senderID}
 
 	ms.initChatSessionService()
 	ms.initUserService()
@@ -39,12 +40,12 @@ func NewMessageService(senderID int64, text string, requestType string) *Message
 
 func (ms *MessageService) initChatSessionService() {
 	chatSessionService := NewChatSessionService()
-	ms.ChatSessionService = chatSessionService
+	ms.chatSessionService = chatSessionService
 }
 
 func (ms *MessageService) initUserService() {
 	userService := NewUserService()
-	ms.UserService = userService
+	ms.userService = userService
 }
 
 func buildMessageRequest(data *types.MessageRequest) {
@@ -56,7 +57,7 @@ func buildMessageRequest(data *types.MessageRequest) {
 
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
-		reqBody.ChatID = ms.SenderID
+		reqBody.ChatID = ms.user.ID
 	}
 
 	buildMessageRequest(&reqBody)
@@ -86,7 +87,7 @@ func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 }
 
 func (ms *MessageService) ChangeChatSessionDetails(d []types.ChatSessionDetail) {
-	ms.ChatSessionDetails = d
+	ms.chatSessionDetails = d
 }
 
 func (ms *MessageService) Error() error {
@@ -162,7 +163,7 @@ func (ms *MessageService) Check() error {
 func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.TopicType) error {
 	var chatSession types.ChatSession
 
-	chatSessions, err := ms.ChatSessionService.GetChatSessions(user)
+	chatSessions, err := ms.chatSessionService.GetChatSessions(user)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -173,7 +174,7 @@ func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.Top
 			UserID: user.ID,
 		}
 
-		chatSession, err = ms.ChatSessionService.SaveChatSession(chatSessionParam)
+		chatSession, err = ms.chatSessionService.SaveChatSession(chatSessionParam)
 		if err != nil {
 			return err
 		}
@@ -185,30 +186,30 @@ func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.Top
 		Topic:         topic,
 		ChatSessionID: chatSession.ID,
 	}
-	_, err = ms.ChatSessionService.SaveChatSessionDetail(chatSessionDetail)
+	_, err = ms.chatSessionService.SaveChatSessionDetail(chatSessionDetail)
 
 	return err
 }
 
 func (ms *MessageService) Register() error {
-	user, err := ms.UserService.FindByID(ms.SenderID)
+	user, err := ms.userService.FindByID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return err
 	}
 
-	if user.IsRegistered() && len(ms.ChatSessionDetails) == 0 {
+	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
 		reqBody := types.MessageRequest{
 			Text: "Tidak bisa melakukan pendaftaran kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
 		}
 		return ms.sendMessage(reqBody)
 	}
 
-	if len(ms.ChatSessionDetails) == 0 {
+	if len(ms.chatSessionDetails) == 0 {
 		return ms.registerAsk()
 	}
 
-	switch ms.ChatSessionDetails[0].Topic {
+	switch ms.chatSessionDetails[0].Topic {
 	case types.Topic["register_init"]:
 		return ms.registerConfirm()
 	case types.Topic["register_confirm"]:
@@ -242,16 +243,12 @@ func (ms *MessageService) registerAsk() error {
 		return err
 	}
 
-	user := types.User{
-		ID: ms.SenderID,
-	}
-
-	_, err := ms.UserService.SaveUser(user)
+	_, err := ms.userService.SaveUser(ms.user)
 	if err != nil {
 		return err
 	}
 
-	if err = ms.saveChatSessionDetail(user, types.Topic["register_init"]); err != nil {
+	if err = ms.saveChatSessionDetail(ms.user, types.Topic["register_init"]); err != nil {
 		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
 		return err
 	}
@@ -260,7 +257,7 @@ func (ms *MessageService) registerAsk() error {
 }
 
 func (ms *MessageService) registerConfirm() error {
-	registrationMessage, err := getRegistrationMessage(ms.MessageText)
+	registrationMessage, err := getRegistrationMessage(ms.messageText)
 	if err != nil {
 		log.Println("[ERR][Registration][getRegistrationMessage]", err)
 		reqBody := types.MessageRequest{
@@ -279,14 +276,14 @@ func (ms *MessageService) registerConfirm() error {
 	}
 
 	user := types.User{
-		ID:      ms.SenderID,
+		ID:      ms.user.ID,
 		Name:    registrationMessage.Name,
 		NIM:     registrationMessage.NIM,
 		Batch:   uint16(registrationMessage.Batch),
 		Address: registrationMessage.Address,
 	}
 
-	user, err = ms.UserService.UpdateUser(user)
+	user, err = ms.userService.UpdateUser(user)
 	if err != nil {
 		log.Println("[ERR][Registration[UpdateUser]", err)
 		reqBody := types.MessageRequest{
@@ -332,7 +329,7 @@ func (ms *MessageService) registerConfirm() error {
 func (ms *MessageService) registerComplete() error {
 	var err error
 
-	if ms.MessageText == "yes" {
+	if ms.messageText == "yes" {
 		err = ms.registerCompletePositive()
 	} else {
 		err = ms.registerCompleteNegative()
@@ -347,17 +344,13 @@ func (ms *MessageService) registerComplete() error {
 }
 
 func (ms *MessageService) registerCompletePositive() error {
-	user := types.User{
-		ID: ms.SenderID,
-	}
-
-	if err := ms.saveChatSessionDetail(user, types.Topic["register_complete"]); err != nil {
+	if err := ms.saveChatSessionDetail(ms.user, types.Topic["register_complete"]); err != nil {
 		return err
 	}
 
-	chatSessionID := ms.ChatSessionDetails[0].ChatSessionID
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
 
-	if err := ms.ChatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
 		return err
 	}
 
@@ -369,16 +362,16 @@ func (ms *MessageService) registerCompletePositive() error {
 }
 
 func (ms *MessageService) registerCompleteNegative() error {
-	sessionID := ms.ChatSessionDetails[0].ChatSessionID
-	if err := ms.ChatSessionService.DeleteChatSessionDetailByChatSessionID(sessionID); err != nil {
+	sessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.DeleteChatSessionDetailByChatSessionID(sessionID); err != nil {
 		return err
 	}
 
-	if err := ms.ChatSessionService.DeleteChatSession(sessionID); err != nil {
+	if err := ms.chatSessionService.DeleteChatSession(sessionID); err != nil {
 		return err
 	}
 
-	if err := ms.UserService.DeleteUser(ms.SenderID); err != nil {
+	if err := ms.userService.DeleteUser(ms.user.ID); err != nil {
 		return err
 	}
 
@@ -436,4 +429,12 @@ func validateRegisterMessageBatch(batch int) error {
 		return fmt.Errorf("batch is beyond the limit")
 	}
 	return nil
+}
+
+func (ms *MessageService) Borrow() error {
+	reqBody := types.MessageRequest{
+		Text: "Silahkan pilih alat yang akan dipinjam.",
+	}
+
+	return ms.sendMessage(reqBody)
 }
