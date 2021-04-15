@@ -14,15 +14,15 @@ var ChatSessionStatus map[string]ChatSessionStatusType = map[string]ChatSessionS
 	"complete": "COMPLETE",
 }
 
-type ChatSessionTopicType string
+type TopicType string
 type ChatSessionDetail struct {
-	ID            int64                `json:"id"`
-	Topic         ChatSessionTopicType `json:"topic"`
-	ChatSessionID int64                `json:"chat_session_id"`
-	CreatedAt     string               `json:"created_at"`
+	ID            int64     `json:"id"`
+	Topic         TopicType `json:"topic"`
+	ChatSessionID int64     `json:"chat_session_id"`
+	CreatedAt     string    `json:"created_at"`
 }
 
-var ChatSessionTopic map[string]ChatSessionTopicType = map[string]ChatSessionTopicType{
+var Topic map[string]TopicType = map[string]TopicType{
 	"register_init":     "RGR_init",
 	"register_confirm":  "RGR_confirm",
 	"register_complete": "RGR_complete",

@@ -40,7 +40,7 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 	query := NewChatSessionQueryPostgres(db)
 
 	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at"}).
-		AddRow(1, types.ChatSessionTopic["register"], chatSession.ID, timeNowString())
+		AddRow(1, types.Topic["register"], chatSession.ID, timeNowString())
 
 	mock.ExpectQuery("^SELECT(.*)FROM chat_session_details(.*)WHERE chat_session_id = (.*) ORDER BY id DESC").
 		WillReturnRows(rows)

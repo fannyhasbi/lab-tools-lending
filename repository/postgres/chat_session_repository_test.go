@@ -79,7 +79,7 @@ func TestCanSaveChatSessionDetail(t *testing.T) {
 
 	detail := types.ChatSessionDetail{
 		ID:            123,
-		Topic:         types.ChatSessionTopic["register_init"],
+		Topic:         types.Topic["register_init"],
 		ChatSessionID: 321,
 		CreatedAt:     timeNowString(),
 	}

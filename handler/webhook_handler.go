@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"regexp"
 
 	"github.com/fannyhasbi/lab-tools-lending/helper"
@@ -82,7 +81,7 @@ func WebhookHandler(c echo.Context) error {
 		return commandHandler(messageText, messageService)
 	}
 
-	return c.String(http.StatusOK, "OK")
+	return messageService.Unknown()
 }
 
 func commandHandler(message string, ms *service.MessageService) error {
@@ -117,9 +116,9 @@ func sessionProcess(message string, chatSession types.ChatSession, messageServic
 	return nil
 }
 
-func sessionHandler(topic types.ChatSessionTopicType, message string, ms *service.MessageService) error {
+func sessionHandler(topic types.TopicType, message string, ms *service.MessageService) error {
 	switch topic {
-	case types.ChatSessionTopic["register_init"], types.ChatSessionTopic["register_confirm"], types.ChatSessionTopic["register_complete"]:
+	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
 	default:
 		return ms.Unknown()

@@ -147,7 +147,7 @@ func (ms *MessageService) Check() error {
 	return nil
 }
 
-func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.ChatSessionTopicType) error {
+func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.TopicType) error {
 	var chatSession types.ChatSession
 
 	chatSessions, err := ms.ChatSessionService.GetChatSessions(user)
@@ -185,10 +185,15 @@ func (ms *MessageService) Register() error {
 		return err
 	}
 
+	acceptedTopicTypeList := []types.TopicType{
+		types.Topic["register_init"],
+		types.Topic["register_confirm"],
+		types.Topic["register_complete"],
+	}
+
 	if user.IsRegistered() &&
 		len(ms.ChatSessionDetails) > 0 &&
-		ms.ChatSessionDetails[0].Topic != types.ChatSessionTopic["register_confirm"] &&
-		ms.ChatSessionDetails[0].Topic != types.ChatSessionTopic["register_complete"] {
+		!helper.TopicInSlice(ms.ChatSessionDetails[0].Topic, acceptedTopicTypeList) {
 
 		reqBody := types.MessageRequest{
 			Text: "Tidak bisa melakukan pendaftaran kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
@@ -201,9 +206,9 @@ func (ms *MessageService) Register() error {
 	}
 
 	switch ms.ChatSessionDetails[0].Topic {
-	case types.ChatSessionTopic["register_init"]:
+	case types.Topic["register_init"]:
 		return ms.registerConfirm()
-	case types.ChatSessionTopic["register_confirm"]:
+	case types.Topic["register_confirm"]:
 		return ms.registerComplete()
 	}
 
@@ -245,7 +250,7 @@ func (ms *MessageService) registerAsk() error {
 		return err
 	}
 
-	if err = ms.saveChatSessionDetail(user, types.ChatSessionTopic["register_init"]); err != nil {
+	if err = ms.saveChatSessionDetail(user, types.Topic["register_init"]); err != nil {
 		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
 		return err
 	}
@@ -317,7 +322,7 @@ func (ms *MessageService) registerConfirm() error {
 		},
 	}
 
-	if err = ms.saveChatSessionDetail(user, types.ChatSessionTopic["register_confirm"]); err != nil {
+	if err = ms.saveChatSessionDetail(user, types.Topic["register_confirm"]); err != nil {
 		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
 		return err
 	}
@@ -347,7 +352,7 @@ func (ms *MessageService) registerCompletePositive() error {
 		ID: ms.SenderID,
 	}
 
-	if err := ms.saveChatSessionDetail(user, types.ChatSessionTopic["register_complete"]); err != nil {
+	if err := ms.saveChatSessionDetail(user, types.Topic["register_complete"]); err != nil {
 		return err
 	}
 
