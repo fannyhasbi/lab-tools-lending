@@ -91,10 +91,10 @@ func commandHandler(message string, ms *service.MessageService) error {
 	switch commandStr {
 	case types.Command().Help:
 		return ms.Help()
-	case types.Command().Check:
-		return ms.Check()
 	case types.Command().Register:
 		return ms.Register()
+	case types.Command().Check:
+		return ms.Check()
 	default:
 		return ms.Unknown()
 	}

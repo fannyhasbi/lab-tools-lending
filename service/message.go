@@ -136,15 +136,27 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	reqBody := types.MessageRequest{
-		Text: "Mantap",
-	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply", err)
+	var toolService *ToolService
+	var message string
+
+	toolService = NewToolService()
+
+	tools, err := toolService.GetAvailableTools()
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
 		return err
 	}
 
-	return nil
+	message = "Berikut ini daftar alat yang masih tersedia.\n\n"
+	for _, tool := range tools {
+		message = fmt.Sprintf("%s* %s - %d\n", message, tool.Name, tool.Stock)
+	}
+
+	reqBody := types.MessageRequest{
+		Text: message,
+	}
+
+	return ms.sendMessage(reqBody)
 }
 
 func (ms *MessageService) saveChatSessionDetail(user types.User, topic types.TopicType) error {

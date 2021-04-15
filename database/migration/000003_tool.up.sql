@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS tools (
   weight FLOAT,
   stock INT NOT NULL DEFAULT 0,
   additional_info TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
 

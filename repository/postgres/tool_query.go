@@ -17,10 +17,10 @@ func NewToolQueryPostgres(DB *sql.DB) repository.ToolQuery {
 	}
 }
 
-func (tq ToolQueryPostgres) GetTool() repository.QueryResult {
-	rows, err := tq.DB.Query(`SELECT * FROM tools`)
+func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
+	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0`)
 
-	articles := []types.Tool{}
+	tools := []types.Tool{}
 	result := repository.QueryResult{}
 
 	if err != nil {
@@ -34,12 +34,15 @@ func (tq ToolQueryPostgres) GetTool() repository.QueryResult {
 				&temp.Brand,
 				&temp.ProductType,
 				&temp.Weight,
+				&temp.Stock,
 				&temp.AdditionalInformation,
+				&temp.CreatedAt,
+				&temp.UpdatedAt,
 			)
 
-			articles = append(articles, temp)
+			tools = append(tools, temp)
 		}
-		result.Result = articles
+		result.Result = tools
 	}
 	return result
 }

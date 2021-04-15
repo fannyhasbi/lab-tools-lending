@@ -3,7 +3,7 @@ package repository
 import "github.com/fannyhasbi/lab-tools-lending/types"
 
 type ToolQuery interface {
-	GetTool() QueryResult
+	GetAvailableTools() QueryResult
 }
 
 type ToolRepository interface {
