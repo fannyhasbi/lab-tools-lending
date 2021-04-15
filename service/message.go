@@ -153,9 +153,7 @@ func (ms *MessageService) Check() error {
 	}
 
 	message = "Berikut ini daftar alat yang masih tersedia.\n\n"
-	for _, tool := range tools {
-		message = fmt.Sprintf("%s* %s - %d\n", message, tool.Name, tool.Stock)
-	}
+	message = message + helper.BuildToolListMessage(tools)
 
 	reqBody := types.MessageRequest{
 		Text: message,
@@ -468,25 +466,25 @@ func (ms *MessageService) borrowAsk() error {
 	var message string
 	var reqBody types.MessageRequest
 
-	tools, err := ms.toolService.GetAvailableTools()
-	if err != nil {
-		log.Println("[ERR][Borrow][GetAvailableTools]", err)
-		message = "Maaf, tidak ada alat yang tersedia saat ini."
-	} else {
-		toolListMessage := helper.BuildToolListMessage(tools)
-		message = "Silahkan pilih alat yang akan dipinjam dengan menyebutkan nomor alat yang ada di bawah ini\n\n" + toolListMessage
-	}
+	message = `*Mekanisme Peminjaman*
 
-	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"]); err != nil {
-		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
-		message = "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi."
-	}
+	1\. Cek ketersediaan alat dengan mengetik /cek
+	2\. Ketik perintah "*/pinjam \[id\]*", dimana *id* adalah nomor unik alat yang akan dipinjam
+
+	Contoh : "*/pinjam 321*"`
+	message = helper.RemoveTab(message)
 
 	reqBody = types.MessageRequest{
-		Text: message,
+		ParseMode: "MarkdownV2",
+		Text:      message,
 	}
 
-	return ms.sendMessage(reqBody)
+	if err := ms.sendMessage(reqBody); err != nil {
+		log.Println("[ERR][Borrow][sendMessage]", err)
+		return err
+	}
+
+	return ms.Check()
 }
 
 func (ms *MessageService) borrowConfirm() error {
