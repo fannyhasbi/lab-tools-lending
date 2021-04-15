@@ -219,8 +219,7 @@ func (ms *MessageService) Register() error {
 }
 
 func (ms *MessageService) registerAsk() error {
-	msg := `
-		Silahkan isi beberapa pertanyaan berikut secara urut (pisahkan dengan baris baru)
+	msg := `Silahkan isi beberapa pertanyaan berikut secara urut (pisahkan dengan baris baru)
 
 		Nama Lengkap
 		Nomor Induk Mahasiswa
@@ -232,8 +231,7 @@ func (ms *MessageService) registerAsk() error {
 		Fanny Hasbi
 		211201XXXXXXXX
 		2016
-		Jalan Jenderal Sudirman No. 189, Pangembon, Brebes, Jawa Tengah
-	`
+		Jalan Jenderal Sudirman No. 189, Pangembon, Brebes, Jawa Tengah`
 	msg = helper.RemoveTab(msg)
 
 	reqBody := types.MessageRequest{
@@ -297,14 +295,12 @@ func (ms *MessageService) registerConfirm() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	msg := fmt.Sprintf(`
-		Apakah data ini sudah benar?
+	msg := fmt.Sprintf(`Apakah data ini sudah benar?
 
 		Nama : %s
 		NIM : %s
 		Angkatan : %d
-		Alamat : %s
-	`, user.Name, user.NIM, user.Batch, user.Address)
+		Alamat : %s`, user.Name, user.NIM, user.Batch, user.Address)
 	msg = helper.RemoveTab(msg)
 
 	reqBody := types.MessageRequest{
