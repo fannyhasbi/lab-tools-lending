@@ -18,14 +18,15 @@ func NewBorrowRepositoryPostgres(DB *sql.DB) repository.BorrowRepository {
 }
 
 func (br *BorrowRepositoryPostgres) Save(borrow *types.Borrow) (types.Borrow, error) {
-	row := br.DB.QueryRow(`INSERT INTO borrows (amount, return_date, user_id, tool_id) VALUES ($1, $2, $3, $4)
-		RETURNING id, amount, return_date, user_id, tool_id, created_at`, borrow.Amount, borrow.ReturnDate, borrow.UserID, borrow.ToolID)
+	row := br.DB.QueryRow(`INSERT INTO borrows (amount, status, user_id, tool_id) VALUES ($1, $2, $3, $4)
+		RETURNING id, amount, return_date, status, user_id, tool_id, created_at`, borrow.Amount, borrow.Status, borrow.UserID, borrow.ToolID)
 
 	b := types.Borrow{}
 	err := row.Scan(
 		&b.ID,
 		&b.Amount,
 		&b.ReturnDate,
+		&b.Status,
 		&b.UserID,
 		&b.ToolID,
 		&b.CreatedAt,

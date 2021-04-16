@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
@@ -448,13 +449,18 @@ func (ms *MessageService) Borrow() error {
 		return ms.sendMessage(reqBody)
 	}
 
+	ok, toolID := isToolIDWithinBorrowMessage(ms.messageText)
+	if ok && toolID > 0 {
+		return ms.borrowDateRange()
+	}
+
 	if len(ms.chatSessionDetails) == 0 {
-		return ms.borrowAsk()
+		return ms.borrowMechanism()
 	}
 
 	switch ms.chatSessionDetails[0].Topic {
 	case types.Topic["borrow_init"]:
-		return ms.borrowConfirm()
+		return ms.borrowConfirmation()
 	case types.Topic["borrow_confirm"]:
 		return ms.borrowComplete()
 	}
@@ -462,7 +468,21 @@ func (ms *MessageService) Borrow() error {
 	return nil
 }
 
-func (ms *MessageService) borrowAsk() error {
+func isToolIDWithinBorrowMessage(s string) (bool, int64) {
+	ss := strings.Split(s, " ")
+	if len(ss) != 2 {
+		return false, 0
+	}
+
+	i, err := strconv.ParseInt(ss[1], 10, 64)
+	if err != nil {
+		return false, 0
+	}
+
+	return true, i
+}
+
+func (ms *MessageService) borrowMechanism() error {
 	var message string
 	var reqBody types.MessageRequest
 
@@ -487,19 +507,8 @@ func (ms *MessageService) borrowAsk() error {
 	return ms.Check()
 }
 
-func (ms *MessageService) borrowConfirm() error {
-	var borrowAmount int
-	returnDate := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
-
-	id, err := getToolIDFromBorrowMessage(ms.messageText)
-	if err != nil {
-		log.Println("[ERR][Borrow][getToolIDFromBorrowMessage]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, format yang Anda masukkan salah. Silahkan kirimkan nomor alat sesuai dengan daftar.",
-		}
-
-		return ms.sendMessage(reqBody)
-	}
+func (ms *MessageService) borrowDateRange() error {
+	_, id := isToolIDWithinBorrowMessage(ms.messageText)
 
 	tool, err := ms.toolService.FindByID(id)
 	if err != nil {
@@ -513,10 +522,10 @@ func (ms *MessageService) borrowConfirm() error {
 
 	borrowService := NewBorrowService()
 	borrow := types.Borrow{
-		Amount:     borrowAmount,
-		ReturnDate: returnDate,
-		UserID:     ms.user.ID,
-		ToolID:     tool.ID,
+		Amount: 1,
+		Status: types.GetBorrowStatus("init"),
+		UserID: ms.user.ID,
+		ToolID: tool.ID,
 	}
 
 	borrow, err = borrowService.SaveBorrow(borrow)
@@ -529,9 +538,77 @@ func (ms *MessageService) borrowConfirm() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	message := fmt.Sprintf(`Apakah data ini sudah benar?
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"]); err != nil {
+		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
+		return err
+	}
 
-		Nama alat : %s
+	reqBody := types.MessageRequest{
+		Text: "Berapa lama waktu peminjaman?\n\nJika tidak ada dalam pilihan, maka sebutkan jumlah hari.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "1 Minggu",
+						CallbackData: string(types.GetBorrowTimeRange("1week")),
+					},
+					{
+						Text:         "2 Minggu",
+						CallbackData: string(types.GetBorrowTimeRange("2week")),
+					},
+				},
+				{
+					{
+						Text:         "1 Bulan",
+						CallbackData: string(types.GetBorrowTimeRange("1month")),
+					},
+					{
+						Text:         "2 Bulan",
+						CallbackData: string(types.GetBorrowTimeRange("2month")),
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) borrowConfirmation() error {
+	var borrowAmount int = 1
+	returnDate := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
+
+	_, id := isToolIDWithinBorrowMessage(ms.messageText)
+
+	tool, err := ms.toolService.FindByID(id)
+	if err != nil {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	borrowService := NewBorrowService()
+	borrow := types.Borrow{
+		Amount: borrowAmount,
+		Status: types.GetBorrowStatus("init"),
+		UserID: ms.user.ID,
+		ToolID: tool.ID,
+	}
+
+	borrow, err = borrowService.SaveBorrow(borrow)
+	if err != nil {
+		log.Println("[ERR][Borrow][SaveBorrow]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
 		Tanggal Pengembalian : %s
 		Alamat peminjam :
@@ -539,17 +616,22 @@ func (ms *MessageService) borrowConfirm() error {
 	`, tool.Name, borrowAmount, returnDate, ms.user.Address)
 	message = helper.RemoveTab(message)
 
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"]); err != nil {
+		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
+		return err
+	}
+
 	reqBody := types.MessageRequest{
 		Text: message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
-						Text:         "Yakin",
+						Text:         "Benar",
 						CallbackData: "yes",
 					},
 					{
-						Text:         "Tidak",
+						Text:         "Salah",
 						CallbackData: "no",
 					},
 				},
@@ -557,16 +639,7 @@ func (ms *MessageService) borrowConfirm() error {
 		},
 	}
 
-	if err = ms.saveChatSessionDetail(types.Topic["borrow_confirm"]); err != nil {
-		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
-		return err
-	}
-
 	return ms.sendMessage(reqBody)
-}
-
-func getToolIDFromBorrowMessage(s string) (int64, error) {
-	return strconv.ParseInt(s, 10, 64)
 }
 
 func (ms *MessageService) borrowComplete() error {

@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -15,7 +16,8 @@ func TestCanSaveBorrow(t *testing.T) {
 	borrow := types.Borrow{
 		ID:         123,
 		Amount:     5,
-		ReturnDate: "2016-01-01",
+		ReturnDate: sql.NullString{Valid: true, String: "2016-01-01"},
+		Status:     types.GetBorrowStatus("progress"),
 		UserID:     111,
 		ToolID:     222,
 		CreatedAt:  timeNowString(),
@@ -23,8 +25,8 @@ func TestCanSaveBorrow(t *testing.T) {
 
 	repository := NewBorrowRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "user_id", "tool_id", "created_at"}).
-		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate, borrow.UserID, borrow.ToolID, borrow.CreatedAt)
+	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at"}).
+		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate.String, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt)
 
 	mock.ExpectQuery("^INSERT INTO borrows (.*) VALUES (.*) RETURNING (.*)").WillReturnRows(rows)
 

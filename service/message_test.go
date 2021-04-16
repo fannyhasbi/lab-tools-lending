@@ -206,3 +206,37 @@ func TestCanBuildMessageRequest(t *testing.T) {
 		assert.Equal(t, replyMarkup, req.ReplyMarkup)
 	})
 }
+
+func TestIsToolIDWithinBorrowMessage(t *testing.T) {
+	t.Run("return true and the int64", func(t *testing.T) {
+		m := "/pinjam 321"
+		ok, id := isToolIDWithinBorrowMessage(m)
+
+		assert.True(t, ok)
+		assert.Equal(t, int64(321), id)
+	})
+
+	t.Run("not affected by the command type", func(t *testing.T) {
+		m := "/yoyoyoyoyoy 321"
+		ok, id := isToolIDWithinBorrowMessage(m)
+
+		assert.True(t, ok)
+		assert.Equal(t, int64(321), id)
+	})
+
+	t.Run("exceed split length", func(t *testing.T) {
+		m := "/pinjam 321 1 1 1 1"
+		ok, id := isToolIDWithinBorrowMessage(m)
+
+		assert.False(t, ok)
+		assert.Equal(t, int64(0), id)
+	})
+
+	t.Run("invalid id format", func(t *testing.T) {
+		m := "/pinjam hello"
+		ok, id := isToolIDWithinBorrowMessage(m)
+
+		assert.False(t, ok)
+		assert.Equal(t, int64(0), id)
+	})
+}
