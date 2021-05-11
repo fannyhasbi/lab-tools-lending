@@ -10,11 +10,14 @@ run:
 test:
 	go test -v ./...
 
+container:
+	docker-compose build && docker-compose up
+
 ngrok:
 	@ngrok http ${port}
 
 change-server:
-	curl -F "url=$(URL)"  https://api.telegram.org/bot1701903841:AAHBGnkqTsEPggVwNt56oNMVW2ynnWbv2OI/setWebhook
+	curl -F "url=$(URL)"  https://api.telegram.org/${BOT_TOKEN}/setWebhook
 
 deploy: test
 	heroku container:push web -a $(appname) && \

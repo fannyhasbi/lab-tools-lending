@@ -110,7 +110,7 @@ func sessionProcess(message string, chatSession types.ChatSession, messageServic
 		return messageService.Error()
 	}
 
-	if err != sql.ErrNoRows {
+	if len(chatSessionDetails) > 0 {
 		messageService.ChangeChatSessionDetails(chatSessionDetails)
 		return sessionHandler(chatSessionDetails[0].Topic, message, messageService)
 	}
