@@ -4,7 +4,12 @@ import "database/sql"
 
 type (
 	BorrowStatus    string
-	BorrowTimeRange string
+	borrowTimeRange struct {
+		OneWeek  string
+		TwoWeek  string
+		OneMonth string
+		TwoMonth string
+	}
 
 	Borrow struct {
 		ID         int64          `json:"id"`
@@ -27,13 +32,11 @@ func GetBorrowStatus(s string) BorrowStatus {
 	return status[s]
 }
 
-func GetBorrowTimeRange(tr string) BorrowTimeRange {
-	timeRange := map[string]BorrowTimeRange{
-		"1week":  "1WEEK",
-		"2week":  "2WEEK",
-		"1month": "1MONTH",
-		"2month": "2MONTH",
+func GetBorrowTimeRange() borrowTimeRange {
+	return borrowTimeRange{
+		OneWeek:  "1WEEK",
+		TwoWeek:  "2WEEK",
+		OneMonth: "1MONTH",
+		TwoMonth: "2MONTH",
 	}
-
-	return timeRange[tr]
 }

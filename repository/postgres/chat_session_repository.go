@@ -49,10 +49,11 @@ func (csr *ChatSessionRepositoryPostgres) Delete(id int64) error {
 }
 
 func (csr *ChatSessionRepositoryPostgres) SaveDetail(chatSessionDetail *types.ChatSessionDetail) (types.ChatSessionDetail, error) {
-	row := csr.DB.QueryRow(`INSERT INTO chat_session_details (topic, chat_session_id) VALUES ($1, $2)
-		RETURNING id, topic, chat_session_id, created_at`,
+	row := csr.DB.QueryRow(`INSERT INTO chat_session_details (topic, chat_session_id, data) VALUES ($1, $2, $3)
+		RETURNING id, topic, chat_session_id, created_at, data`,
 		chatSessionDetail.Topic,
-		chatSessionDetail.ChatSessionID)
+		chatSessionDetail.ChatSessionID,
+		chatSessionDetail.Data)
 
 	csd := types.ChatSessionDetail{}
 	err := row.Scan(
@@ -60,6 +61,7 @@ func (csr *ChatSessionRepositoryPostgres) SaveDetail(chatSessionDetail *types.Ch
 		&csd.Topic,
 		&csd.ChatSessionID,
 		&csd.CreatedAt,
+		&csd.Data,
 	)
 	if err != nil {
 		return types.ChatSessionDetail{}, err

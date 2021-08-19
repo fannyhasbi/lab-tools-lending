@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/helper"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -20,6 +21,7 @@ import (
 type MessageService struct {
 	messageText        string
 	user               types.User
+	requestType        string
 	chatSessionDetails []types.ChatSessionDetail
 
 	chatSessionService *ChatSessionService
@@ -30,9 +32,9 @@ type MessageService struct {
 func NewMessageService(senderID int64, text string, requestType string) *MessageService {
 	ms := &MessageService{
 		messageText: text,
+		requestType: requestType,
+		user:        types.User{ID: senderID},
 	}
-
-	ms.user = types.User{ID: senderID}
 
 	ms.initChatSessionService()
 	ms.initUserService()
@@ -108,7 +110,7 @@ func (ms *MessageService) Error() error {
 
 func (ms *MessageService) RecommendRegister() error {
 	reqBody := types.MessageRequest{
-		Text: fmt.Sprintf("Silahkan daftar dengan mengetik `/%s` untuk dapat menggunakan sistem ini secara penuh.", types.Command().Register),
+		Text: fmt.Sprintf("Silahkan registrasi dengan mengetik `/%s` untuk dapat menggunakan sistem ini secara penuh.", types.Command().Register),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
@@ -163,7 +165,7 @@ func (ms *MessageService) Check() error {
 	return ms.sendMessage(reqBody)
 }
 
-func (ms *MessageService) saveChatSessionDetail(topic types.TopicType) error {
+func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
 	var chatSession types.ChatSession
 
 	chatSessions, err := ms.chatSessionService.GetChatSessions(ms.user)
@@ -185,9 +187,14 @@ func (ms *MessageService) saveChatSessionDetail(topic types.TopicType) error {
 		chatSession = chatSessions[0]
 	}
 
+	if len(sessionData) == 0 {
+		sessionData = "{}"
+	}
+
 	chatSessionDetail := types.ChatSessionDetail{
 		Topic:         topic,
 		ChatSessionID: chatSession.ID,
+		Data:          sessionData,
 	}
 	_, err = ms.chatSessionService.SaveChatSessionDetail(chatSessionDetail)
 
@@ -203,7 +210,7 @@ func (ms *MessageService) Register() error {
 
 	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
 		reqBody := types.MessageRequest{
-			Text: "Tidak bisa melakukan pendaftaran kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
+			Text: "Tidak bisa melakukan registrasi kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -251,7 +258,7 @@ func (ms *MessageService) registerAsk() error {
 		return err
 	}
 
-	if err = ms.saveChatSessionDetail(types.Topic["register_init"]); err != nil {
+	if err = ms.saveChatSessionDetail(types.Topic["register_init"], ""); err != nil {
 		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
 		return err
 	}
@@ -264,7 +271,7 @@ func (ms *MessageService) registerConfirm() error {
 	if err != nil {
 		log.Println("[ERR][Registration][getRegistrationMessage]", err)
 		reqBody := types.MessageRequest{
-			Text: "Format pendaftaran salah, mohon cek format kembali kemudian kirim ulang.",
+			Text: "Format registrasi salah, mohon cek format kembali kemudian kirim ulang.",
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -273,7 +280,7 @@ func (ms *MessageService) registerConfirm() error {
 	if err != nil {
 		log.Println("[ERR][Registration][Validation]", err)
 		reqBody := types.MessageRequest{
-			Text: "Format pendaftaran salah. Mohon cek format kembali, kemudian kirim ulang.",
+			Text: "Format registrasi salah. Mohon cek format kembali, kemudian kirim ulang.",
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -321,7 +328,7 @@ func (ms *MessageService) registerConfirm() error {
 		},
 	}
 
-	if err = ms.saveChatSessionDetail(types.Topic["register_confirm"]); err != nil {
+	if err = ms.saveChatSessionDetail(types.Topic["register_confirm"], ""); err != nil {
 		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
 		return err
 	}
@@ -347,7 +354,7 @@ func (ms *MessageService) registerComplete() error {
 }
 
 func (ms *MessageService) registerCompletePositive() error {
-	if err := ms.saveChatSessionDetail(types.Topic["register_complete"]); err != nil {
+	if err := ms.saveChatSessionDetail(types.Topic["register_complete"], ""); err != nil {
 		return err
 	}
 
@@ -379,7 +386,7 @@ func (ms *MessageService) registerCompleteNegative() error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: "Pendaftaran berhasil dibatalkan",
+		Text: "Registrasi berhasil dibatalkan",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -444,14 +451,14 @@ func (ms *MessageService) Borrow() error {
 	ms.user = user
 	if !ms.user.IsRegistered() {
 		reqBody := types.MessageRequest{
-			Text: "Maaf, Anda belum terdaftar dalam sistem. Silahkan daftar dengan cara ketik `/daftar`.",
+			Text: fmt.Sprintf("Maaf, Anda belum terdaftar kedalam sistem. Silahkan registrasi dengan cara ketik `/%s`.", types.Command().Register),
 		}
 		return ms.sendMessage(reqBody)
 	}
 
 	ok, toolID := isToolIDWithinBorrowMessage(ms.messageText)
 	if ok && toolID > 0 {
-		return ms.borrowDateRange()
+		return ms.borrowInit(toolID)
 	}
 
 	if len(ms.chatSessionDetails) == 0 {
@@ -460,7 +467,7 @@ func (ms *MessageService) Borrow() error {
 
 	switch ms.chatSessionDetails[0].Topic {
 	case types.Topic["borrow_init"]:
-		return ms.borrowConfirmation()
+		return ms.borrowAskDateRange()
 	case types.Topic["borrow_confirm"]:
 		return ms.borrowComplete()
 	}
@@ -507,10 +514,8 @@ func (ms *MessageService) borrowMechanism() error {
 	return ms.Check()
 }
 
-func (ms *MessageService) borrowDateRange() error {
-	_, id := isToolIDWithinBorrowMessage(ms.messageText)
-
-	tool, err := ms.toolService.FindByID(id)
+func (ms *MessageService) borrowInit(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
 		reqBody := types.MessageRequest{
@@ -520,7 +525,6 @@ func (ms *MessageService) borrowDateRange() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrowService := NewBorrowService()
 	borrow := types.Borrow{
 		Amount: 1,
 		Status: types.GetBorrowStatus("init"),
@@ -528,6 +532,7 @@ func (ms *MessageService) borrowDateRange() error {
 		ToolID: tool.ID,
 	}
 
+	borrowService := NewBorrowService()
 	borrow, err = borrowService.SaveBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][SaveBorrow]", err)
@@ -538,7 +543,10 @@ func (ms *MessageService) borrowDateRange() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"]); err != nil {
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.BorrowInit(tool.ID)
+
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"], generatedSessionData); err != nil {
 		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
 		return err
 	}
@@ -550,21 +558,21 @@ func (ms *MessageService) borrowDateRange() error {
 				{
 					{
 						Text:         "1 Minggu",
-						CallbackData: string(types.GetBorrowTimeRange("1week")),
+						CallbackData: types.GetBorrowTimeRange().OneWeek,
 					},
 					{
 						Text:         "2 Minggu",
-						CallbackData: string(types.GetBorrowTimeRange("2week")),
+						CallbackData: types.GetBorrowTimeRange().TwoWeek,
 					},
 				},
 				{
 					{
 						Text:         "1 Bulan",
-						CallbackData: string(types.GetBorrowTimeRange("1month")),
+						CallbackData: types.GetBorrowTimeRange().OneMonth,
 					},
 					{
 						Text:         "2 Bulan",
-						CallbackData: string(types.GetBorrowTimeRange("2month")),
+						CallbackData: types.GetBorrowTimeRange().TwoMonth,
 					},
 				},
 			},
@@ -574,13 +582,63 @@ func (ms *MessageService) borrowDateRange() error {
 	return ms.sendMessage(reqBody)
 }
 
-func (ms *MessageService) borrowConfirmation() error {
+func getBorrowTimeRange(message string) (r int, err error) {
+	btr := types.GetBorrowTimeRange()
+	switch message {
+	case btr.OneWeek:
+		r = 7
+	case btr.TwoWeek:
+		r = 14
+	case btr.OneMonth:
+		r = 30
+	case btr.TwoMonth:
+		r = 60
+	default:
+		r, err = strconv.Atoi(message)
+	}
+
+	return r, err
+}
+
+func (ms *MessageService) borrowAskDateRange() error {
 	var borrowAmount int = 1
-	returnDate := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
 
-	_, id := isToolIDWithinBorrowMessage(ms.messageText)
+	borrowDateRange, err := getBorrowTimeRange(ms.messageText)
+	if err != nil {
+		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
+		reqBody := types.MessageRequest{
+			Text: "Mohon sebutkan jumlah hari.",
+		}
 
-	tool, err := ms.toolService.FindByID(id)
+		return ms.sendMessage(reqBody)
+	}
+
+	returnDate := time.Now().AddDate(0, 0, borrowDateRange).Format("2006-01-02")
+
+	sessionData := ms.chatSessionDetails[0].Data
+	sessionDataParsed, err := gabs.ParseJSON([]byte(sessionData))
+	if err != nil {
+		log.Println("[ERR][Borrow][ParseJSON]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	tempToolID, ok := sessionDataParsed.Path("tool_id").Data().(float64)
+	if !ok {
+		log.Println("[ERR][Borrow][Path] tool_id does not exist in json")
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	toolID := int64(tempToolID)
+
+	tool, err := ms.toolService.FindByID(toolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
 		reqBody := types.MessageRequest{
@@ -590,14 +648,14 @@ func (ms *MessageService) borrowConfirmation() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrowService := NewBorrowService()
 	borrow := types.Borrow{
 		Amount: borrowAmount,
-		Status: types.GetBorrowStatus("init"),
+		Status: types.GetBorrowStatus("progress"),
 		UserID: ms.user.ID,
 		ToolID: tool.ID,
 	}
 
+	borrowService := NewBorrowService()
 	borrow, err = borrowService.SaveBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][SaveBorrow]", err)
@@ -608,6 +666,14 @@ func (ms *MessageService) borrowConfirmation() error {
 		return ms.sendMessage(reqBody)
 	}
 
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.BorrowDateRange(borrowDateRange)
+
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_date"], generatedSessionData); err != nil {
+		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
+		return err
+	}
+
 	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
 		Tanggal Pengembalian : %s
@@ -615,11 +681,6 @@ func (ms *MessageService) borrowConfirmation() error {
 		%s
 	`, tool.Name, borrowAmount, returnDate, ms.user.Address)
 	message = helper.RemoveTab(message)
-
-	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"]); err != nil {
-		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
-		return err
-	}
 
 	reqBody := types.MessageRequest{
 		Text: message,

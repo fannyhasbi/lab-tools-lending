@@ -82,12 +82,13 @@ func TestCanSaveChatSessionDetail(t *testing.T) {
 		Topic:         types.Topic["register_init"],
 		ChatSessionID: 321,
 		CreatedAt:     timeNowString(),
+		Data:          `{"type": "typetest"}`,
 	}
 
 	repository := NewChatSessionRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at"}).
-		AddRow(detail.ID, detail.Topic, detail.ChatSessionID, detail.CreatedAt)
+	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at", "data"}).
+		AddRow(detail.ID, detail.Topic, detail.ChatSessionID, detail.CreatedAt, detail.Data)
 
 	mock.ExpectQuery("^INSERT INTO chat_session_details (.*) VALUES (.*) RETURNING (.*)").
 		WillReturnRows(rows)

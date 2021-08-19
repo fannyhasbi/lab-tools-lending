@@ -1,0 +1,1 @@
+ALTER TABLE chat_session_details DROP COLUMN data;

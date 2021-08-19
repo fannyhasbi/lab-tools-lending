@@ -10,7 +10,7 @@ type command struct {
 
 func Command() command {
 	return command{
-		Register: "daftar",
+		Register: "registrasi",
 		Check:    "cek",
 		Borrow:   "pinjam",
 		Return:   "pengembalian",

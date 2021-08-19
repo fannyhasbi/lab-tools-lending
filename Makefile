@@ -32,3 +32,8 @@ migrate-down:
 	migrate -path database/migration \
 		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
 		-verbose down
+
+migrate-force:
+	migrate -path database/migration \
+		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
+		-verbose force $(VERSION)
