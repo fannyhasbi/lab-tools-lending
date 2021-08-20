@@ -613,7 +613,8 @@ func (ms *MessageService) borrowAskDateRange() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	returnDate := time.Now().AddDate(0, 0, borrowDateRange).Format("2006-01-02")
+	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
+	returnDateStr := helper.TranslateDateToBahasa(returnDate)
 
 	sessionData := ms.chatSessionDetails[0].Data
 	sessionDataParsed, err := gabs.ParseJSON([]byte(sessionData))
@@ -677,9 +678,8 @@ func (ms *MessageService) borrowAskDateRange() error {
 	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
 		Tanggal Pengembalian : %s
-		Alamat peminjam :
-		%s
-	`, tool.Name, borrowAmount, returnDate, ms.user.Address)
+		Alamat peminjam : %s
+	`, tool.Name, borrowAmount, returnDateStr, ms.user.Address)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{

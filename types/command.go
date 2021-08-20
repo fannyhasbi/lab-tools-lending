@@ -14,6 +14,6 @@ func Command() command {
 		Check:    "cek",
 		Borrow:   "pinjam",
 		Return:   "pengembalian",
-		Help:     "help",
+		Help:     "bantuan",
 	}
 }
