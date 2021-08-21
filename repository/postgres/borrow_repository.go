@@ -39,5 +39,29 @@ func (br *BorrowRepositoryPostgres) Save(borrow *types.Borrow) (types.Borrow, er
 }
 
 func (br *BorrowRepositoryPostgres) Update(borrow *types.Borrow) (types.Borrow, error) {
-	return types.Borrow{}, nil
+	row := br.DB.QueryRow(`UPDATE borrows SET
+		amount = $1,
+		return_date = $2,
+		status = $3,
+		user_id = $4,
+		tool_id = $5
+		WHERE id = $6
+		RETURNING id, amount, return_date, status, user_id, tool_id, created_at
+	`, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.ID)
+
+	b := types.Borrow{}
+	err := row.Scan(
+		&b.ID,
+		&b.Amount,
+		&b.ReturnDate,
+		&b.Status,
+		&b.UserID,
+		&b.ToolID,
+		&b.CreatedAt,
+	)
+	if err != nil {
+		return types.Borrow{}, err
+	}
+
+	return b, nil
 }

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/helper"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -616,10 +615,10 @@ func (ms *MessageService) borrowAskDateRange() error {
 	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
 	returnDateStr := helper.TranslateDateToBahasa(returnDate)
 
-	sessionData := ms.chatSessionDetails[0].Data
-	sessionDataParsed, err := gabs.ParseJSON([]byte(sessionData))
+	borrowService := NewBorrowService()
+	borrow, err := borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
-		log.Println("[ERR][Borrow][ParseJSON]", err)
+		log.Println("[ERR][Borrow][FindInitialByUserID]", err)
 		reqBody := types.MessageRequest{
 			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
 		}
@@ -627,39 +626,25 @@ func (ms *MessageService) borrowAskDateRange() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	tempToolID, ok := sessionDataParsed.Path("tool_id").Data().(float64)
-	if !ok {
-		log.Println("[ERR][Borrow][Path] tool_id does not exist in json")
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
-	}
-
-	toolID := int64(tempToolID)
-
-	tool, err := ms.toolService.FindByID(toolID)
+	toolService := NewToolService()
+	tool, err := toolService.FindByID(borrow.ToolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
 		reqBody := types.MessageRequest{
-			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
 		}
 
 		return ms.sendMessage(reqBody)
 	}
 
-	borrow := types.Borrow{
-		Amount: borrowAmount,
-		Status: types.GetBorrowStatus("progress"),
-		UserID: ms.user.ID,
-		ToolID: tool.ID,
+	borrow.ReturnDate = sql.NullString{
+		Valid:  true,
+		String: returnDate.Format("2006-01-02"),
 	}
 
-	borrowService := NewBorrowService()
-	borrow, err = borrowService.SaveBorrow(borrow)
+	borrow, err = borrowService.UpdateBorrow(borrow)
 	if err != nil {
-		log.Println("[ERR][Borrow][SaveBorrow]", err)
+		log.Println("[ERR][Borrow][UpdateBorrow]", err)
 		reqBody := types.MessageRequest{
 			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
 		}
