@@ -30,6 +30,7 @@ func GetBorrowStatus(s string) BorrowStatus {
 		"init":     "INIT",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
+		"cancel":   "CANCEL",
 	}
 
 	return status[s]

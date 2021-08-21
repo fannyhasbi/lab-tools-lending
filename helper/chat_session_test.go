@@ -27,3 +27,13 @@ func TestSessionGeneratorBorrowDateRange(t *testing.T) {
 
 	assert.JSONEq(t, expected, r)
 }
+
+func TestSessionGeneratorBorrowConfirmation(t *testing.T) {
+	resp := true
+	gen := NewSessionDataGenerator()
+	r := gen.BorrowConfirmation(resp)
+
+	expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, string(types.Topic["borrow_confirm"]), resp)
+
+	assert.JSONEq(t, expected, r)
+}

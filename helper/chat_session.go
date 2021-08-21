@@ -26,3 +26,9 @@ func (sdc SessionDataContainer) BorrowDateRange(dateDuration int) string {
 	sdc.container.Set(dateDuration, "duration")
 	return sdc.container.String()
 }
+
+func (sdc SessionDataContainer) BorrowConfirmation(userResponse bool) string {
+	sdc.container.Set(types.Topic["borrow_confirm"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}

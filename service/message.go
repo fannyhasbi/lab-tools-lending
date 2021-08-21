@@ -467,8 +467,8 @@ func (ms *MessageService) Borrow() error {
 	switch ms.chatSessionDetails[0].Topic {
 	case types.Topic["borrow_init"]:
 		return ms.borrowAskDateRange()
-	case types.Topic["borrow_confirm"]:
-		return ms.borrowComplete()
+	case types.Topic["borrow_date"]:
+		return ms.borrowConfirm()
 	}
 
 	return nil
@@ -670,9 +670,64 @@ func (ms *MessageService) borrowAskDateRange() error {
 	return ms.sendMessage(reqBody)
 }
 
-func (ms *MessageService) borrowComplete() error {
-	reqBody := types.MessageRequest{
-		Text: "Berhasil meminjam!",
+func (ms *MessageService) borrowConfirm() error {
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
 	}
-	return ms.sendMessage(reqBody)
+
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.BorrowConfirmation(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["borrow_confirm"], generatedSessionData); err != nil {
+		return err
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		return err
+	}
+
+	borrowService := NewBorrowService()
+	borrow, err := borrowService.FindInitialByUserID(ms.user.ID)
+	if err != nil {
+		log.Println("[ERR][borrowConfirm][FindInitialByUserID]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	var message string
+	if userResponse {
+		borrow.Status = types.GetBorrowStatus("progress")
+		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan."
+	} else {
+		borrow.Status = types.GetBorrowStatus("cancel")
+		message = "Pengajuan berhasil dibatalkan"
+	}
+
+	_, err = borrowService.UpdateBorrow(borrow)
+	if err != nil {
+		log.Println("[ERR][borrowConfirm][UpdateBorrow]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	if userResponse {
+		// todo: Notif to admin
+		go func() {
+			log.Println("Notification")
+		}()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }

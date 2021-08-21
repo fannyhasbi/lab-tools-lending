@@ -122,7 +122,7 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 	switch topic {
 	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
-	case types.Topic["borrow_init"], types.Topic["borrow_confirm"]:
+	case types.Topic["borrow_init"], types.Topic["borrow_date"], types.Topic["borrow_confirm"]:
 		return ms.Borrow()
 	default:
 		return ms.Unknown()
