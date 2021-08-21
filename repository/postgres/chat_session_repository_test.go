@@ -25,7 +25,7 @@ func TestCanSaveChatSession(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "status", "user_id", "created_at", "updated_at"}).
 		AddRow(chatSession.ID, chatSession.Status, chatSession.UserID, chatSession.CreatedAt, chatSession.UpdatedAt)
 
-	mock.ExpectQuery("^INSERT INTO chat_sessions (.*) VALUES (.*) RETURNING (.*)").
+	mock.ExpectQuery("^INSERT INTO chat_sessions (.+) VALUES (.+) RETURNING (.+)").
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&chatSession)
@@ -45,7 +45,7 @@ func TestCanUpdateChatSession(t *testing.T) {
 
 	repository := NewChatSessionRepositoryPostgres(db)
 
-	mock.ExpectExec("^UPDATE chat_sessions SET status = (.*) WHERE id = (.*)").
+	mock.ExpectExec("^UPDATE chat_sessions SET status = (.+) WHERE id = (.+)").
 		WithArgs(status, id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -63,7 +63,7 @@ func TestCanDeleteChatSession(t *testing.T) {
 
 	repository := NewChatSessionRepositoryPostgres(db)
 
-	mock.ExpectExec("^DELETE FROM chat_sessions WHERE id = (.*)").
+	mock.ExpectExec("^DELETE FROM chat_sessions WHERE id = (.+)").
 		WithArgs(id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -90,7 +90,7 @@ func TestCanSaveChatSessionDetail(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at", "data"}).
 		AddRow(detail.ID, detail.Topic, detail.ChatSessionID, detail.CreatedAt, detail.Data)
 
-	mock.ExpectQuery("^INSERT INTO chat_session_details (.*) VALUES (.*) RETURNING (.*)").
+	mock.ExpectQuery("^INSERT INTO chat_session_details (.+) VALUES (.+) RETURNING (.+)").
 		WillReturnRows(rows)
 
 	result, err := repository.SaveDetail(&detail)
@@ -109,7 +109,7 @@ func TestCanDeleteChatSessionDetailByChatSessionID(t *testing.T) {
 
 	repository := NewChatSessionRepositoryPostgres(db)
 
-	mock.ExpectExec("^DELETE FROM chat_session_details WHERE chat_session_id = (.*)").
+	mock.ExpectExec("^DELETE FROM chat_session_details WHERE chat_session_id = (.+)").
 		WithArgs(id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 

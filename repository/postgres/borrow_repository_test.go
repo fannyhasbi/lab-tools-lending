@@ -28,7 +28,7 @@ func TestCanSaveBorrow(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at"}).
 		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate.String, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt)
 
-	mock.ExpectQuery("^INSERT INTO borrows (.*) VALUES (.*) RETURNING (.*)").WillReturnRows(rows)
+	mock.ExpectQuery("^INSERT INTO borrows (.+) VALUES (.+) RETURNING (.+)").WillReturnRows(rows)
 
 	result, err := repository.Save(&borrow)
 	assert.NoError(t, err)

@@ -21,7 +21,7 @@ func TestCanGetChatSession(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "status", "created_at"}).
 		AddRow(1, types.ChatSessionStatus["progress"], timeNowString())
 
-	mock.ExpectQuery("^SELECT(.*)FROM chat_sessions(.*)WHERE user_id = (.*) ORDER BY id DESC").
+	mock.ExpectQuery("^SELECT(.+)FROM chat_sessions(.+)WHERE user_id = (.+) ORDER BY id DESC").
 		WillReturnRows(rows)
 
 	result := query.Get(user)
@@ -42,7 +42,7 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "topic", "chat_session_id", "created_at", "data"}).
 		AddRow(1, types.Topic["register"], chatSession.ID, timeNowString(), `{"type": "something"}`)
 
-	mock.ExpectQuery("^SELECT(.*)FROM chat_session_details(.*)WHERE chat_session_id = (.*) ORDER BY id DESC").
+	mock.ExpectQuery("^SELECT(.+)FROM chat_session_details(.+)WHERE chat_session_id = (.+) ORDER BY id DESC").
 		WillReturnRows(rows)
 
 	result := query.GetDetail(chatSession)
