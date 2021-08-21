@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -43,4 +44,8 @@ func monthNameSwitcher(month int) (m string) {
 	}
 
 	return
+}
+
+func GetBorrowTimeRangeValue(message string) (r int, err error) {
+	return strconv.Atoi(message)
 }

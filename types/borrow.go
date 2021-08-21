@@ -3,13 +3,7 @@ package types
 import "database/sql"
 
 type (
-	BorrowStatus    string
-	borrowTimeRange struct {
-		OneWeek  string
-		TwoWeek  string
-		OneMonth string
-		TwoMonth string
-	}
+	BorrowStatus string
 
 	Borrow struct {
 		ID         int64          `json:"id"`
@@ -22,6 +16,15 @@ type (
 	}
 )
 
+var (
+	BorrowTimeRangeMap map[string]int = map[string]int{
+		"oneweek":  7,
+		"twoweek":  14,
+		"onemonth": 30,
+		"twomonth": 60,
+	}
+)
+
 func GetBorrowStatus(s string) BorrowStatus {
 	status := map[string]BorrowStatus{
 		"init":     "INIT",
@@ -30,13 +33,4 @@ func GetBorrowStatus(s string) BorrowStatus {
 	}
 
 	return status[s]
-}
-
-func GetBorrowTimeRange() borrowTimeRange {
-	return borrowTimeRange{
-		OneWeek:  "1WEEK",
-		TwoWeek:  "2WEEK",
-		OneMonth: "1MONTH",
-		TwoMonth: "2MONTH",
-	}
 }

@@ -557,21 +557,21 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 				{
 					{
 						Text:         "1 Minggu",
-						CallbackData: types.GetBorrowTimeRange().OneWeek,
+						CallbackData: strconv.Itoa(types.BorrowTimeRangeMap["oneweek"]),
 					},
 					{
 						Text:         "2 Minggu",
-						CallbackData: types.GetBorrowTimeRange().TwoWeek,
+						CallbackData: strconv.Itoa(types.BorrowTimeRangeMap["twoweek"]),
 					},
 				},
 				{
 					{
 						Text:         "1 Bulan",
-						CallbackData: types.GetBorrowTimeRange().OneMonth,
+						CallbackData: strconv.Itoa(types.BorrowTimeRangeMap["onemonth"]),
 					},
 					{
 						Text:         "2 Bulan",
-						CallbackData: types.GetBorrowTimeRange().TwoMonth,
+						CallbackData: strconv.Itoa(types.BorrowTimeRangeMap["twomonth"]),
 					},
 				},
 			},
@@ -581,28 +581,10 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	return ms.sendMessage(reqBody)
 }
 
-func getBorrowTimeRange(message string) (r int, err error) {
-	btr := types.GetBorrowTimeRange()
-	switch message {
-	case btr.OneWeek:
-		r = 7
-	case btr.TwoWeek:
-		r = 14
-	case btr.OneMonth:
-		r = 30
-	case btr.TwoMonth:
-		r = 60
-	default:
-		r, err = strconv.Atoi(message)
-	}
-
-	return r, err
-}
-
 func (ms *MessageService) borrowAskDateRange() error {
 	var borrowAmount int = 1
 
-	borrowDateRange, err := getBorrowTimeRange(ms.messageText)
+	borrowDateRange, err := helper.GetBorrowTimeRangeValue(ms.messageText)
 	if err != nil {
 		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
 		reqBody := types.MessageRequest{
