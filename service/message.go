@@ -301,7 +301,7 @@ func (ms *MessageService) registerConfirm() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	msg := fmt.Sprintf(`Apakah data ini sudah benar?
+	msg := fmt.Sprintf(`Apakah Anda yakin data ini sudah benar?
 
 		Nama : %s
 		NIM : %s
@@ -315,11 +315,11 @@ func (ms *MessageService) registerConfirm() error {
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
-						Text:         "Yakin",
+						Text:         "Lanjutkan",
 						CallbackData: "yes",
 					},
 					{
-						Text:         "Tidak",
+						Text:         "Batalkan",
 						CallbackData: "no",
 					},
 				},
@@ -364,7 +364,7 @@ func (ms *MessageService) registerCompletePositive() error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: "Selamat! Anda telah terdaftar dan dapat menggunakan sistem ini.\n\nSilahkan ketik `/help` untuk bantuan.",
+		Text: fmt.Sprintf("Selamat! Anda telah terdaftar dan dapat menggunakan sistem ini.\n\nSilahkan ketik `/%s` untuk bantuan.", types.Command().Help),
 	}
 
 	return ms.sendMessage(reqBody)
@@ -492,12 +492,12 @@ func (ms *MessageService) borrowMechanism() error {
 	var message string
 	var reqBody types.MessageRequest
 
-	message = `*Mekanisme Peminjaman*
+	message = fmt.Sprintf(`*Mekanisme Peminjaman*
 
-	1\. Cek ketersediaan alat dengan mengetik /cek
-	2\. Ketik perintah "*/pinjam \[id\]*", dimana *id* adalah nomor unik alat yang akan dipinjam
+	1\. Cek ketersediaan alat dengan mengetik /%s
+	2\. Ketik perintah "*/%s \[id\]*", dimana *id* adalah nomor unik alat yang akan dipinjam
 
-	Contoh : "*/pinjam 321*"`
+	Contoh : "*/%s 321*"`, types.Command().Check, types.Command().Borrow, types.Command().Borrow)
 	message = helper.RemoveTab(message)
 
 	reqBody = types.MessageRequest{
@@ -644,9 +644,9 @@ func (ms *MessageService) borrowAskDateRange() error {
 
 	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
-		Tanggal Pengembalian : %s
+		Tanggal Pengembalian : %s (%d hari)
 		Alamat peminjam : %s
-	`, tool.Name, borrowAmount, returnDateStr, ms.user.Address)
+	`, tool.Name, borrowAmount, returnDateStr, borrowDateRange, ms.user.Address)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -655,11 +655,11 @@ func (ms *MessageService) borrowAskDateRange() error {
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
-						Text:         "Benar",
+						Text:         "Lanjutkan",
 						CallbackData: "yes",
 					},
 					{
-						Text:         "Salah",
+						Text:         "Batalkan",
 						CallbackData: "no",
 					},
 				},
