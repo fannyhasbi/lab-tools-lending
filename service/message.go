@@ -26,6 +26,7 @@ type MessageService struct {
 	chatSessionService *ChatSessionService
 	userService        *UserService
 	toolService        *ToolService
+	borrowService      *BorrowService
 }
 
 func NewMessageService(senderID int64, text string, requestType string) *MessageService {
@@ -38,6 +39,7 @@ func NewMessageService(senderID int64, text string, requestType string) *Message
 	ms.initChatSessionService()
 	ms.initUserService()
 	ms.initToolService()
+	ms.initBorrowService()
 
 	return ms
 }
@@ -52,6 +54,10 @@ func (ms *MessageService) initUserService() {
 
 func (ms *MessageService) initToolService() {
 	ms.toolService = NewToolService()
+}
+
+func (ms *MessageService) initBorrowService() {
+	ms.borrowService = NewBorrowService()
 }
 
 func buildMessageRequest(data *types.MessageRequest) {
@@ -143,12 +149,9 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	var toolService *ToolService
 	var message string
 
-	toolService = NewToolService()
-
-	tools, err := toolService.GetAvailableTools()
+	tools, err := ms.toolService.GetAvailableTools()
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return err
@@ -531,8 +534,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		ToolID: tool.ID,
 	}
 
-	borrowService := NewBorrowService()
-	borrow, err = borrowService.SaveBorrow(borrow)
+	borrow, err = ms.borrowService.SaveBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][SaveBorrow]", err)
 		reqBody := types.MessageRequest{
@@ -597,8 +599,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
 	returnDateStr := helper.TranslateDateToBahasa(returnDate)
 
-	borrowService := NewBorrowService()
-	borrow, err := borrowService.FindInitialByUserID(ms.user.ID)
+	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindInitialByUserID]", err)
 		reqBody := types.MessageRequest{
@@ -608,8 +609,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	toolService := NewToolService()
-	tool, err := toolService.FindByID(borrow.ToolID)
+	tool, err := ms.toolService.FindByID(borrow.ToolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
 		reqBody := types.MessageRequest{
@@ -624,7 +624,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 		String: returnDate.Format("2006-01-02"),
 	}
 
-	borrow, err = borrowService.UpdateBorrow(borrow)
+	borrow, err = ms.borrowService.UpdateBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][UpdateBorrow]", err)
 		reqBody := types.MessageRequest{
@@ -690,8 +690,7 @@ func (ms *MessageService) borrowConfirm() error {
 		return err
 	}
 
-	borrowService := NewBorrowService()
-	borrow, err := borrowService.FindInitialByUserID(ms.user.ID)
+	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
 		log.Println("[ERR][borrowConfirm][FindInitialByUserID]", err)
 		reqBody := types.MessageRequest{
@@ -703,14 +702,13 @@ func (ms *MessageService) borrowConfirm() error {
 
 	var message string
 	if userResponse {
-		borrow.Status = types.GetBorrowStatus("progress")
 		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan."
 	} else {
 		borrow.Status = types.GetBorrowStatus("cancel")
 		message = "Pengajuan berhasil dibatalkan"
 	}
 
-	_, err = borrowService.UpdateBorrow(borrow)
+	_, err = ms.borrowService.UpdateBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][borrowConfirm][UpdateBorrow]", err)
 		reqBody := types.MessageRequest{
@@ -721,13 +719,17 @@ func (ms *MessageService) borrowConfirm() error {
 	}
 
 	if userResponse {
-		// todo: Notif to admin
 		go func() {
-			log.Println("Notification")
+			ms.sendToAdmin(borrow)
 		}()
 	}
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,
 	})
+}
+
+// todo: Notif to admin
+func (ms *MessageService) sendToAdmin(borrow types.Borrow) error {
+	return nil
 }
