@@ -720,6 +720,7 @@ func (ms *MessageService) borrowConfirm() error {
 
 	if userResponse {
 		go func() {
+			time.Sleep(2 * time.Second)
 			ms.sendToAdmin(borrow)
 		}()
 	}
@@ -731,5 +732,21 @@ func (ms *MessageService) borrowConfirm() error {
 
 // todo: Notif to admin
 func (ms *MessageService) sendToAdmin(borrow types.Borrow) error {
-	return nil
+	/**
+	* todo: update trigger when admin confirm
+	* but for this time it update here
+	**/
+	borrow.Status = types.GetBorrowStatus("progress")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][sendToAdmin][UpdateBorrow]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Permintaan Anda telah disetujui.",
+	})
 }
