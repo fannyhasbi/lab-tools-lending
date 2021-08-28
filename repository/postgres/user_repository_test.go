@@ -26,7 +26,7 @@ func TestCanSaveUser(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at"}).
 		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt)
 
-	mock.ExpectQuery("^INSERT INTO users (.*) VALUES (.*) RETURNING (.*)").
+	mock.ExpectQuery("^INSERT INTO users (.+) VALUES (.+) RETURNING (.+)").
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&user)
@@ -55,7 +55,7 @@ func TestCanUpdateUser(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at"}).
 		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt)
 
-	mock.ExpectQuery("^UPDATE users SET (.*) WHERE id = (.*)").
+	mock.ExpectQuery("^UPDATE users SET (.+) WHERE id = (.+)").
 		WillReturnRows(rows)
 
 	result, err := repository.Update(&user)
@@ -74,7 +74,7 @@ func TestCanDeleteUser(t *testing.T) {
 
 	repository := NewUserRepositoryPostgres(db)
 
-	mock.ExpectExec("^DELETE FROM users WHERE id = (.*)").
+	mock.ExpectExec("^DELETE FROM users WHERE id = (.+)").
 		WithArgs(id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 

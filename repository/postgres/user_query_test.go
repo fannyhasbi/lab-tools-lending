@@ -17,7 +17,7 @@ func TestCanFindUserByID(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at"}).
 		AddRow(id, "testname", "2111", 2016, "testaddress", timeNowString())
 
-	mock.ExpectQuery("^SELECT(.*)FROM users(.*)WHERE id = (.*)").
+	mock.ExpectQuery("^SELECT(.+)FROM users(.+)WHERE id = (.+)").
 		WillReturnRows(rows)
 
 	result := query.FindByID(id)

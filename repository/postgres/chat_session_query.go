@@ -49,7 +49,7 @@ func (csq ChatSessionQueryPostgres) Get(user types.User) repository.QueryResult 
 
 func (csq ChatSessionQueryPostgres) GetDetail(chatSession types.ChatSession) repository.QueryResult {
 	rows, err := csq.DB.Query(`
-		SELECT id, topic, chat_session_id, created_at
+		SELECT id, topic, chat_session_id, created_at, data
 		FROM chat_session_details
 		WHERE chat_session_id = $1
 		ORDER BY id DESC
@@ -68,6 +68,7 @@ func (csq ChatSessionQueryPostgres) GetDetail(chatSession types.ChatSession) rep
 				&temp.Topic,
 				&temp.ChatSessionID,
 				&temp.CreatedAt,
+				&temp.Data,
 			)
 
 			chatSessionDetails = append(chatSessionDetails, temp)
