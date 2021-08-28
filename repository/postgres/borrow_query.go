@@ -49,5 +49,37 @@ func (bq BorrowQueryPostgres) FindInitialByUserID(id int64) repository.QueryResu
 }
 
 func (bq BorrowQueryPostgres) FindByUserID(id int64) repository.QueryResult {
-	return repository.QueryResult{}
+	rows, err := bq.DB.Query(`
+		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name
+		FROM borrows b
+		INNER JOIN tools t
+			ON t.id = b.tool_id
+		WHERE b.user_id = $1
+		ORDER BY b.id DESC
+	`, id)
+
+	borrows := []types.Borrow{}
+	result := repository.QueryResult{}
+
+	if err != nil {
+		result.Error = err
+	} else {
+		for rows.Next() {
+			temp := types.Borrow{}
+			rows.Scan(
+				&temp.ID,
+				&temp.Amount,
+				&temp.ReturnDate,
+				&temp.Status,
+				&temp.UserID,
+				&temp.ToolID,
+				&temp.CreatedAt,
+				&temp.Tool.Name,
+			)
+
+			borrows = append(borrows, temp)
+		}
+		result.Result = borrows
+	}
+	return result
 }

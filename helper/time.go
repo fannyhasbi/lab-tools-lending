@@ -3,6 +3,7 @@ package helper
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,6 +14,19 @@ func GetDateFromTimestamp(s string) string {
 func TranslateDateToBahasa(date time.Time) string {
 	month := monthNameSwitcher(int(date.Month()))
 	return fmt.Sprintf("%d %s %d", date.Day(), month, date.Year())
+}
+
+// TranslateDateStringToBahasa parameter date in "YYYY-MM-DD"
+func TranslateDateStringToBahasa(date string) string {
+	// anticipate if there is pattern "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss"
+	dateStr := strings.Split(date, " ")
+	dateStr = strings.Split(dateStr[0], "T")
+	dateStr = strings.Split(dateStr[0], "-")
+
+	year, _ := strconv.Atoi(dateStr[0])
+	month, _ := strconv.Atoi(dateStr[1])
+	day, _ := strconv.Atoi(dateStr[2])
+	return fmt.Sprintf("%d %s %d", day, monthNameSwitcher(month), year)
 }
 
 func monthNameSwitcher(month int) (m string) {

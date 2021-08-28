@@ -21,15 +21,41 @@ func TestGetDateFromTimestamp(t *testing.T) {
 }
 
 func TestTranslateDateToBahasa(t *testing.T) {
-	date_str := "2021-08-21"
-	tm, err := time.Parse("2006-01-02", date_str)
+	dateStr := "2021-08-03"
+	tm, err := time.Parse("2006-01-02", dateStr)
 
 	r := TranslateDateToBahasa(tm)
 
-	expected := "21 Agustus 2021"
+	expected := "3 Agustus 2021"
 
 	assert.Equal(t, expected, r)
 	assert.NoError(t, err)
+}
+
+func TestTranslateDateStringToBahasa(t *testing.T) {
+	t.Run("basic date", func(t *testing.T) {
+		dateStr := "2021-08-03"
+		r := TranslateDateStringToBahasa(dateStr)
+		expected := "3 Agustus 2021"
+
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("date with hour:minute:second", func(t *testing.T) {
+		dateStr := "2021-08-22 11:57:58"
+		r := TranslateDateStringToBahasa(dateStr)
+		expected := "22 Agustus 2021"
+
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("date with RFC format", func(t *testing.T) {
+		dateStr := "2021-08-03T12:00:08.971317Z"
+		r := TranslateDateStringToBahasa(dateStr)
+		expected := "3 Agustus 2021"
+
+		assert.Equal(t, expected, r)
+	})
 }
 
 func TestMonthNameSwitcher(t *testing.T) {

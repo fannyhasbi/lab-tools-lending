@@ -97,6 +97,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.Check()
 	case types.Command().Borrow:
 		return ms.Borrow()
+	case types.Command().Return:
+		return ms.ReturnTool()
 	default:
 		return ms.Unknown()
 	}

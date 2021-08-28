@@ -750,3 +750,45 @@ func (ms *MessageService) sendToAdmin(borrow types.Borrow) error {
 		Text: "Permintaan Anda telah disetujui.",
 	})
 }
+
+func (ms *MessageService) ReturnTool() error {
+	return ms.borrowedTools()
+}
+
+func (ms *MessageService) borrowedTools() error {
+	var message string
+
+	borrows, err := ms.borrowService.FindByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	borrowGroup := helper.GroupBorrowStatus(borrows)
+	progressLen := len(borrowGroup[types.GetBorrowStatus("progress")])
+	returnedLen := len(borrowGroup[types.GetBorrowStatus("returned")])
+
+	if progressLen > 0 || returnedLen > 0 {
+		message += "Alat yang sedang Anda pinjam:\n"
+		if progressLen > 0 {
+			message += helper.BuildBorrowedMessage(borrowGroup[types.GetBorrowStatus("progress")])
+		} else {
+			message += "Saat ini tidak ada alat yang sedang Anda pinjam."
+		}
+
+		message += "\n\nAlat yang sudah pernah Anda pinjam:\n"
+		if returnedLen > 0 {
+			message += helper.BuildBorrowedMessage(borrowGroup[types.GetBorrowStatus("returned")])
+		} else {
+			message += "Belum ada alat yang pernah Anda kembalikan."
+		}
+	} else {
+		message += "Anda belum pernah meminjam alat."
+	}
+
+	reqBody := types.MessageRequest{
+		Text: message,
+	}
+
+	return ms.sendMessage(reqBody)
+}

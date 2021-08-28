@@ -13,6 +13,7 @@ type (
 		UserID     int64          `json:"user_id"`
 		ToolID     int64          `json:"tool_id"`
 		CreatedAt  string         `json:"created_at"`
+		Tool       Tool           `json:"tool"`
 	}
 )
 
@@ -23,15 +24,15 @@ var (
 		"onemonth": 30,
 		"twomonth": 60,
 	}
-)
 
-func GetBorrowStatus(s string) BorrowStatus {
-	status := map[string]BorrowStatus{
+	borrowStatusMap = map[string]BorrowStatus{
 		"init":     "INIT",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
 		"cancel":   "CANCEL",
 	}
+)
 
-	return status[s]
+func GetBorrowStatus(s string) BorrowStatus {
+	return borrowStatusMap[s]
 }
