@@ -45,7 +45,7 @@ func (bs BorrowService) UpdateBorrow(borrow types.Borrow) (types.Borrow, error) 
 }
 
 func (bs BorrowService) FindInitialByUserID(id int64) (types.Borrow, error) {
-	result := bs.Query.FindInitialByUserID(id)
+	result := bs.Query.FindByUserIDAndStatus(id, types.GetBorrowStatus("init"))
 	if result.Error != nil {
 		return types.Borrow{}, result.Error
 	}
@@ -60,4 +60,13 @@ func (bs BorrowService) FindByUserID(id int64) ([]types.Borrow, error) {
 	}
 
 	return result.Result.([]types.Borrow), nil
+}
+
+func (bs BorrowService) FindCurrentlyBeingBorrowedByUserID(id int64) (types.Borrow, error) {
+	result := bs.Query.FindByUserIDAndStatus(id, types.GetBorrowStatus("progress"))
+	if result.Error != nil {
+		return types.Borrow{}, result.Error
+	}
+
+	return result.Result.(types.Borrow), nil
 }

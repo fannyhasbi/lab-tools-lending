@@ -752,7 +752,8 @@ func (ms *MessageService) sendToAdmin(borrow types.Borrow) error {
 }
 
 func (ms *MessageService) ReturnTool() error {
-	return ms.borrowedTools()
+	// return ms.borrowedTools()
+	return ms.currentlyBorrowedTools()
 }
 
 func (ms *MessageService) borrowedTools() error {
@@ -784,6 +785,51 @@ func (ms *MessageService) borrowedTools() error {
 		}
 	} else {
 		message += "Anda belum pernah meminjam alat."
+	}
+
+	reqBody := types.MessageRequest{
+		Text: message,
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) currentlyBorrowedTools() error {
+	var message string
+	var returnDateLayout string = "2006-01-02T15:04:05Z"
+
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		message += "Saat ini tidak ada alat yang sedang Anda pinjam."
+		reqBody := types.MessageRequest{
+			Text: message,
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	message += fmt.Sprintf("Anda sedang meminjam %s sejak %s.\nJadwal pengembalian pada %s\n\n", borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String))
+
+	returnDateTime, err := time.Parse(returnDateLayout, borrow.ReturnDate.String)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	currentDateTime := time.Now()
+	dayDifference := int(returnDateTime.Sub(currentDateTime).Hours() / 24)
+
+	if dayDifference < 0 {
+		message += fmt.Sprintf("Anda sudah lewat %d hari dari jadwal pengembalian barang.", -dayDifference)
+	} else if dayDifference == 0 {
+		message += "Hari ini adalah jadwal pengembalian barang."
+	} else {
+		message += fmt.Sprintf("Durasi peminjaman tersisa %d hari lagi.", dayDifference)
 	}
 
 	reqBody := types.MessageRequest{

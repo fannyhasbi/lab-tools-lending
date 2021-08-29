@@ -43,6 +43,11 @@ func WebhookHandler(c echo.Context) error {
 			return err
 		}
 
+		// todo: non message request (join group, added to group, etc still don't know)
+		if len(body.Message.Text) == 0 {
+			return nil
+		}
+
 		senderID = body.Message.Chat.ID
 		messageText = body.Message.Text
 		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeCommon)

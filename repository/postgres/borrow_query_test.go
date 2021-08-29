@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCanFindInitialByUserID(t *testing.T) {
+func TestCanFindByUserIDAndStatus(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
@@ -24,16 +24,19 @@ func TestCanFindInitialByUserID(t *testing.T) {
 		UserID:     111,
 		ToolID:     222,
 		CreatedAt:  timeNowString(),
+		Tool: types.Tool{
+			Name: "Test Tool Name 1",
+		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at"}).
-		AddRow(tt.ID, tt.Amount, tt.ReturnDate, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt)
+	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name"}).
+		AddRow(tt.ID, tt.Amount, tt.ReturnDate, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.Tool.Name)
 
-	mock.ExpectQuery("^SELECT (.+) FROM borrows WHERE user_id = (.+) AND status (.+) ORDER BY id DESC").
+	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ LEFT JOIN tools .+ WHERE .+user_id = (.+) AND .+status (.+) ORDER BY .+id DESC").
 		WithArgs(userID, types.GetBorrowStatus("init")).
 		WillReturnRows(rows)
 
-	result := query.FindInitialByUserID(userID)
+	result := query.FindByUserIDAndStatus(userID, types.GetBorrowStatus("init"))
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {
