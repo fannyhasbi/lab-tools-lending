@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/helper"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -25,10 +26,11 @@ type MessageService struct {
 	requestType        string
 	chatSessionDetails []types.ChatSessionDetail
 
-	chatSessionService *ChatSessionService
-	userService        *UserService
-	toolService        *ToolService
-	borrowService      *BorrowService
+	chatSessionService   *ChatSessionService
+	userService          *UserService
+	toolService          *ToolService
+	borrowService        *BorrowService
+	toolReturningService *ToolReturningService
 }
 
 func NewMessageService(senderID int64, text string, requestType string) *MessageService {
@@ -42,6 +44,7 @@ func NewMessageService(senderID int64, text string, requestType string) *Message
 	ms.initUserService()
 	ms.initToolService()
 	ms.initBorrowService()
+	ms.initToolReturningService()
 
 	return ms
 }
@@ -60,6 +63,10 @@ func (ms *MessageService) initToolService() {
 
 func (ms *MessageService) initBorrowService() {
 	ms.borrowService = NewBorrowService()
+}
+
+func (ms *MessageService) initToolReturningService() {
+	ms.toolReturningService = NewToolReturningService()
 }
 
 func buildMessageRequest(data *types.MessageRequest) {
@@ -724,7 +731,6 @@ func (ms *MessageService) borrowConfirm() error {
 
 	if userResponse {
 		go func() {
-			time.Sleep(2 * time.Second)
 			ms.sendBorrowToAdmin(borrow)
 		}()
 	}
@@ -740,6 +746,8 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	* todo: update trigger when admin confirm
 	* but for this time it update here
 	**/
+	time.Sleep(2 * time.Second)
+
 	borrow.Status = types.GetBorrowStatus("progress")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][sendBorrowToAdmin][UpdateBorrow]", err)
@@ -924,10 +932,12 @@ func (ms *MessageService) toolReturningConfirm() error {
 	`, ms.user.Name, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateToBahasa(time.Now()), ms.messageText)
 	message = helper.RemoveTab(message)
 
-	var errChan = make(chan error)
-	go func() {
-		errChan <- ms.saveChatSessionDetail(types.Topic["tool_returning_confirm"], "")
-	}()
+	errs, _ := errgroup.WithContext(context.Background())
+	errs.Go(func() error {
+		sessionDataGenerator := helper.NewSessionDataGenerator()
+		generatedSessionData := sessionDataGenerator.ToolReturningConfirm(ms.messageText)
+		return ms.saveChatSessionDetail(types.Topic["tool_returning_confirm"], generatedSessionData)
+	})
 
 	reqBody := types.MessageRequest{
 		Text: message,
@@ -947,7 +957,7 @@ func (ms *MessageService) toolReturningConfirm() error {
 		},
 	}
 
-	err = <-errChan
+	err = errs.Wait()
 	if err != nil {
 		log.Println("[ERR][toolReturningConfirm][saveChatSessionDetail]", err)
 		return err
@@ -957,7 +967,6 @@ func (ms *MessageService) toolReturningConfirm() error {
 }
 
 func (ms *MessageService) toolReturningComplete() error {
-	var err error
 	var userResponse bool
 
 	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
@@ -989,7 +998,8 @@ func (ms *MessageService) toolReturningComplete() error {
 		})
 	}
 
-	if errs.Wait() != nil {
+	err := errs.Wait()
+	if err != nil {
 		log.Println("[ERR][ReturnTool][toolReturningComplete]", err)
 		return err
 	}
@@ -998,14 +1008,43 @@ func (ms *MessageService) toolReturningComplete() error {
 }
 
 func (ms *MessageService) toolReturningCompletePositive() error {
-	reqBody := types.MessageRequest{
-		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan.",
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	var additionalInfo string
+	confirmationChatSessionDetail, found := helper.GetChatSessionDetailByTopic(ms.chatSessionDetails, types.Topic["tool_returning_confirm"])
+	if found {
+		dataParsed, err := gabs.ParseJSON([]byte(confirmationChatSessionDetail.Data))
+		if err != nil {
+			return err
+		}
+		value, ok := dataParsed.Path("additional_info").Data().(string)
+		if ok {
+			additionalInfo = value
+		}
+	}
+
+	toolReturning := types.ToolReturning{
+		UserID:         ms.user.ID,
+		ToolID:         borrow.ToolID,
+		Status:         types.GetToolReturningStatus("progress"),
+		AdditionalInfo: additionalInfo,
+	}
+
+	toolReturning, err = ms.toolReturningService.SaveToolReturning(toolReturning)
+	if err != nil {
+		return err
 	}
 
 	go func() {
-		time.Sleep(2 * time.Second)
-		ms.sendToolReturningToAdmin()
+		ms.sendToolReturningToAdmin(toolReturning)
 	}()
+
+	reqBody := types.MessageRequest{
+		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan.",
+	}
 
 	return ms.sendMessage(reqBody)
 }
@@ -1019,7 +1058,18 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 }
 
 // todo: Notif tool returning request to admin
-func (ms *MessageService) sendToolReturningToAdmin() error {
+func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
+	time.Sleep(2 * time.Second)
+
+	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
+		reqBody := types.MessageRequest{
+			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
 	return ms.sendMessage(types.MessageRequest{
 		Text: "Permintaan Anda telah disetujui oleh pengurus.",
 	})

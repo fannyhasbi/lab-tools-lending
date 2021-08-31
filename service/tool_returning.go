@@ -35,6 +35,10 @@ func (trs ToolReturningService) SaveToolReturning(toolReturning types.ToolReturn
 	return result, nil
 }
 
+func (trs ToolReturningService) UpdateToolReturningStatus(id int64, status types.ToolReturningStatus) error {
+	return trs.Repository.UpdateStatus(id, status)
+}
+
 func (trs ToolReturningService) FindByUserID(id int64) ([]types.ToolReturning, error) {
 	result := trs.Query.FindByUserID(id)
 	if result.Error != nil {
