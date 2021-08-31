@@ -1029,6 +1029,18 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
 	time.Sleep(2 * time.Second)
 
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	borrow.Status = types.GetBorrowStatus("returned")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
 		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
 		return ms.Error()
