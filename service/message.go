@@ -534,7 +534,23 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrow := types.Borrow{
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err != sql.ErrNoRows {
+		message := "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
+		message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.Command().Return)
+		reqBody := types.MessageRequest{
+			Text: message,
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	borrow = types.Borrow{
 		Amount: 1,
 		Status: types.GetBorrowStatus("init"),
 		UserID: ms.user.ID,
