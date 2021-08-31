@@ -361,7 +361,10 @@ func (ms *MessageService) registerComplete() error {
 }
 
 func (ms *MessageService) registerCompletePositive() error {
-	if err := ms.saveChatSessionDetail(types.Topic["register_complete"], ""); err != nil {
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RegisterComplete(true)
+
+	if err := ms.saveChatSessionDetail(types.Topic["register_complete"], generatedSessionData); err != nil {
 		return err
 	}
 
