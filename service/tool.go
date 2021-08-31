@@ -26,6 +26,14 @@ func NewToolService() *ToolService {
 	}
 }
 
+func (ts ToolService) IncreaseStock(id int64) error {
+	return ts.Repository.IncreaseStock(id)
+}
+
+func (ts ToolService) DecreaseStock(id int64) error {
+	return ts.Repository.DecreaseStock(id)
+}
+
 func (ts ToolService) FindByID(id int64) (types.Tool, error) {
 	result := ts.Query.FindByID(id)
 

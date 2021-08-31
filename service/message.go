@@ -739,6 +739,11 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	**/
 	time.Sleep(2 * time.Second)
 
+	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
+		log.Println("[ERR][sendBorrowToAdmin][DecreaseStock]", err)
+		return ms.Error()
+	}
+
 	borrow.Status = types.GetBorrowStatus("progress")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][sendBorrowToAdmin][UpdateBorrow]", err)
@@ -877,18 +882,28 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 }
 
 func (ms *MessageService) toolReturningInit() error {
-	_, err := ms.toolReturningService.FindOnProgressByUserID(ms.user.ID)
+	_, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Saat ini tidak ada alat yang sedang Anda pinjam.",
+		})
+	}
+
+	_, err = ms.toolReturningService.FindOnProgressByUserID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return ms.Error()
 	}
 
 	if err != sql.ErrNoRows {
-		reqBody := types.MessageRequest{
+		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus mengkonfirmasi pengajuan tersebut.",
-		}
-
-		return ms.sendMessage(reqBody)
+		})
 	}
 
 	if err := ms.saveChatSessionDetail(types.Topic["tool_returning_init"], ""); err != nil {
@@ -897,7 +912,7 @@ func (ms *MessageService) toolReturningInit() error {
 	}
 
 	message := "Memulai Pengajuan\n\n"
-	message += "Kirimkan keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb."
+	message += "Tulis keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb."
 
 	reqBody := types.MessageRequest{
 		Text: message,
@@ -1061,6 +1076,11 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 // todo: Notif tool returning request to admin
 func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
 	time.Sleep(2 * time.Second)
+
+	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][IncreaseStock]", err)
+		return err
+	}
 
 	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
