@@ -115,11 +115,7 @@ func (ms *MessageService) Error() error {
 	reqBody := types.MessageRequest{
 		Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
 	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply:", err)
-		return err
-	}
-	return nil
+	return ms.sendMessage(reqBody)
 }
 
 func (ms *MessageService) RecommendRegister() error {
@@ -445,7 +441,7 @@ func validateRegisterConfirmation(reg types.QuestionRegistration) error {
 }
 
 func validateRegisterMessageBatch(batch int) error {
-	currentYear, _, _ := time.Now().Date()
+	currentYear := time.Now().Year()
 	if batch < 2008 || batch > currentYear {
 		return fmt.Errorf("batch is beyond the limit")
 	}
@@ -548,11 +544,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	borrow, err = ms.borrowService.SaveBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][SaveBorrow]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	sessionDataGenerator := helper.NewSessionDataGenerator()
@@ -613,21 +605,13 @@ func (ms *MessageService) borrowAskDateRange() error {
 	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindInitialByUserID]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	tool, err := ms.toolService.FindByID(borrow.ToolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	borrow.ReturnDate = sql.NullString{
@@ -638,11 +622,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 	borrow, err = ms.borrowService.UpdateBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][UpdateBorrow]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	sessionDataGenerator := helper.NewSessionDataGenerator()
@@ -704,11 +684,7 @@ func (ms *MessageService) borrowConfirm() error {
 	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
 		log.Println("[ERR][borrowConfirm][FindInitialByUserID]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	var message string
@@ -722,11 +698,7 @@ func (ms *MessageService) borrowConfirm() error {
 	_, err = ms.borrowService.UpdateBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][borrowConfirm][UpdateBorrow]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	if userResponse {
@@ -751,11 +723,7 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	borrow.Status = types.GetBorrowStatus("progress")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][sendBorrowToAdmin][UpdateBorrow]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1063,11 +1031,7 @@ func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolRetur
 
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
 		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
-		reqBody := types.MessageRequest{
-			Text: "Maaf, sedang terjadi kesalahan. Silahkan coba beberapa saat lagi.",
-		}
-
-		return ms.sendMessage(reqBody)
+		return ms.Error()
 	}
 
 	return ms.sendMessage(types.MessageRequest{

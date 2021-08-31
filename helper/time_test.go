@@ -59,22 +59,41 @@ func TestTranslateDateStringToBahasa(t *testing.T) {
 }
 
 func TestMonthNameSwitcher(t *testing.T) {
-	t.Run("switch februari", func(t *testing.T) {
-		monthInt := 2
-		expected := "Februari"
-
-		r := monthNameSwitcher(monthInt)
-
-		assert.Equal(t, expected, r)
+	t.Run("januari", func(t *testing.T) {
+		assert.Equal(t, "Januari", monthNameSwitcher(1))
 	})
-
-	t.Run("switch desember", func(t *testing.T) {
-		monthInt := 12
-		expected := "Desember"
-
-		r := monthNameSwitcher(monthInt)
-
-		assert.Equal(t, expected, r)
+	t.Run("februari", func(t *testing.T) {
+		assert.Equal(t, "Februari", monthNameSwitcher(2))
+	})
+	t.Run("Maret", func(t *testing.T) {
+		assert.Equal(t, "Maret", monthNameSwitcher(3))
+	})
+	t.Run("April", func(t *testing.T) {
+		assert.Equal(t, "April", monthNameSwitcher(4))
+	})
+	t.Run("Mei", func(t *testing.T) {
+		assert.Equal(t, "Mei", monthNameSwitcher(5))
+	})
+	t.Run("Juni", func(t *testing.T) {
+		assert.Equal(t, "Juni", monthNameSwitcher(6))
+	})
+	t.Run("Juli", func(t *testing.T) {
+		assert.Equal(t, "Juli", monthNameSwitcher(7))
+	})
+	t.Run("Agustus", func(t *testing.T) {
+		assert.Equal(t, "Agustus", monthNameSwitcher(8))
+	})
+	t.Run("September", func(t *testing.T) {
+		assert.Equal(t, "September", monthNameSwitcher(9))
+	})
+	t.Run("Oktober", func(t *testing.T) {
+		assert.Equal(t, "Oktober", monthNameSwitcher(10))
+	})
+	t.Run("November", func(t *testing.T) {
+		assert.Equal(t, "November", monthNameSwitcher(11))
+	})
+	t.Run("Desember", func(t *testing.T) {
+		assert.Equal(t, "Desember", monthNameSwitcher(12))
 	})
 
 	t.Run("empty string", func(t *testing.T) {

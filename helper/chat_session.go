@@ -15,7 +15,7 @@ func GetChatSessionDetailByTopic(details []types.ChatSessionDetail, topic types.
 			return detail, true
 		}
 	}
-	return types.ChatSessionDetail{}, true
+	return types.ChatSessionDetail{}, false
 }
 
 func NewSessionDataGenerator() SessionDataContainer {

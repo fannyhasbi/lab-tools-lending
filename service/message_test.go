@@ -10,6 +10,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCanChangeChatSessionDetails(t *testing.T) {
+	ms := &MessageService{}
+
+	firstDetails := []types.ChatSessionDetail{
+		{
+			ID:    1,
+			Topic: types.Topic["register_init"],
+		},
+		{
+			ID:    2,
+			Topic: types.Topic["register_confirm"],
+		},
+	}
+
+	secondDetail := []types.ChatSessionDetail{
+		{
+			ID:    1,
+			Topic: types.Topic["borrow_init"],
+		},
+		{
+			ID:    2,
+			Topic: types.Topic["borrow_confirm"],
+		},
+	}
+
+	ms.chatSessionDetails = firstDetails
+	ms.ChangeChatSessionDetails(secondDetail)
+
+	assert.Equal(t, secondDetail, ms.chatSessionDetails)
+}
+
 func TestGetRegistrationMessage(t *testing.T) {
 	n := "testname"
 	nim := "211XXXXXXXXXXXX"
@@ -76,7 +107,7 @@ func TestValidateRegisterMessageBatch(t *testing.T) {
 	})
 
 	t.Run("error beyond the limit", func(t *testing.T) {
-		currentYear, _, _ := time.Now().Date()
+		currentYear := time.Now().Year()
 		b := currentYear + 100
 		err := validateRegisterMessageBatch(b)
 
@@ -100,6 +131,18 @@ func TestValidateRegisterConfirmation(t *testing.T) {
 
 		err := validateRegisterConfirmation(r)
 		assert.NoError(t, err)
+	})
+
+	t.Run("error in batch", func(t *testing.T) {
+		r := types.QuestionRegistration{
+			Name:    testname,
+			NIM:     testnim,
+			Batch:   1234,
+			Address: testaddress,
+		}
+
+		err := validateRegisterConfirmation(r)
+		assert.Error(t, err)
 	})
 
 	t.Run("invalid name length", func(t *testing.T) {

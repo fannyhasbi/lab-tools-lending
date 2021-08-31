@@ -27,10 +27,20 @@ func TestCanGetChatSessionDetailByTopic(t *testing.T) {
 		},
 	}
 
-	detail, found := GetChatSessionDetailByTopic(details, types.Topic["tool_returning_confirm"])
+	t.Run("return the detail", func(t *testing.T) {
+		detail, found := GetChatSessionDetailByTopic(details, types.Topic["tool_returning_confirm"])
 
-	assert.True(t, found)
-	assert.Equal(t, details[1], detail)
+		assert.True(t, found)
+		assert.Equal(t, details[1], detail)
+	})
+
+	t.Run("value not found", func(t *testing.T) {
+		detail, found := GetChatSessionDetailByTopic(details, types.Topic["borrow_init"])
+
+		assert.False(t, found)
+		assert.Equal(t, types.ChatSessionDetail{}, detail)
+	})
+
 }
 
 func TestSessionGeneratorBorrowInit(t *testing.T) {
