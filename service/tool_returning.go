@@ -39,11 +39,11 @@ func (trs ToolReturningService) UpdateToolReturningStatus(id int64, status types
 	return trs.Repository.UpdateStatus(id, status)
 }
 
-func (trs ToolReturningService) FindByUserID(id int64) ([]types.ToolReturning, error) {
-	result := trs.Query.FindByUserID(id)
+func (trs ToolReturningService) FindOnProgressByUserID(id int64) (types.ToolReturning, error) {
+	result := trs.Query.FindByUserIDAndStatus(id, types.GetToolReturningStatus("progress"))
 	if result.Error != nil {
-		return []types.ToolReturning{}, result.Error
+		return types.ToolReturning{}, result.Error
 	}
 
-	return result.Result.([]types.ToolReturning), nil
+	return result.Result.(types.ToolReturning), nil
 }

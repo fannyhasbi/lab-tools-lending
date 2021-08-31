@@ -743,7 +743,7 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	}
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Permintaan Anda telah disetujui oleh pengurus.",
+		Text: "Pengajuan peminjaman barang Anda telah disetujui oleh pengurus.",
 	})
 }
 
@@ -874,6 +874,20 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 }
 
 func (ms *MessageService) toolReturningInit() error {
+	_, err := ms.toolReturningService.FindOnProgressByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err != sql.ErrNoRows {
+		reqBody := types.MessageRequest{
+			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus mengkonfirmasi pengajuan tersebut.",
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
 	if err := ms.saveChatSessionDetail(types.Topic["tool_returning_init"], ""); err != nil {
 		log.Println("[ERR][toolReturningInit][saveChatSessionDetail]", err)
 		return err
@@ -1063,6 +1077,6 @@ func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolRetur
 	}
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Permintaan Anda telah disetujui oleh pengurus.",
+		Text: "Pengajuan pengembalian barang Anda telah disetujui oleh pengurus.",
 	})
 }
