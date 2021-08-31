@@ -43,6 +43,11 @@ func WebhookHandler(c echo.Context) error {
 			return err
 		}
 
+		// todo: non message request (join group, added to group, etc still don't know)
+		if len(body.Message.Text) == 0 {
+			return nil
+		}
+
 		senderID = body.Message.Chat.ID
 		messageText = body.Message.Text
 		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeCommon)
@@ -126,6 +131,8 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 		return ms.Register()
 	case types.Topic["borrow_init"], types.Topic["borrow_date"], types.Topic["borrow_confirm"]:
 		return ms.Borrow()
+	case types.Topic["tool_returning_init"], types.Topic["tool_returning_confirm"]:
+		return ms.ReturnTool()
 	default:
 		return ms.Unknown()
 	}

@@ -6,10 +6,7 @@ import (
 )
 
 func GetCommand(message string) string {
-	match, err := regexp.MatchString("^/", message)
-	if err != nil {
-		return ""
-	}
+	match, _ := regexp.MatchString("^/", message)
 
 	if !match {
 		return ""

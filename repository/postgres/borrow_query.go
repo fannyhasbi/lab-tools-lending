@@ -17,14 +17,16 @@ func NewBorrowQueryPostgres(DB *sql.DB) repository.BorrowQuery {
 	}
 }
 
-func (bq BorrowQueryPostgres) FindInitialByUserID(id int64) repository.QueryResult {
+func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.BorrowStatus) repository.QueryResult {
 	row := bq.DB.QueryRow(`
-		SELECT id, amount, return_date, status, user_id, tool_id, created_at
-		FROM borrows
-		WHERE user_id = $1
-			AND status = $2
-		ORDER BY id DESC
-	`, id, types.GetBorrowStatus("init"))
+		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name
+		FROM borrows b
+		LEFT JOIN tools t
+			ON t.id = b.tool_id
+		WHERE b.user_id = $1
+			AND b.status = $2
+		ORDER BY b.id DESC
+	`, id, status)
 
 	borrow := types.Borrow{}
 	result := repository.QueryResult{}
@@ -37,6 +39,7 @@ func (bq BorrowQueryPostgres) FindInitialByUserID(id int64) repository.QueryResu
 		&borrow.UserID,
 		&borrow.ToolID,
 		&borrow.CreatedAt,
+		&borrow.Tool.Name,
 	)
 
 	if err != nil {

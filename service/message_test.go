@@ -10,6 +10,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCanChangeChatSessionDetails(t *testing.T) {
+	ms := &MessageService{}
+
+	firstDetails := []types.ChatSessionDetail{
+		{
+			ID:    1,
+			Topic: types.Topic["register_init"],
+		},
+		{
+			ID:    2,
+			Topic: types.Topic["register_confirm"],
+		},
+	}
+
+	secondDetail := []types.ChatSessionDetail{
+		{
+			ID:    1,
+			Topic: types.Topic["borrow_init"],
+		},
+		{
+			ID:    2,
+			Topic: types.Topic["borrow_confirm"],
+		},
+	}
+
+	ms.chatSessionDetails = firstDetails
+	ms.ChangeChatSessionDetails(secondDetail)
+
+	assert.Equal(t, secondDetail, ms.chatSessionDetails)
+}
+
 func TestGetRegistrationMessage(t *testing.T) {
 	n := "testname"
 	nim := "211XXXXXXXXXXXX"
@@ -76,7 +107,7 @@ func TestValidateRegisterMessageBatch(t *testing.T) {
 	})
 
 	t.Run("error beyond the limit", func(t *testing.T) {
-		currentYear, _, _ := time.Now().Date()
+		currentYear := time.Now().Year()
 		b := currentYear + 100
 		err := validateRegisterMessageBatch(b)
 
@@ -100,6 +131,18 @@ func TestValidateRegisterConfirmation(t *testing.T) {
 
 		err := validateRegisterConfirmation(r)
 		assert.NoError(t, err)
+	})
+
+	t.Run("error in batch", func(t *testing.T) {
+		r := types.QuestionRegistration{
+			Name:    testname,
+			NIM:     testnim,
+			Batch:   1234,
+			Address: testaddress,
+		}
+
+		err := validateRegisterConfirmation(r)
+		assert.Error(t, err)
 	})
 
 	t.Run("invalid name length", func(t *testing.T) {
@@ -238,5 +281,28 @@ func TestIsToolIDWithinBorrowMessage(t *testing.T) {
 
 		assert.False(t, ok)
 		assert.Equal(t, int64(0), id)
+	})
+}
+
+func TestIsFlagWithinReturningCommand(t *testing.T) {
+	t.Run("basic true", func(t *testing.T) {
+		m := fmt.Sprintf("/%s %s", types.Command().Return, types.ToolReturningFlag)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.True(t, ok)
+	})
+
+	t.Run("correct command wrong flag", func(t *testing.T) {
+		m := fmt.Sprintf("/%s testwrong", types.Command().Return)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.False(t, ok)
+	})
+
+	t.Run("correct flag but exceed split", func(t *testing.T) {
+		m := fmt.Sprintf("/%s %s test correct exceed", types.Command().Return, types.ToolReturningFlag)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.False(t, ok)
 	})
 }

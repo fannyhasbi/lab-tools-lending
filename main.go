@@ -20,8 +20,10 @@ func main() {
 
 	// middleware
 	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-		log.Println("request :", string(reqBody))
-		log.Println("response :", string(resBody))
+		log.Println("REQUEST")
+		log.Println(string(reqBody))
+		log.Println("RESPONSE")
+		log.Println(string(resBody))
 	}))
 
 	e.Use(middleware.Logger())
