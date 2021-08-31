@@ -7,3 +7,5 @@ type ToolReturning struct {
 	ToolID         int64  `json:"tool_id"`
 	AdditionalInfo string `json:"additional_info"`
 }
+
+var ToolReturningFlag string = "1"

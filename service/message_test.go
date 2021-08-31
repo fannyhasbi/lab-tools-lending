@@ -240,3 +240,26 @@ func TestIsToolIDWithinBorrowMessage(t *testing.T) {
 		assert.Equal(t, int64(0), id)
 	})
 }
+
+func TestIsFlagWithinReturningCommand(t *testing.T) {
+	t.Run("basic true", func(t *testing.T) {
+		m := fmt.Sprintf("/%s %s", types.Command().Return, types.ToolReturningFlag)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.True(t, ok)
+	})
+
+	t.Run("correct command wrong flag", func(t *testing.T) {
+		m := fmt.Sprintf("/%s testwrong", types.Command().Return)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.False(t, ok)
+	})
+
+	t.Run("correct flag but exceed split", func(t *testing.T) {
+		m := fmt.Sprintf("/%s %s test correct exceed", types.Command().Return, types.ToolReturningFlag)
+		ok := isFlagWithinReturningCommand(m)
+
+		assert.False(t, ok)
+	})
+}

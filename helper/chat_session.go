@@ -32,3 +32,9 @@ func (sdc SessionDataContainer) BorrowConfirmation(userResponse bool) string {
 	sdc.container.Set(userResponse, "user_response")
 	return sdc.container.String()
 }
+
+func (sdc SessionDataContainer) ToolReturningComplete(userResponse bool) string {
+	sdc.container.Set(types.Topic["tool_returning_confirm"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
