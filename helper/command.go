@@ -2,7 +2,10 @@ package helper
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/fannyhasbi/lab-tools-lending/types"
 )
 
 func GetCommand(message string) string {
@@ -18,4 +21,37 @@ func GetCommand(message string) string {
 	}
 
 	return message[1:]
+}
+
+func GetRespondCommands(s string) (types.RespondCommands, bool) {
+	ss := strings.Split(s, " ")
+	if len(ss) != 4 {
+		return types.RespondCommands{}, false
+	}
+
+	ss[1] = strings.ToLower(ss[1])
+	resType := types.RespondType(ss[1])
+	isExist := IsRespondTypeExists(resType)
+	if !isExist {
+		return types.RespondCommands{}, false
+	}
+
+	id, err := strconv.ParseInt(ss[2], 10, 64)
+	if err != nil {
+		return types.RespondCommands{}, false
+	}
+
+	result := types.RespondCommands{
+		Type: resType,
+		ID:   id,
+		Text: ss[3],
+	}
+	return result, true
+}
+
+func IsRespondTypeExists(c types.RespondType) bool {
+	if c == types.RespondTypeBorrow || c == types.RespondTypeToolReturning {
+		return true
+	}
+	return false
 }

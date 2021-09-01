@@ -9,6 +9,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCanFindBorrowByID(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewBorrowQueryPostgres(db)
+
+	var id int64 = 123
+	borrow := types.Borrow{
+		ID:         123,
+		Amount:     1,
+		ReturnDate: sql.NullString{Valid: false, String: ""},
+		Status:     types.GetBorrowStatus("request"),
+		UserID:     111,
+		ToolID:     222,
+		CreatedAt:  timeNowString(),
+		Tool: types.Tool{
+			Name: "Test Tool Name 1",
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name"}).
+		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.Tool.Name)
+
+	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ LEFT JOIN tools .+ WHERE .+id = .+").WithArgs(id).WillReturnRows(rows)
+
+	result := query.FindByID(id)
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.(types.Borrow)
+		assert.Equal(t, borrow, r)
+	})
+
+}
+
 func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()

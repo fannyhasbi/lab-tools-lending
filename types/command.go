@@ -10,3 +10,18 @@ const (
 	// admin stuffs
 	CommandRespond = "tanggapi"
 )
+
+type (
+	RespondType string
+
+	RespondCommands struct {
+		Type RespondType
+		ID   int64
+		Text string
+	}
+)
+
+var (
+	RespondTypeBorrow        RespondType = "pinjam"
+	RespondTypeToolReturning RespondType = "kembali"
+)

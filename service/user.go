@@ -57,7 +57,7 @@ func (us UserService) FindByID(id int64) (types.User, error) {
 	}
 
 	if result.Error != nil {
-		return types.User{}, result.Error
+		return types.User{ID: id}, result.Error
 	}
 
 	return result.Result.(types.User), nil

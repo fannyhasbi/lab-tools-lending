@@ -25,7 +25,6 @@ func WebhookHandler(c echo.Context) error {
 	var callbackBody *types.InlineCallbackQuery
 
 	var messageService *service.MessageService
-	var userService *service.UserService
 	var chatSessionService *service.ChatSessionService
 
 	bodyBytes, _ = ioutil.ReadAll(c.Request().Body)
@@ -74,13 +73,6 @@ func WebhookHandler(c echo.Context) error {
 	messageService = service.NewMessageService(chatID, senderID, messageText, requestType)
 
 	user := types.User{ID: senderID}
-
-	userService = service.NewUserService()
-	user, err := userService.FindByID(senderID)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return messageService.Error()
-	}
 
 	chatSessionService = service.NewChatSessionService()
 	chatSessions, err := chatSessionService.GetChatSessions(user)

@@ -3,6 +3,7 @@ package repository
 import "github.com/fannyhasbi/lab-tools-lending/types"
 
 type BorrowQuery interface {
+	FindByID(id int64) QueryResult
 	FindByUserIDAndStatus(id int64, status types.BorrowStatus) QueryResult
 	FindByUserID(id int64) QueryResult
 	GetByStatus(status types.BorrowStatus) QueryResult

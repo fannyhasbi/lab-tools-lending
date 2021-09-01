@@ -29,6 +29,7 @@ var (
 	borrowStatusMap = map[string]BorrowStatus{
 		"init":     "INIT",
 		"request":  "REQUEST",
+		"reject":   "REjECT",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
 		"cancel":   "CANCEL",

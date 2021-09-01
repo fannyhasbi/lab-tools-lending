@@ -187,9 +187,7 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 		})
 	}
 
-	message := fmt.Sprintf(`Detail Alat
-
-	Nama: %s
+	message := fmt.Sprintf(`Nama: %s
 	Brand: %s
 	Tipe: %s
 	Berat: %.2f gram
@@ -765,27 +763,18 @@ func (ms *MessageService) borrowConfirm() error {
 	})
 }
 
-// todo: Notif borrow request to admin
 func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
-	/**
-	* todo: update trigger when admin confirm
-	* but for this time it update here
-	**/
-	time.Sleep(2 * time.Second)
+	message := fmt.Sprintf(`Seseorang baru saja mengajukan peminjaman barang
 
-	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
-		log.Println("[ERR][sendBorrowToAdmin][DecreaseStock]", err)
-		return ms.Error()
-	}
-
-	borrow.Status = types.GetBorrowStatus("progress")
-	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
-		log.Println("[ERR][sendBorrowToAdmin][UpdateBorrow]", err)
-		return ms.Error()
-	}
+	ID Pengajuan: %d
+	Nama Barang: %s
+	
+	Anda dapat menanggapi pengajuan dengan mengetik perintah "/%s"`, borrow.ID, borrow.Tool.Name, types.CommandRespond)
+	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Pengajuan peminjaman barang Anda telah disetujui oleh pengurus.",
+		ChatID: types.AdminGroupIDs[0],
+		Text:   message,
 	})
 }
 
@@ -1161,6 +1150,13 @@ func (ms *MessageService) Respond() error {
 		return ms.Unknown()
 	}
 
+	respCommands, ok := helper.GetRespondCommands(ms.messageText)
+	if ok {
+		if respCommands.Type == types.RespondTypeBorrow {
+			return ms.respondBorrow(respCommands)
+		}
+	}
+
 	return ms.ListToRespond()
 }
 
@@ -1173,14 +1169,89 @@ func (ms *MessageService) ListToRespond() error {
 		return ms.Error()
 	}
 
-	message += "Pengajuan Peminjaman:\n"
+	message += "Daftar Pengajuan Peminjaman\n\n"
 	if len(borrows) > 0 {
 		message += helper.BuildBorrowRequestListMessage(borrows)
+		message += fmt.Sprintf("\n\nUntuk menanggapi pengajuan peminjaman ketik perintah \"/%s pinjam [id] [yes/no]\"", types.CommandRespond)
+		message += fmt.Sprintf("\ncontoh: \"/%s pinjam 173 yes\"", types.CommandRespond)
 	} else {
-		message += "tidak ada"
+		message += "- tidak ada"
 	}
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,
+	})
+}
+
+func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
+	if commands.Text != "yes" && commands.Text != "no" {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, perintah tidak dikenali. Pilihan yang tersedia adalah \"yes\" dan \"no\"",
+		})
+	}
+
+	borrow, err := ms.borrowService.FindBorrowByID(commands.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][respondBorrow][FindBorrowByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Gagal menanggapi, ID tidak ditemukan.",
+		})
+	}
+
+	if commands.Text == "yes" {
+		return ms.respondBorrowPositive(borrow)
+	}
+
+	return ms.respondBorrowNegative(borrow)
+}
+
+func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
+	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
+		log.Println("[ERR][respondBorrowPositive][DecreaseStock]", err)
+		return ms.Error()
+	}
+
+	borrow.Status = types.GetBorrowStatus("progress")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		ChatID: borrow.UserID,
+		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah disetujui oleh pengurus.", borrow.Tool.Name),
+	}
+	if err := ms.sendMessage(reqBody); err != nil {
+		log.Println("error in sending reply:", err)
+		return err
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Pengajuan peminjaman berhasil dikonfirmasi.",
+	})
+}
+
+func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
+	borrow.Status = types.GetBorrowStatus("reject")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][respondBorrowNegative][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		ChatID: borrow.UserID,
+		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah ditolak oleh pengurus.", borrow.Tool.Name),
+	}
+	if err := ms.sendMessage(reqBody); err != nil {
+		log.Println("error in sending reply:", err)
+		return err
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Pengajuan peminjaman berhasil ditolak.",
 	})
 }
