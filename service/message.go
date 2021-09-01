@@ -71,19 +71,12 @@ func (ms *MessageService) initToolReturningService() {
 	ms.toolReturningService = NewToolReturningService()
 }
 
-func buildMessageRequest(data *types.MessageRequest) {
-	if len(data.ReplyMarkup.InlineKeyboard) == 0 {
-		inlineKeyboard := make([][]types.InlineKeyboardButton, 0)
-		data.ReplyMarkup.InlineKeyboard = inlineKeyboard
-	}
-}
-
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
 		reqBody.ChatID = ms.chatID
 	}
 
-	buildMessageRequest(&reqBody)
+	helper.BuildMessageRequest(&reqBody)
 
 	reqBytes, err := json.Marshal(&reqBody)
 	if err != nil {

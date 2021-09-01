@@ -25,6 +25,66 @@ func TestRemoveTab(t *testing.T) {
 	assert.Equal(t, "hello\nworld\ntest", r)
 }
 
+func TestCanBuildMessageRequest(t *testing.T) {
+	var id int64 = 123
+	text := "hello"
+
+	t.Run("InlineKeyboard is not nil", func(t *testing.T) {
+		req := types.MessageRequest{
+			ChatID: id,
+			Text:   text,
+		}
+
+		assert.Nil(t, req.ReplyMarkup.InlineKeyboard)
+		assert.Equal(t, 0, len(req.ReplyMarkup.InlineKeyboard))
+		assert.Equal(t, 0, cap(req.ReplyMarkup.InlineKeyboard))
+		assert.Empty(t, req.ParseMode)
+
+		BuildMessageRequest(&req)
+
+		assert.NotNil(t, req.ReplyMarkup.InlineKeyboard)
+		assert.Equal(t, 0, len(req.ReplyMarkup.InlineKeyboard))
+		assert.Equal(t, 0, cap(req.ReplyMarkup.InlineKeyboard))
+		assert.Equal(t, id, req.ChatID)
+		assert.Equal(t, text, req.Text)
+		assert.Empty(t, req.ParseMode)
+	})
+
+	t.Run("prefilled InlineKeyboard", func(t *testing.T) {
+		ikb := [][]types.InlineKeyboardButton{
+			{
+				{
+					Text:         "yes",
+					CallbackData: "yes",
+				},
+				{
+					Text:         "no",
+					CallbackData: "no",
+				},
+			},
+		}
+
+		replyMarkup := types.InlineKeyboardMarkup{
+			InlineKeyboard: ikb,
+		}
+
+		req := types.MessageRequest{
+			ChatID:      id,
+			Text:        text,
+			ReplyMarkup: replyMarkup,
+		}
+
+		assert.NotNil(t, req.ReplyMarkup.InlineKeyboard)
+
+		BuildMessageRequest(&req)
+
+		assert.NotNil(t, req.ReplyMarkup.InlineKeyboard)
+		assert.Equal(t, len(ikb), len(req.ReplyMarkup.InlineKeyboard))
+		assert.Equal(t, len(ikb[0]), len(req.ReplyMarkup.InlineKeyboard[0]))
+		assert.Equal(t, replyMarkup, req.ReplyMarkup)
+	})
+}
+
 func TestCanBuildToolListMessage(t *testing.T) {
 	tools := []types.Tool{
 		{
