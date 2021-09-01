@@ -154,22 +154,53 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	var message string
-
 	tools, err := ms.toolService.GetAvailableTools()
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return err
 	}
 
-	message = "Berikut ini daftar alat yang masih tersedia.\n\n"
-	message = message + helper.BuildToolListMessage(tools)
+	toolID, ok := isIDWithinCommand(ms.messageText)
+	if ok && toolID > 0 {
+		return ms.checkDetail(toolID)
+	}
+
+	message := "Berikut ini daftar alat yang masih tersedia.\n"
+	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.Command().Check)
+	message += helper.BuildToolListMessage(tools)
 
 	reqBody := types.MessageRequest{
 		Text: message,
 	}
 
 	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) checkDetail(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil || tool.Stock < 1 {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	message := fmt.Sprintf(`Detail Alat
+
+	Nama: %s
+	Brand: %s
+	Tipe: %s
+	Berat: %.2f gram
+	Stok: %d
+
+	Keterangan:
+	%s
+	`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
+	message = helper.RemoveTab(message)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
@@ -217,7 +248,7 @@ func (ms *MessageService) Register() error {
 
 	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
 		reqBody := types.MessageRequest{
-			Text: "Tidak bisa melakukan registrasi kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
+			Text: "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt),
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -470,7 +501,7 @@ func (ms *MessageService) Borrow() error {
 		return ms.notRegistered()
 	}
 
-	ok, toolID := isToolIDWithinBorrowMessage(ms.messageText)
+	toolID, ok := isIDWithinCommand(ms.messageText)
 	if ok && toolID > 0 {
 		return ms.borrowInit(toolID)
 	}
@@ -487,18 +518,18 @@ func (ms *MessageService) Borrow() error {
 	return ms.borrowMechanism()
 }
 
-func isToolIDWithinBorrowMessage(s string) (bool, int64) {
+func isIDWithinCommand(s string) (int64, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) != 2 {
-		return false, 0
+		return 0, false
 	}
 
 	i, err := strconv.ParseInt(ss[1], 10, 64)
 	if err != nil {
-		return false, 0
+		return 0, false
 	}
 
-	return true, i
+	return i, true
 }
 
 func (ms *MessageService) borrowMechanism() error {

@@ -49,7 +49,7 @@ func TestCanGetAvailableTool(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "brand", "product_type", "weight", "stock", "additional_info", "created_at", "updated_at"}).
 		AddRow(1, "nametest", "brandtest", "producttypetest", 99.0, 10, "additionaltest", timeNowString(), timeNowString())
 
-	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE stock > 0").
+	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE stock > 0 ORDER BY id ASC").
 		WillReturnRows(rows)
 
 	result := query.GetAvailableTools()

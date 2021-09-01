@@ -45,7 +45,7 @@ func (tq ToolQueryPostgres) FindByID(id int64) repository.QueryResult {
 }
 
 func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
-	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0`)
+	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0 ORDER BY id ASC`)
 
 	tools := []types.Tool{}
 	result := repository.QueryResult{}
