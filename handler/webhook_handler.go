@@ -15,6 +15,7 @@ import (
 )
 
 func WebhookHandler(c echo.Context) error {
+	var chatID int64
 	var senderID int64
 	var messageText string
 	var bodyBytes []byte
@@ -48,14 +49,24 @@ func WebhookHandler(c echo.Context) error {
 			return nil
 		}
 
-		senderID = body.Message.Chat.ID
+		chatID = body.Message.Chat.ID
 		messageText = body.Message.Text
-		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeCommon)
+		if body.Message.Chat.Type == "group" {
+			senderID = body.Message.From.ID
+		} else {
+			senderID = chatID
+		}
 	} else {
-		senderID = callbackBody.CallbackQuery.From.ID
+		chatID = callbackBody.CallbackQuery.Message.Chat.ID
 		messageText = callbackBody.CallbackQuery.Data
-		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeInlineCallback)
+		if callbackBody.CallbackQuery.Message.Chat.Type == "group" {
+			senderID = callbackBody.CallbackQuery.From.ID
+		} else {
+			senderID = chatID
+		}
 	}
+
+	messageService = service.NewMessageService(chatID, senderID, messageText)
 
 	user := types.User{ID: senderID}
 

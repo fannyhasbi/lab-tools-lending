@@ -21,9 +21,9 @@ import (
 )
 
 type MessageService struct {
+	chatID             int64
 	messageText        string
 	user               types.User
-	requestType        string
 	chatSessionDetails []types.ChatSessionDetail
 
 	chatSessionService   *ChatSessionService
@@ -33,10 +33,10 @@ type MessageService struct {
 	toolReturningService *ToolReturningService
 }
 
-func NewMessageService(senderID int64, text string, requestType string) *MessageService {
+func NewMessageService(chatID, senderID int64, text string) *MessageService {
 	ms := &MessageService{
+		chatID:      chatID,
 		messageText: text,
-		requestType: requestType,
 		user:        types.User{ID: senderID},
 	}
 
@@ -78,7 +78,7 @@ func buildMessageRequest(data *types.MessageRequest) {
 
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
-		reqBody.ChatID = ms.user.ID
+		reqBody.ChatID = ms.chatID
 	}
 
 	buildMessageRequest(&reqBody)
