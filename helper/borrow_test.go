@@ -64,3 +64,34 @@ func TestBuildBorrowedMessage(t *testing.T) {
 
 	assert.Equal(t, expected, r)
 }
+
+func TestBuildBorrowRequestMessage(t *testing.T) {
+	borrows := []types.Borrow{
+		{
+			ID: 123,
+			Tool: types.Tool{
+				Name: "Test Tool Name 1",
+			},
+			User: types.User{
+				Name: "Test Name 1",
+			},
+		},
+		{
+			ID: 321,
+			Tool: types.Tool{
+				Name: "Test Tool Name 2",
+			},
+			User: types.User{
+				Name: "Test Name 2",
+			},
+		},
+	}
+
+	r := BuildBorrowRequestListMessage(borrows)
+
+	expected := fmt.Sprintf("[%d] %s - %s\n[%d] %s - %s\n",
+		borrows[0].ID, borrows[0].User.Name, borrows[0].Tool.Name,
+		borrows[1].ID, borrows[1].User.Name, borrows[1].Tool.Name)
+
+	assert.Equal(t, expected, r)
+}

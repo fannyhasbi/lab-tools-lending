@@ -23,3 +23,11 @@ func BuildBorrowedMessage(borrows []types.Borrow) string {
 	}
 	return message
 }
+
+func BuildBorrowRequestListMessage(borrows []types.Borrow) string {
+	var message string
+	for _, borrow := range borrows {
+		message = fmt.Sprintf("%s[%d] %s - %s\n", message, borrow.ID, borrow.User.Name, borrow.Tool.Name)
+	}
+	return message
+}

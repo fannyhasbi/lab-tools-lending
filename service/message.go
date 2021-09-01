@@ -23,6 +23,7 @@ import (
 type MessageService struct {
 	chatID             int64
 	messageText        string
+	requestType        types.RequestType
 	user               types.User
 	chatSessionDetails []types.ChatSessionDetail
 
@@ -33,10 +34,11 @@ type MessageService struct {
 	toolReturningService *ToolReturningService
 }
 
-func NewMessageService(chatID, senderID int64, text string) *MessageService {
+func NewMessageService(chatID, senderID int64, text string, requestType types.RequestType) *MessageService {
 	ms := &MessageService{
 		chatID:      chatID,
 		messageText: text,
+		requestType: requestType,
 		user:        types.User{ID: senderID},
 	}
 
@@ -739,6 +741,7 @@ func (ms *MessageService) borrowConfirm() error {
 
 	var message string
 	if userResponse {
+		borrow.Status = types.GetBorrowStatus("request")
 		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan."
 	} else {
 		borrow.Status = types.GetBorrowStatus("cancel")
@@ -1132,5 +1135,52 @@ func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolRetur
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: "Pengajuan pengembalian barang Anda telah disetujui oleh pengurus.",
+	})
+}
+
+/**
+*
+* Admin handlers
+*
+ */
+
+func (ms *MessageService) isEligibleAdmin() bool {
+	// todo: check from db
+	adminIDs := []int64{284324420}
+	for _, id := range adminIDs {
+		if ms.user.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (ms *MessageService) Respond() error {
+	if ok := ms.isEligibleAdmin(); !ok || ms.requestType != types.RequestTypeGroup {
+		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
+		return ms.Unknown()
+	}
+
+	return ms.ListToRespond()
+}
+
+func (ms *MessageService) ListToRespond() error {
+	var message string
+
+	borrows, err := ms.borrowService.GetBorrowRequests()
+	if err != nil {
+		log.Println("[ERR][ListToRespond][GetBorrowRequests]", err)
+		return ms.Error()
+	}
+
+	message += "Pengajuan Peminjaman:\n"
+	if len(borrows) > 0 {
+		message += helper.BuildBorrowRequestListMessage(borrows)
+	} else {
+		message += "tidak ada"
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
 	})
 }

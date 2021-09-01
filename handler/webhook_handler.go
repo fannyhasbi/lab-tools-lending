@@ -18,6 +18,7 @@ func WebhookHandler(c echo.Context) error {
 	var chatID int64
 	var senderID int64
 	var messageText string
+	var requestType types.RequestType
 	var bodyBytes []byte
 
 	var body *types.WebhookRequest
@@ -53,20 +54,24 @@ func WebhookHandler(c echo.Context) error {
 		messageText = body.Message.Text
 		if body.Message.Chat.Type == "group" {
 			senderID = body.Message.From.ID
+			requestType = types.RequestTypeGroup
 		} else {
 			senderID = chatID
+			requestType = types.RequestTypePrivate
 		}
 	} else {
 		chatID = callbackBody.CallbackQuery.Message.Chat.ID
 		messageText = callbackBody.CallbackQuery.Data
 		if callbackBody.CallbackQuery.Message.Chat.Type == "group" {
 			senderID = callbackBody.CallbackQuery.From.ID
+			requestType = types.RequestTypeGroup
 		} else {
 			senderID = chatID
+			requestType = types.RequestTypePrivate
 		}
 	}
 
-	messageService = service.NewMessageService(chatID, senderID, messageText)
+	messageService = service.NewMessageService(chatID, senderID, messageText, requestType)
 
 	user := types.User{ID: senderID}
 
@@ -115,6 +120,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.Borrow()
 	case types.CommandReturn:
 		return ms.ReturnTool()
+	case types.CommandRespond:
+		return ms.Respond()
 	default:
 		return ms.Unknown()
 	}

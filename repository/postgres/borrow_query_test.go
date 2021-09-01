@@ -96,3 +96,61 @@ func TestCanFindByUserID(t *testing.T) {
 		assert.Equal(t, tt, r)
 	})
 }
+
+func TestCanGetBorrowsByStatus(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewBorrowQueryPostgres(db)
+
+	status := types.GetBorrowStatus("init")
+	tt := []types.Borrow{
+		{
+			ID:         123,
+			Amount:     1,
+			ReturnDate: sql.NullString{Valid: false, String: ""},
+			Status:     types.GetBorrowStatus("progress"),
+			UserID:     111,
+			ToolID:     222,
+			CreatedAt:  timeNowString(),
+			Tool: types.Tool{
+				Name: "Tool Name Test 1",
+			},
+			User: types.User{
+				Name: "Test Name 1",
+			},
+		},
+		{
+			ID:         124,
+			Amount:     1,
+			ReturnDate: sql.NullString{Valid: false, String: ""},
+			Status:     types.GetBorrowStatus("progress"),
+			UserID:     111,
+			ToolID:     223,
+			CreatedAt:  timeNowString(),
+			Tool: types.Tool{
+				Name: "Tool Name Test 2",
+			},
+			User: types.User{
+				Name: "Test Name 2",
+			},
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name", "user_name"})
+	for _, v := range tt {
+		rows.AddRow(v.ID, v.Amount, v.ReturnDate, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.Tool.Name, v.User.Name)
+	}
+
+	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status = .+ ORDER BY b.id DESC").
+		WithArgs(status).
+		WillReturnRows(rows)
+
+	result := query.GetByStatus(status)
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.([]types.Borrow)
+		assert.Equal(t, tt, r)
+	})
+}

@@ -6,4 +6,7 @@ const (
 	CommandBorrow   = "pinjam"
 	CommandReturn   = "pengembalian"
 	CommandHelp     = "bantuan"
+
+	// admin stuffs
+	CommandRespond = "tanggapi"
 )

@@ -14,6 +14,7 @@ type (
 		ToolID     int64          `json:"tool_id"`
 		CreatedAt  string         `json:"created_at"`
 		Tool       Tool           `json:"tool"`
+		User       User           `json:"user"`
 	}
 )
 
@@ -27,6 +28,7 @@ var (
 
 	borrowStatusMap = map[string]BorrowStatus{
 		"init":     "INIT",
+		"request":  "REQUEST",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
 		"cancel":   "CANCEL",
