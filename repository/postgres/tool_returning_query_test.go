@@ -8,6 +8,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCanFindToolReturningByID(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewToolReturningQueryPostgres(db)
+
+	var id int64 = 555
+	toolReturning := types.ToolReturning{
+		ID:             123,
+		UserID:         111,
+		ToolID:         222,
+		Status:         types.GetToolReturningStatus("request"),
+		ReturnedAt:     timeNowString(),
+		AdditionalInfo: "test additional info",
+		Tool: types.Tool{
+			Name: "Test Tool Name 1",
+		},
+		User: types.User{
+			Name: "Test Name 1",
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "user_id", "tool_id", "status", "created_at", "additional_info", "tool_name", "user_name"}).
+		AddRow(toolReturning.ID, toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.ReturnedAt, toolReturning.AdditionalInfo, toolReturning.Tool.Name, toolReturning.User.Name)
+
+	mock.ExpectQuery("^SELECT .+ FROM tool_returning tr INNER JOIN tools t .+ INNER JOIN users u .+ WHERE tr.id = .+").
+		WithArgs(id).
+		WillReturnRows(rows)
+
+	result := query.FindByID(id)
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.(types.ToolReturning)
+		assert.Equal(t, toolReturning, r)
+	})
+}
+
 func TestCanFindToolReturningByUserIDAndStatus(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()

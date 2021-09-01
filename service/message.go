@@ -753,9 +753,7 @@ func (ms *MessageService) borrowConfirm() error {
 	}
 
 	if userResponse {
-		go func() {
-			ms.sendBorrowToAdmin(borrow)
-		}()
+		go ms.sendBorrowToAdmin(borrow)
 	}
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1077,9 +1075,13 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 		return err
 	}
 
-	go func() {
-		ms.sendToolReturningToAdmin(toolReturning)
-	}()
+	// get all value along with tools and users value in ToolReturning
+	toolReturning, err = ms.toolReturningService.FindToolReturningByID(toolReturning.ID)
+	if err != nil {
+		return err
+	}
+
+	go ms.sendToolReturningToAdmin(toolReturning)
 
 	reqBody := types.MessageRequest{
 		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan.",
@@ -1096,34 +1098,17 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 	return ms.sendMessage(reqBody)
 }
 
-// todo: Notif tool returning request to admin
 func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
-	time.Sleep(2 * time.Second)
+	message := fmt.Sprintf(`Seseorang baru saja mengajukan pengembalian barang
+	
+	ID Pengajuan: %d
+	Nama Barang: %s
 
-	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][IncreaseStock]", err)
-		return err
-	}
-
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return err
-	}
-
-	borrow.Status = types.GetBorrowStatus("returned")
-	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrow]", err)
-		return ms.Error()
-	}
-
-	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
-		return ms.Error()
-	}
+	Anda dapat menanggapi pengajuan dengan mengetik perintah "/%s"`, toolReturning.ID, toolReturning.Tool.Name, types.CommandRespond)
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Pengajuan pengembalian barang Anda telah disetujui oleh pengurus.",
+		ChatID: types.AdminGroupIDs[0],
+		Text:   message,
 	})
 }
 
@@ -1152,8 +1137,16 @@ func (ms *MessageService) Respond() error {
 
 	respCommands, ok := helper.GetRespondCommands(ms.messageText)
 	if ok {
+		if respCommands.Text != "yes" && respCommands.Text != "no" {
+			return ms.sendMessage(types.MessageRequest{
+				Text: "Maaf, perintah tidak dikenali. Pilihan yang tersedia adalah \"yes\" dan \"no\"",
+			})
+		}
+
 		if respCommands.Type == types.RespondTypeBorrow {
 			return ms.respondBorrow(respCommands)
+		} else if respCommands.Type == types.RespondTypeToolReturning {
+			return ms.respondToolReturning(respCommands)
 		}
 	}
 
@@ -1198,12 +1191,6 @@ func (ms *MessageService) ListToRespond() error {
 }
 
 func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
-	if commands.Text != "yes" && commands.Text != "no" {
-		return ms.sendMessage(types.MessageRequest{
-			Text: "Maaf, perintah tidak dikenali. Pilihan yang tersedia adalah \"yes\" dan \"no\"",
-		})
-	}
-
 	borrow, err := ms.borrowService.FindBorrowByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondBorrow][FindBorrowByID]", err)
@@ -1267,5 +1254,82 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: "Pengajuan peminjaman berhasil ditolak.",
+	})
+}
+
+func (ms *MessageService) respondToolReturning(commands types.RespondCommands) error {
+	toolReturning, err := ms.toolReturningService.FindToolReturningByID(commands.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][respondToolReturning][FindToolReturningByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Gagal menanggapi, ID tidak ditemukan.",
+		})
+	}
+
+	if commands.Text == "yes" {
+		return ms.respondToolReturningPositive(toolReturning)
+	}
+
+	return ms.respondToolReturningNegative(toolReturning)
+}
+
+func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolReturning) error {
+	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
+		log.Println("[ERR][respondToolReturningPositive][IncreaseStock]", err)
+		return ms.Error()
+	}
+
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(toolReturning.UserID)
+	if err != nil {
+		log.Println("[ERR][respondToolReturningPositive][FindCurrentlyBeingBorrowedByUserID]", err)
+		return ms.Error()
+	}
+
+	borrow.Status = types.GetBorrowStatus("returned")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
+	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		ChatID: toolReturning.UserID,
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.", toolReturning.Tool.Name),
+	}
+	if err := ms.sendMessage(reqBody); err != nil {
+		log.Println("error in sending reply:", err)
+		return err
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Pengajuan pengembalian berhasil dikonfirmasi.",
+	})
+}
+
+func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolReturning) error {
+	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("reject")); err != nil {
+		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningStatus]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		ChatID: toolReturning.UserID,
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah ditolak oleh pengurus.", toolReturning.Tool.Name),
+	}
+	if err := ms.sendMessage(reqBody); err != nil {
+		log.Println("error in sending reply:", err)
+		return err
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Pengajuan pengembalian berhasil ditolak",
 	})
 }

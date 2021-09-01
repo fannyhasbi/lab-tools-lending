@@ -35,19 +35,19 @@ func InitPostgresDB() *sql.DB {
 		}
 
 		dbInstance = db
+
+		m, err := migrate.New(
+			"file://database/migration",
+			connStr,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+			log.Fatal(err)
+		}
 	})
-
-	m, err := migrate.New(
-		"file://database/migration",
-		connStr,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
-	}
 
 	return dbInstance
 }

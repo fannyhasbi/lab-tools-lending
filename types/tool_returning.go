@@ -19,6 +19,7 @@ var (
 
 	toolReturningStatusMap = map[string]ToolReturningStatus{
 		"request":  "REQUEST",
+		"reject":   "REJECT",
 		"complete": "COMPLETE",
 	}
 )

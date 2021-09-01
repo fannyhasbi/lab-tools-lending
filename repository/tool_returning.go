@@ -3,6 +3,7 @@ package repository
 import "github.com/fannyhasbi/lab-tools-lending/types"
 
 type ToolReturningQuery interface {
+	FindByID(id int64) QueryResult
 	FindByUserIDAndStatus(id int64, status types.ToolReturningStatus) QueryResult
 	GetByStatus(status types.ToolReturningStatus) QueryResult
 }
