@@ -95,3 +95,34 @@ func TestBuildBorrowRequestMessage(t *testing.T) {
 
 	assert.Equal(t, expected, r)
 }
+
+func TestBuildToolReturningRequestMessage(t *testing.T) {
+	rets := []types.ToolReturning{
+		{
+			ID: 123,
+			Tool: types.Tool{
+				Name: "Test Tool Name 1",
+			},
+			User: types.User{
+				Name: "Test Name 1",
+			},
+		},
+		{
+			ID: 321,
+			Tool: types.Tool{
+				Name: "Test Tool Name 2",
+			},
+			User: types.User{
+				Name: "Test Name 2",
+			},
+		},
+	}
+
+	r := BuildToolReturningRequestListMessage(rets)
+
+	expected := fmt.Sprintf("[%d] %s - %s\n[%d] %s - %s\n",
+		rets[0].ID, rets[0].User.Name, rets[0].Tool.Name,
+		rets[1].ID, rets[1].User.Name, rets[1].Tool.Name)
+
+	assert.Equal(t, expected, r)
+}

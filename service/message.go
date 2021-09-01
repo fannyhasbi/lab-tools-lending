@@ -1068,7 +1068,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 	toolReturning := types.ToolReturning{
 		UserID:         ms.user.ID,
 		ToolID:         borrow.ToolID,
-		Status:         types.GetToolReturningStatus("progress"),
+		Status:         types.GetToolReturningStatus("request"),
 		AdditionalInfo: additionalInfo,
 	}
 
@@ -1169,14 +1169,28 @@ func (ms *MessageService) ListToRespond() error {
 		return ms.Error()
 	}
 
-	message += "Daftar Pengajuan Peminjaman\n\n"
+	toolRets, err := ms.toolReturningService.GetToolReturningRequests()
+	if err != nil {
+		log.Println("[ERR][ListToRespond][GetToolReturningRequests]", err)
+		return ms.Error()
+	}
+
+	message += "Daftar Pengajuan Peminjaman\n"
 	if len(borrows) > 0 {
 		message += helper.BuildBorrowRequestListMessage(borrows)
-		message += fmt.Sprintf("\n\nUntuk menanggapi pengajuan peminjaman ketik perintah \"/%s pinjam [id] [yes/no]\"", types.CommandRespond)
-		message += fmt.Sprintf("\ncontoh: \"/%s pinjam 173 yes\"", types.CommandRespond)
 	} else {
-		message += "- tidak ada"
+		message += "- tidak ada\n"
 	}
+
+	message += "\nDaftar Pengajuan Pengembalian\n"
+	if len(toolRets) > 0 {
+		message += helper.BuildToolReturningRequestListMessage(toolRets)
+	} else {
+		message += "- tidak ada\n"
+	}
+
+	message += fmt.Sprintf("\n\nUntuk menanggapi pengajuan ketik perintah \"/%s [pinjam/kembali] [id] [yes/no]\"", types.CommandRespond)
+	message += fmt.Sprintf("\ncontoh: \"/%s pinjam 173 yes\"", types.CommandRespond)
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,

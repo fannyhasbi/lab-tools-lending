@@ -8,9 +8,9 @@ import (
 
 func TestGetToolReturningStatus(t *testing.T) {
 	t.Run("correct", func(t *testing.T) {
-		r := GetToolReturningStatus("progress")
+		r := GetToolReturningStatus("request")
 
-		assert.Equal(t, toolReturningStatusMap["progress"], r)
+		assert.Equal(t, toolReturningStatusMap["request"], r)
 	})
 
 	t.Run("empty", func(t *testing.T) {

@@ -45,3 +45,41 @@ func (trq ToolReturningQueryPostgres) FindByUserIDAndStatus(id int64, status typ
 	result.Result = ret
 	return result
 }
+
+func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStatus) repository.QueryResult {
+	rows, err := trq.DB.Query(`
+		SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name
+		FROM tool_returning tr
+		INNER JOIN tools t
+			ON t.id = tr.tool_id
+		INNER JOIN users u
+			ON u.id = tr.user_id
+		WHERE tr.status = $1
+		ORDER BY tr.id ASC
+	`, status)
+
+	rets := []types.ToolReturning{}
+	result := repository.QueryResult{}
+
+	if err != nil {
+		result.Error = err
+	} else {
+		for rows.Next() {
+			temp := types.ToolReturning{}
+			rows.Scan(
+				&temp.ID,
+				&temp.UserID,
+				&temp.ToolID,
+				&temp.Status,
+				&temp.ReturnedAt,
+				&temp.AdditionalInfo,
+				&temp.Tool.Name,
+				&temp.User.Name,
+			)
+
+			rets = append(rets, temp)
+		}
+		result.Result = rets
+	}
+	return result
+}

@@ -9,6 +9,8 @@ type (
 		ToolID         int64               `json:"tool_id"`
 		Status         ToolReturningStatus `json:"status"`
 		AdditionalInfo string              `json:"additional_info"`
+		Tool           Tool                `json:"tool"`
+		User           User                `json:"user"`
 	}
 )
 
@@ -16,7 +18,7 @@ var (
 	ToolReturningFlag string = "1"
 
 	toolReturningStatusMap = map[string]ToolReturningStatus{
-		"progress": "PROGRESS",
+		"request":  "REQUEST",
 		"complete": "COMPLETE",
 	}
 )

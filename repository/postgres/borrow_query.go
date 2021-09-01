@@ -128,7 +128,7 @@ func (bq BorrowQueryPostgres) GetByStatus(status types.BorrowStatus) repository.
 		INNER JOIN users u
 			ON u.id = b.user_id
 		WHERE b.status = $1
-		ORDER BY b.id DESC
+		ORDER BY b.id ASC
 	`, status)
 
 	borrows := []types.Borrow{}

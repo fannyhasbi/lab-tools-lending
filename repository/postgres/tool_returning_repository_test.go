@@ -16,7 +16,7 @@ func TestCanSaveToolReturning(t *testing.T) {
 		ID:             123,
 		UserID:         111,
 		ToolID:         222,
-		Status:         types.GetToolReturningStatus("progress"),
+		Status:         types.GetToolReturningStatus("request"),
 		ReturnedAt:     timeNowString(),
 		AdditionalInfo: "Test additional info.",
 	}

@@ -177,7 +177,7 @@ func TestCanGetBorrowsByStatus(t *testing.T) {
 		rows.AddRow(v.ID, v.Amount, v.ReturnDate, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.Tool.Name, v.User.Name)
 	}
 
-	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status = .+ ORDER BY b.id DESC").
+	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status = .+ ORDER BY b.id ASC").
 		WithArgs(status).
 		WillReturnRows(rows)
 

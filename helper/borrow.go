@@ -31,3 +31,11 @@ func BuildBorrowRequestListMessage(borrows []types.Borrow) string {
 	}
 	return message
 }
+
+func BuildToolReturningRequestListMessage(rets []types.ToolReturning) string {
+	var message string
+	for _, ret := range rets {
+		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.User.Name, ret.Tool.Name)
+	}
+	return message
+}
