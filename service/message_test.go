@@ -250,10 +250,10 @@ func TestCanBuildMessageRequest(t *testing.T) {
 	})
 }
 
-func TestIsToolIDWithinBorrowMessage(t *testing.T) {
+func TestIsIDWithinCommand(t *testing.T) {
 	t.Run("return true and the int64", func(t *testing.T) {
 		m := "/pinjam 321"
-		ok, id := isToolIDWithinBorrowMessage(m)
+		id, ok := isIDWithinCommand(m)
 
 		assert.True(t, ok)
 		assert.Equal(t, int64(321), id)
@@ -261,7 +261,7 @@ func TestIsToolIDWithinBorrowMessage(t *testing.T) {
 
 	t.Run("not affected by the command type", func(t *testing.T) {
 		m := "/yoyoyoyoyoy 321"
-		ok, id := isToolIDWithinBorrowMessage(m)
+		id, ok := isIDWithinCommand(m)
 
 		assert.True(t, ok)
 		assert.Equal(t, int64(321), id)
@@ -269,7 +269,7 @@ func TestIsToolIDWithinBorrowMessage(t *testing.T) {
 
 	t.Run("exceed split length", func(t *testing.T) {
 		m := "/pinjam 321 1 1 1 1"
-		ok, id := isToolIDWithinBorrowMessage(m)
+		id, ok := isIDWithinCommand(m)
 
 		assert.False(t, ok)
 		assert.Equal(t, int64(0), id)
@@ -277,7 +277,7 @@ func TestIsToolIDWithinBorrowMessage(t *testing.T) {
 
 	t.Run("invalid id format", func(t *testing.T) {
 		m := "/pinjam hello"
-		ok, id := isToolIDWithinBorrowMessage(m)
+		id, ok := isIDWithinCommand(m)
 
 		assert.False(t, ok)
 		assert.Equal(t, int64(0), id)

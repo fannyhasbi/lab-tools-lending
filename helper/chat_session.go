@@ -24,6 +24,12 @@ func NewSessionDataGenerator() SessionDataContainer {
 	}
 }
 
+func (sdc SessionDataContainer) RegisterComplete(userResponse bool) string {
+	sdc.container.Set(types.Topic["register_complete"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) BorrowInit(toolID int64) string {
 	sdc.container.Set(types.Topic["borrow_init"], "type")
 	sdc.container.Set(toolID, "tool_id")

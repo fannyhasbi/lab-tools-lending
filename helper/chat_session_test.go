@@ -40,7 +40,16 @@ func TestCanGetChatSessionDetailByTopic(t *testing.T) {
 		assert.False(t, found)
 		assert.Equal(t, types.ChatSessionDetail{}, detail)
 	})
+}
 
+func TestSessionGeneratorRegisterComplete(t *testing.T) {
+	resp := true
+	gen := NewSessionDataGenerator()
+	r := gen.RegisterComplete(resp)
+
+	expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, string(types.Topic["register_complete"]), resp)
+
+	assert.JSONEq(t, expected, r)
 }
 
 func TestSessionGeneratorBorrowInit(t *testing.T) {

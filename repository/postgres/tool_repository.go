@@ -24,3 +24,13 @@ func (tr *ToolRepositoryPostgres) Save(tool *types.Tool) error {
 func (tr *ToolRepositoryPostgres) Update(tool *types.Tool) error {
 	return nil
 }
+
+func (tr *ToolRepositoryPostgres) IncreaseStock(toolID int64) error {
+	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock + 1 WHERE id = $1`, toolID)
+	return err
+}
+
+func (tr *ToolRepositoryPostgres) DecreaseStock(toolID int64) error {
+	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock - 1 WHERE id = $1`, toolID)
+	return err
+}

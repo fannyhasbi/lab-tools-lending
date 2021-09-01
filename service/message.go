@@ -154,22 +154,53 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	var message string
-
 	tools, err := ms.toolService.GetAvailableTools()
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return err
 	}
 
-	message = "Berikut ini daftar alat yang masih tersedia.\n\n"
-	message = message + helper.BuildToolListMessage(tools)
+	toolID, ok := isIDWithinCommand(ms.messageText)
+	if ok && toolID > 0 {
+		return ms.checkDetail(toolID)
+	}
+
+	message := "Berikut ini daftar alat yang masih tersedia.\n"
+	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.Command().Check)
+	message += helper.BuildToolListMessage(tools)
 
 	reqBody := types.MessageRequest{
 		Text: message,
 	}
 
 	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) checkDetail(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil || tool.Stock < 1 {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	message := fmt.Sprintf(`Detail Alat
+
+	Nama: %s
+	Brand: %s
+	Tipe: %s
+	Berat: %.2f gram
+	Stok: %d
+
+	Keterangan:
+	%s
+	`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
+	message = helper.RemoveTab(message)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
@@ -217,7 +248,7 @@ func (ms *MessageService) Register() error {
 
 	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
 		reqBody := types.MessageRequest{
-			Text: "Tidak bisa melakukan registrasi kembali, Anda sudah pernah terdaftar ke dalam sistem pada " + helper.GetDateFromTimestamp(user.CreatedAt),
+			Text: "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt),
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -361,7 +392,10 @@ func (ms *MessageService) registerComplete() error {
 }
 
 func (ms *MessageService) registerCompletePositive() error {
-	if err := ms.saveChatSessionDetail(types.Topic["register_complete"], ""); err != nil {
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RegisterComplete(true)
+
+	if err := ms.saveChatSessionDetail(types.Topic["register_complete"], generatedSessionData); err != nil {
 		return err
 	}
 
@@ -467,7 +501,7 @@ func (ms *MessageService) Borrow() error {
 		return ms.notRegistered()
 	}
 
-	ok, toolID := isToolIDWithinBorrowMessage(ms.messageText)
+	toolID, ok := isIDWithinCommand(ms.messageText)
 	if ok && toolID > 0 {
 		return ms.borrowInit(toolID)
 	}
@@ -484,18 +518,18 @@ func (ms *MessageService) Borrow() error {
 	return ms.borrowMechanism()
 }
 
-func isToolIDWithinBorrowMessage(s string) (bool, int64) {
+func isIDWithinCommand(s string) (int64, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) != 2 {
-		return false, 0
+		return 0, false
 	}
 
 	i, err := strconv.ParseInt(ss[1], 10, 64)
 	if err != nil {
-		return false, 0
+		return 0, false
 	}
 
-	return true, i
+	return i, true
 }
 
 func (ms *MessageService) borrowMechanism() error {
@@ -534,7 +568,23 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrow := types.Borrow{
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err != sql.ErrNoRows {
+		message := "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
+		message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.Command().Return)
+		reqBody := types.MessageRequest{
+			Text: message,
+		}
+
+		return ms.sendMessage(reqBody)
+	}
+
+	borrow = types.Borrow{
 		Amount: 1,
 		Status: types.GetBorrowStatus("init"),
 		UserID: ms.user.ID,
@@ -720,6 +770,11 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	**/
 	time.Sleep(2 * time.Second)
 
+	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
+		log.Println("[ERR][sendBorrowToAdmin][DecreaseStock]", err)
+		return ms.Error()
+	}
+
 	borrow.Status = types.GetBorrowStatus("progress")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][sendBorrowToAdmin][UpdateBorrow]", err)
@@ -727,7 +782,7 @@ func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	}
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Permintaan Anda telah disetujui oleh pengurus.",
+		Text: "Pengajuan peminjaman barang Anda telah disetujui oleh pengurus.",
 	})
 }
 
@@ -858,13 +913,37 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 }
 
 func (ms *MessageService) toolReturningInit() error {
+	_, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Saat ini tidak ada alat yang sedang Anda pinjam.",
+		})
+	}
+
+	_, err = ms.toolReturningService.FindOnProgressByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return ms.Error()
+	}
+
+	if err != sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus mengkonfirmasi pengajuan tersebut.",
+		})
+	}
+
 	if err := ms.saveChatSessionDetail(types.Topic["tool_returning_init"], ""); err != nil {
 		log.Println("[ERR][toolReturningInit][saveChatSessionDetail]", err)
 		return err
 	}
 
 	message := "Memulai Pengajuan\n\n"
-	message += "Kirimkan keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb."
+	message += "Tulis keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb."
 
 	reqBody := types.MessageRequest{
 		Text: message,
@@ -1029,12 +1108,29 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
 	time.Sleep(2 * time.Second)
 
+	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][IncreaseStock]", err)
+		return err
+	}
+
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	borrow.Status = types.GetBorrowStatus("returned")
+	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
 		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
 		return ms.Error()
 	}
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Permintaan Anda telah disetujui oleh pengurus.",
+		Text: "Pengajuan pengembalian barang Anda telah disetujui oleh pengurus.",
 	})
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCanFindByUserIDAndStatus(t *testing.T) {
+func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
