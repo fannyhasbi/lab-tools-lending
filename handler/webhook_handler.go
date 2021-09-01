@@ -105,15 +105,15 @@ func commandHandler(message string, ms *service.MessageService) error {
 	log.Printf("the command is : %s\n", commandStr)
 
 	switch commandStr {
-	case types.Command().Help:
+	case types.CommandHelp:
 		return ms.Help()
-	case types.Command().Register:
+	case types.CommandRegister:
 		return ms.Register()
-	case types.Command().Check:
+	case types.CommandCheck:
 		return ms.Check()
-	case types.Command().Borrow:
+	case types.CommandBorrow:
 		return ms.Borrow()
-	case types.Command().Return:
+	case types.CommandReturn:
 		return ms.ReturnTool()
 	default:
 		return ms.Unknown()

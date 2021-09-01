@@ -120,7 +120,7 @@ func (ms *MessageService) Error() error {
 
 func (ms *MessageService) RecommendRegister() error {
 	reqBody := types.MessageRequest{
-		Text: fmt.Sprintf("Silahkan registrasi dengan mengetik `/%s` untuk dapat menggunakan sistem ini secara penuh.", types.Command().Register),
+		Text: fmt.Sprintf("Silahkan registrasi dengan mengetik `/%s` untuk dapat menggunakan sistem ini secara penuh.", types.CommandRegister),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
@@ -166,7 +166,7 @@ func (ms *MessageService) Check() error {
 	}
 
 	message := "Berikut ini daftar alat yang masih tersedia.\n"
-	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.Command().Check)
+	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
 	message += helper.BuildToolListMessage(tools)
 
 	reqBody := types.MessageRequest{
@@ -406,7 +406,7 @@ func (ms *MessageService) registerCompletePositive() error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: fmt.Sprintf("Selamat! Anda telah terdaftar dan dapat menggunakan sistem ini.\n\nSilahkan ketik `/%s` untuk bantuan.", types.Command().Help),
+		Text: fmt.Sprintf("Selamat! Anda telah terdaftar dan dapat menggunakan sistem ini.\n\nSilahkan ketik `/%s` untuk bantuan.", types.CommandHelp),
 	}
 
 	return ms.sendMessage(reqBody)
@@ -484,7 +484,7 @@ func validateRegisterMessageBatch(batch int) error {
 
 func (ms *MessageService) notRegistered() error {
 	reqBody := types.MessageRequest{
-		Text: fmt.Sprintf("Maaf, Anda belum terdaftar kedalam sistem. Silahkan registrasi dengan cara ketik `/%s`.", types.Command().Register),
+		Text: fmt.Sprintf("Maaf, Anda belum terdaftar kedalam sistem. Silahkan registrasi dengan cara ketik `/%s`.", types.CommandRegister),
 	}
 	return ms.sendMessage(reqBody)
 }
@@ -541,7 +541,7 @@ func (ms *MessageService) borrowMechanism() error {
 	1\. Cek ketersediaan alat dengan mengetik /%s
 	2\. Ketik perintah "*/%s \[id\]*", dimana *id* adalah nomor unik alat yang akan dipinjam
 
-	Contoh : "*/%s 321*"`, types.Command().Check, types.Command().Borrow, types.Command().Borrow)
+	Contoh : "*/%s 321*"`, types.CommandCheck, types.CommandBorrow, types.CommandBorrow)
 	message = helper.RemoveTab(message)
 
 	reqBody = types.MessageRequest{
@@ -576,7 +576,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 
 	if err != sql.ErrNoRows {
 		message := "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
-		message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.Command().Return)
+		message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.CommandReturn)
 		reqBody := types.MessageRequest{
 			Text: message,
 		}
@@ -903,7 +903,7 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 		message += fmt.Sprintf("Durasi peminjaman tersisa %d hari lagi.", dayDifference)
 	}
 
-	message += fmt.Sprintf("\n\nPengajuan pengembalian dapat dilakukan dengan mengirim perintah \"/%s %s\"", types.Command().Return, types.ToolReturningFlag)
+	message += fmt.Sprintf("\n\nPengajuan pengembalian dapat dilakukan dengan mengirim perintah \"/%s %s\"", types.CommandReturn, types.ToolReturningFlag)
 
 	reqBody := types.MessageRequest{
 		Text: message,
