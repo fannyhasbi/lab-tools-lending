@@ -67,3 +67,23 @@ func TestCanUpdateBorrow(t *testing.T) {
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
+
+func TestCanUpdateBorrowReason(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	var id int64 = 123
+	var reason string = "test reason text"
+
+	repository := NewBorrowRepositoryPostgres(db)
+
+	mock.ExpectPrepare("^UPDATE borrows SET reason = .+ WHERE id = .+").
+		ExpectExec().
+		WithArgs(reason, id).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repository.UpdateReason(id, reason)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}

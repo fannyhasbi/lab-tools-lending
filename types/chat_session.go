@@ -34,6 +34,7 @@ var (
 
 		"borrow_init":    "BRW_init",
 		"borrow_date":    "BRW_date",
+		"borrow_reason":  "BRW_reason",
 		"borrow_confirm": "BRW_confirm",
 
 		"tool_returning_init":     "RET_init",

@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+var (
+	BasicDateLayout = "2006-01-02"
+)
+
 func GetDateFromTimestamp(s string) string {
 	return s[:10]
 }
@@ -16,12 +20,18 @@ func TranslateDateToBahasa(date time.Time) string {
 	return fmt.Sprintf("%d %s %d", date.Day(), month, date.Year())
 }
 
-// TranslateDateStringToBahasa parameter date in "YYYY-MM-DD"
-func TranslateDateStringToBahasa(date string) string {
+// changeDateStringFormat change into "YYYY-MM-DD" format
+func ChangeDateStringFormat(date string) string {
 	// anticipate if there is pattern "YYYY-MM-DD HH:mm:ss" and "YYYY-MM-DDTHH:mm:ss"
 	dateStr := strings.Split(date, " ")
 	dateStr = strings.Split(dateStr[0], "T")
-	dateStr = strings.Split(dateStr[0], "-")
+	return dateStr[0]
+}
+
+// TranslateDateStringToBahasa parameter date in "YYYY-MM-DD"
+func TranslateDateStringToBahasa(date string) string {
+	result := ChangeDateStringFormat(date)
+	dateStr := strings.Split(result, "-")
 
 	year, _ := strconv.Atoi(dateStr[0])
 	month, _ := strconv.Atoi(dateStr[1])

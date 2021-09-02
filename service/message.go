@@ -514,6 +514,8 @@ func (ms *MessageService) Borrow() error {
 		case types.Topic["borrow_init"]:
 			return ms.borrowAskDateRange()
 		case types.Topic["borrow_date"]:
+			return ms.borrowReason()
+		case types.Topic["borrow_reason"]:
 			return ms.borrowConfirm()
 		}
 	}
@@ -651,8 +653,6 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 }
 
 func (ms *MessageService) borrowAskDateRange() error {
-	var borrowAmount int = 1
-
 	borrowDateRange, err := helper.GetBorrowTimeRangeValue(ms.messageText)
 	if err != nil {
 		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
@@ -664,17 +664,10 @@ func (ms *MessageService) borrowAskDateRange() error {
 	}
 
 	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
-	returnDateStr := helper.TranslateDateToBahasa(returnDate)
 
 	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindInitialByUserID]", err)
-		return ms.Error()
-	}
-
-	tool, err := ms.toolService.FindByID(borrow.ToolID)
-	if err != nil {
-		log.Println("[ERR][Borrow][FindByID]", err)
 		return ms.Error()
 	}
 
@@ -694,14 +687,52 @@ func (ms *MessageService) borrowAskDateRange() error {
 
 	if err = ms.saveChatSessionDetail(types.Topic["borrow_date"], generatedSessionData); err != nil {
 		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
-		return err
+		return ms.Error()
 	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Apa alasan Anda meminjam barang ini?",
+	})
+}
+
+func (ms *MessageService) borrowReason() error {
+	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
+	if err != nil {
+		log.Println("[ERR][borrowReason][FindInitialByUserID]", err)
+		return ms.Error()
+	}
+
+	tool, err := ms.toolService.FindByID(borrow.ToolID)
+	if err != nil {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err = ms.borrowService.UpdateBorrowReason(borrow.ID, ms.messageText); err != nil {
+		log.Println("[ERR][borrowReason][UpdateBorrowReason]", err)
+		return ms.Error()
+	}
+
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_reason"], ""); err != nil {
+		log.Println("[ERR][borrowReason][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	returnDateStr := helper.ChangeDateStringFormat(borrow.ReturnDate.String)
+	returnDateTime, err := time.Parse(helper.BasicDateLayout, returnDateStr)
+	if err != nil {
+		log.Println("[ERR][borrowReason][Parse]")
+		return ms.Error()
+	}
+
+	currentDateTime := time.Now()
+	borrowDateRange := int(returnDateTime.Sub(currentDateTime).Hours()/24) + 1 // because current day is counted
 
 	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
 		Tanggal Pengembalian : %s (%d hari)
 		Alamat peminjam : %s
-	`, tool.Name, borrowAmount, returnDateStr, borrowDateRange, ms.user.Address)
+	`, tool.Name, 1, helper.TranslateDateStringToBahasa(borrow.ReturnDate.String), borrowDateRange, ms.user.Address)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -1228,11 +1259,11 @@ func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
 
 	if commands.Text == "yes" {
 		return ms.respondBorrowPositive(borrow)
-	} else if commands.Text == "" {
-		return ms.respondBorrowDetail(borrow)
+	} else if commands.Text == "no" {
+		return ms.respondBorrowNegative(borrow)
 	}
 
-	return ms.respondBorrowNegative(borrow)
+	return ms.respondBorrowDetail(borrow)
 }
 
 func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
@@ -1242,7 +1273,9 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 		Barang: %s
 		Diajukan pada: %s
 		Estimasi pengembalian: %s
-	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String))
+		Alasan peminjaman:
+		%s
+	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String), borrow.Reason.String)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1332,11 +1365,11 @@ func (ms *MessageService) respondToolReturning(commands types.RespondCommands) e
 
 	if commands.Text == "yes" {
 		return ms.respondToolReturningPositive(toolReturning)
-	} else if commands.Text == "" {
-		return ms.respondToolReturningDetail(toolReturning)
+	} else if commands.Text == "no" {
+		return ms.respondToolReturningNegative(toolReturning)
 	}
 
-	return ms.respondToolReturningNegative(toolReturning)
+	return ms.respondToolReturningDetail(toolReturning)
 }
 
 func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolReturning) error {

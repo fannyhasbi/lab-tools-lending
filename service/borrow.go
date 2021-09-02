@@ -44,6 +44,10 @@ func (bs BorrowService) UpdateBorrow(borrow types.Borrow) (types.Borrow, error) 
 	return result, nil
 }
 
+func (bs BorrowService) UpdateBorrowReason(id int64, reason string) error {
+	return bs.Repository.UpdateReason(id, reason)
+}
+
 func (bs BorrowService) FindBorrowByID(id int64) (types.Borrow, error) {
 	result := bs.Query.FindByID(id)
 	if result.Error != nil {

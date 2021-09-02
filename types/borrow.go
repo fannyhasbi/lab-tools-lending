@@ -13,6 +13,7 @@ type (
 		UserID     int64          `json:"user_id"`
 		ToolID     int64          `json:"tool_id"`
 		CreatedAt  string         `json:"created_at"`
+		Reason     sql.NullString `json:"reason"`
 		Tool       Tool           `json:"tool"`
 		User       User           `json:"user"`
 	}

@@ -65,3 +65,13 @@ func (br *BorrowRepositoryPostgres) Update(borrow *types.Borrow) (types.Borrow, 
 
 	return b, nil
 }
+
+func (br *BorrowRepositoryPostgres) UpdateReason(id int64, reason string) error {
+	stmt, err := br.DB.Prepare(`UPDATE borrows SET reason = $1 WHERE id = $2`)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(reason, id)
+	return err
+}
