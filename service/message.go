@@ -554,11 +554,15 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
 	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
-		reqBody := types.MessageRequest{
+		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
-		}
+		})
+	}
 
-		return ms.sendMessage(reqBody)
+	if tool.Stock < 1 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Stok barang sudah habis. Tidak dapat melakukan pengajuan peminjaman.",
+		})
 	}
 
 	borrows, err := ms.borrowService.GetCurrentlyBeingBorrowedAndRequestedByUserID(ms.user.ID)
@@ -1251,6 +1255,12 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 }
 
 func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
+	if borrow.Tool.Stock < 1 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Stok barang sudah habis. Tidak dapat menyetujui peminjaman.",
+		})
+	}
+
 	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
 		log.Println("[ERR][respondBorrowPositive][DecreaseStock]", err)
 		return ms.Error()

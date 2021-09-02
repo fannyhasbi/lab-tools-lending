@@ -20,7 +20,7 @@ func NewBorrowQueryPostgres(DB *sql.DB) repository.BorrowQuery {
 
 func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 	row := bq.DB.QueryRow(`
-	SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name, u.name AS user_name, u.nim
+	SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name, t.stock AS tool_stock, u.name AS user_name, u.nim
 	FROM borrows b
 	INNER JOIN tools t
 		ON t.id = b.tool_id
@@ -41,6 +41,7 @@ func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 		&borrow.ToolID,
 		&borrow.CreatedAt,
 		&borrow.Tool.Name,
+		&borrow.Tool.Stock,
 		&borrow.User.Name,
 		&borrow.User.NIM,
 	)
