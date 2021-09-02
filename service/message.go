@@ -193,6 +193,16 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Pinjam",
+						CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
+					},
+				},
+			},
+		},
 	})
 }
 
