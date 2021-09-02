@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -28,7 +29,7 @@ func (trr *ToolReturningRepositoryPostgres) Save(toolReturning *types.ToolReturn
 		&ret.UserID,
 		&ret.ToolID,
 		&ret.Status,
-		&ret.ReturnedAt,
+		&ret.CreatedAt,
 		&ret.AdditionalInfo,
 	)
 	if err != nil {
@@ -40,5 +41,10 @@ func (trr *ToolReturningRepositoryPostgres) Save(toolReturning *types.ToolReturn
 
 func (trr *ToolReturningRepositoryPostgres) UpdateStatus(id int64, status types.ToolReturningStatus) error {
 	_, err := trr.DB.Exec(`UPDATE tool_returning SET status = $1 WHERE id = $2`, status, id)
+	return err
+}
+
+func (trr *ToolReturningRepositoryPostgres) UpdateConfirmedAt(id int64, datetime time.Time) error {
+	_, err := trr.DB.Exec(`UPDATE tool_returning SET confirmed_at = $1 WHERE id = $2`, datetime, id)
 	return err
 }

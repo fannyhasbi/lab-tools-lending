@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/repository/postgres"
@@ -37,6 +39,10 @@ func (trs ToolReturningService) SaveToolReturning(toolReturning types.ToolReturn
 
 func (trs ToolReturningService) UpdateToolReturningStatus(id int64, status types.ToolReturningStatus) error {
 	return trs.Repository.UpdateStatus(id, status)
+}
+
+func (trs ToolReturningService) UpdateToolReturningConfirmedAt(id int64, datetime time.Time) error {
+	return trs.Repository.UpdateConfirmedAt(id, datetime)
 }
 
 func (trs ToolReturningService) FindToolReturningByID(id int64) (types.ToolReturning, error) {

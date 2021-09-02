@@ -982,14 +982,9 @@ func (ms *MessageService) toolReturningInit() error {
 		return err
 	}
 
-	message := "Memulai Pengajuan\n\n"
-	message += "Tulis keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb."
-
-	reqBody := types.MessageRequest{
-		Text: message,
-	}
-
-	return ms.sendMessage(reqBody)
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tulis keterangan pengembalian. Dapat berupa kondisi barang, alasan pengembalian, dsb.",
+	})
 }
 
 func (ms *MessageService) toolReturningConfirm() error {
@@ -1384,7 +1379,7 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 		Diajukan pada: %s
 		Keterangan:
 		%s
-	`, toolReturning.ID, toolReturning.User.Name, toolReturning.User.NIM, toolReturning.Tool.Name, helper.TranslateDateStringToBahasa(toolReturning.ReturnedAt), toolReturning.AdditionalInfo)
+	`, toolReturning.ID, toolReturning.User.Name, toolReturning.User.NIM, toolReturning.Tool.Name, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.AdditionalInfo)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1429,6 +1424,11 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 		return ms.Error()
 	}
 
+	if err := ms.toolReturningService.UpdateToolReturningConfirmedAt(toolReturning.ID, time.Now()); err != nil {
+		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: toolReturning.UserID,
 		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.", toolReturning.Tool.Name),
@@ -1446,6 +1446,11 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolReturning) error {
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("reject")); err != nil {
 		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningStatus]", err)
+		return ms.Error()
+	}
+
+	if err := ms.toolReturningService.UpdateToolReturningConfirmedAt(toolReturning.ID, time.Now()); err != nil {
+		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
 		return ms.Error()
 	}
 

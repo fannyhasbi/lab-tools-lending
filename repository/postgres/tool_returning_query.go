@@ -36,7 +36,7 @@ func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult 
 		&ret.UserID,
 		&ret.ToolID,
 		&ret.Status,
-		&ret.ReturnedAt,
+		&ret.CreatedAt,
 		&ret.AdditionalInfo,
 		&ret.Tool.Name,
 		&ret.User.Name,
@@ -68,7 +68,7 @@ func (trq ToolReturningQueryPostgres) FindByUserIDAndStatus(id int64, status typ
 		&ret.UserID,
 		&ret.ToolID,
 		&ret.Status,
-		&ret.ReturnedAt,
+		&ret.CreatedAt,
 		&ret.AdditionalInfo,
 	)
 
@@ -106,7 +106,7 @@ func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStat
 				&temp.UserID,
 				&temp.ToolID,
 				&temp.Status,
-				&temp.ReturnedAt,
+				&temp.CreatedAt,
 				&temp.AdditionalInfo,
 				&temp.Tool.Name,
 				&temp.User.Name,

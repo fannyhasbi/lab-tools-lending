@@ -1,0 +1,1 @@
+ALTER TABLE tool_returning ADD COLUMN confirmed_at TIMESTAMP;
