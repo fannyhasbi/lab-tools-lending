@@ -40,6 +40,39 @@ func TestBorrowStatusGrouping(t *testing.T) {
 	assert.Empty(t, r[types.GetBorrowStatus("init")])
 }
 
+func TestCanGetBorrowByStatus(t *testing.T) {
+	borrows := []types.Borrow{
+		{
+			ID:     1,
+			Status: types.GetBorrowStatus("request"),
+		},
+		{
+			ID:     2,
+			Status: types.GetBorrowStatus("request"),
+		},
+		{
+			ID:     3,
+			Status: types.GetBorrowStatus("progress"),
+		},
+		{
+			ID:     4,
+			Status: types.GetBorrowStatus("returned"),
+		},
+	}
+
+	t.Run("request", func(t *testing.T) {
+		r := GetBorrowsByStatus(borrows, types.GetBorrowStatus("request"))
+		expected := []types.Borrow{borrows[0], borrows[1]}
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("progress", func(t *testing.T) {
+		r := GetBorrowsByStatus(borrows, types.GetBorrowStatus("progress"))
+		expected := []types.Borrow{borrows[2]}
+		assert.Equal(t, expected, r)
+	})
+}
+
 func TestBuildBorrowedMessage(t *testing.T) {
 	tt := []types.Borrow{
 		{

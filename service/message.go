@@ -561,15 +561,22 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
+	borrows, err := ms.borrowService.GetCurrentlyBeingBorrowedAndRequestedByUserID(ms.user.ID)
+	if err != nil {
 		log.Println(err)
 		return ms.Error()
 	}
 
-	if err != sql.ErrNoRows {
-		message := "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
-		message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.CommandReturn)
+	if len(borrows) > 0 {
+		var message string
+		requestingBorrows := helper.GetBorrowsByStatus(borrows, types.GetBorrowStatus("request"))
+		if len(requestingBorrows) > 0 {
+			message = "Maaf, saat ini status Anda sedang mengajukan peminjaman, silahkan tunggu hingga pengurus menanggapi pengajuan tersebut."
+		} else {
+			message = "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
+			message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.CommandReturn)
+		}
+
 		reqBody := types.MessageRequest{
 			Text: message,
 		}
@@ -577,7 +584,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		return ms.sendMessage(reqBody)
 	}
 
-	borrow = types.Borrow{
+	borrow := types.Borrow{
 		Amount: 1,
 		Status: types.GetBorrowStatus("init"),
 		UserID: ms.user.ID,

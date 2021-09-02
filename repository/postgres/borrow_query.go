@@ -5,6 +5,7 @@ import (
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
+	"github.com/lib/pq"
 )
 
 type BorrowQueryPostgres struct {
@@ -134,6 +135,45 @@ func (bq BorrowQueryPostgres) GetByStatus(status types.BorrowStatus) repository.
 		WHERE b.status = $1
 		ORDER BY b.id ASC
 	`, status)
+
+	borrows := []types.Borrow{}
+	result := repository.QueryResult{}
+
+	if err != nil {
+		result.Error = err
+	} else {
+		for rows.Next() {
+			temp := types.Borrow{}
+			rows.Scan(
+				&temp.ID,
+				&temp.Amount,
+				&temp.ReturnDate,
+				&temp.Status,
+				&temp.UserID,
+				&temp.ToolID,
+				&temp.CreatedAt,
+				&temp.Tool.Name,
+				&temp.User.Name,
+			)
+
+			borrows = append(borrows, temp)
+		}
+		result.Result = borrows
+	}
+	return result
+}
+
+func (bq BorrowQueryPostgres) GetByUserIDAndMultipleStatus(id int64, statuses []types.BorrowStatus) repository.QueryResult {
+	rows, err := bq.DB.Query(`
+		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name, u.name AS user_name
+		FROM borrows b
+		INNER JOIN tools t
+			ON t.id = b.tool_id
+		INNER JOIN users u
+			ON u.id = b.user_id
+		WHERE b.user_id = $1 AND b.status = ANY($2)
+		ORDER BY b.id ASC
+	`, id, pq.Array(statuses))
 
 	borrows := []types.Borrow{}
 	result := repository.QueryResult{}

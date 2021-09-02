@@ -16,6 +16,16 @@ func GroupBorrowStatus(borrows []types.Borrow) map[types.BorrowStatus][]types.Bo
 	return result
 }
 
+func GetBorrowsByStatus(borrows []types.Borrow, status types.BorrowStatus) []types.Borrow {
+	result := []types.Borrow{}
+	for _, borrow := range borrows {
+		if borrow.Status == status {
+			result = append(result, borrow)
+		}
+	}
+	return result
+}
+
 func BuildBorrowedMessage(borrows []types.Borrow) string {
 	var message string
 	for _, borrow := range borrows {

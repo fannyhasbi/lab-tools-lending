@@ -80,6 +80,19 @@ func (bs BorrowService) FindCurrentlyBeingBorrowedByUserID(id int64) (types.Borr
 	return result.Result.(types.Borrow), nil
 }
 
+func (bs BorrowService) GetCurrentlyBeingBorrowedAndRequestedByUserID(id int64) ([]types.Borrow, error) {
+	status := []types.BorrowStatus{
+		types.GetBorrowStatus("request"),
+		types.GetBorrowStatus("progress"),
+	}
+	result := bs.Query.GetByUserIDAndMultipleStatus(id, status)
+	if result.Error != nil {
+		return []types.Borrow{}, result.Error
+	}
+
+	return result.Result.([]types.Borrow), result.Error
+}
+
 func (bs BorrowService) GetBorrowRequests() ([]types.Borrow, error) {
 	result := bs.Query.GetByStatus(types.GetBorrowStatus("request"))
 	if result.Error != nil {

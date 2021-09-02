@@ -7,6 +7,7 @@ type BorrowQuery interface {
 	FindByUserIDAndStatus(id int64, status types.BorrowStatus) QueryResult
 	FindByUserID(id int64) QueryResult
 	GetByStatus(status types.BorrowStatus) QueryResult
+	GetByUserIDAndMultipleStatus(id int64, statuses []types.BorrowStatus) QueryResult
 }
 
 type BorrowRepository interface {
