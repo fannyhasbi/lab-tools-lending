@@ -35,6 +35,8 @@ var (
 		"returned": "RETURNED",
 		"cancel":   "CANCEL",
 	}
+
+	BorrowMinimalDuration = 7
 )
 
 func GetBorrowStatus(s string) BorrowStatus {

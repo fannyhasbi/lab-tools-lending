@@ -622,7 +622,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: "Berapa lama waktu peminjaman?\n\nJika tidak ada dalam pilihan, maka sebutkan jumlah hari.",
+		Text: fmt.Sprintf("Berapa lama waktu peminjaman?\n\nJika tidak ada dalam pilihan, maka sebutkan jumlah hari. Minimal durasi peminjaman adalah %d hari.", types.BorrowMinimalDuration),
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
@@ -656,11 +656,15 @@ func (ms *MessageService) borrowAskDateRange() error {
 	borrowDateRange, err := helper.GetBorrowTimeRangeValue(ms.messageText)
 	if err != nil {
 		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
-		reqBody := types.MessageRequest{
+		return ms.sendMessage(types.MessageRequest{
 			Text: "Mohon sebutkan jumlah hari.",
-		}
+		})
+	}
 
-		return ms.sendMessage(reqBody)
+	if borrowDateRange < types.BorrowMinimalDuration {
+		return ms.sendMessage(types.MessageRequest{
+			Text: fmt.Sprintf("Minimal durasi peminjaman adalah %d hari", types.BorrowMinimalDuration),
+		})
 	}
 
 	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
