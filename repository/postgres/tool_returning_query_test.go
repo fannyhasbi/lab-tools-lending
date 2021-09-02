@@ -26,12 +26,13 @@ func TestCanFindToolReturningByID(t *testing.T) {
 			Name: "Test Tool Name 1",
 		},
 		User: types.User{
+			NIM:  "21120XXXXXXXXX",
 			Name: "Test Name 1",
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "tool_id", "status", "created_at", "additional_info", "tool_name", "user_name"}).
-		AddRow(toolReturning.ID, toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.ReturnedAt, toolReturning.AdditionalInfo, toolReturning.Tool.Name, toolReturning.User.Name)
+	rows := sqlmock.NewRows([]string{"id", "user_id", "tool_id", "status", "created_at", "additional_info", "tool_name", "user_name", "nim"}).
+		AddRow(toolReturning.ID, toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.ReturnedAt, toolReturning.AdditionalInfo, toolReturning.Tool.Name, toolReturning.User.Name, toolReturning.User.NIM)
 
 	mock.ExpectQuery("^SELECT .+ FROM tool_returning tr INNER JOIN tools t .+ INNER JOIN users u .+ WHERE tr.id = .+").
 		WithArgs(id).

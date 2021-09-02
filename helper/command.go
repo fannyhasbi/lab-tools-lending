@@ -25,7 +25,7 @@ func GetCommand(message string) string {
 
 func GetRespondCommands(s string) (types.RespondCommands, bool) {
 	ss := strings.Split(s, " ")
-	if len(ss) != 4 {
+	if len(ss) < 3 || len(ss) > 4 {
 		return types.RespondCommands{}, false
 	}
 
@@ -41,10 +41,15 @@ func GetRespondCommands(s string) (types.RespondCommands, bool) {
 		return types.RespondCommands{}, false
 	}
 
+	text := ""
+	if len(ss) > 3 {
+		text = ss[3]
+	}
+
 	result := types.RespondCommands{
 		Type: resType,
 		ID:   id,
-		Text: ss[3],
+		Text: text,
 	}
 	return result, true
 }

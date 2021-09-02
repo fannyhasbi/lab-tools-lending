@@ -53,7 +53,29 @@ func TestGetRespondCommands(t *testing.T) {
 		assert.Equal(t, expected, r)
 	})
 
-	t.Run("exceed length", func(t *testing.T) {
+	t.Run("length less than 3", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s", types.CommandRespond, types.RespondTypeBorrow)
+		r, ok := GetRespondCommands(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.RespondCommands{}, r)
+	})
+
+	t.Run("length equal 3", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s %d", types.CommandRespond, types.RespondTypeBorrow, 123)
+		r, ok := GetRespondCommands(s)
+
+		expected := types.RespondCommands{
+			Type: types.RespondTypeBorrow,
+			ID:   123,
+			Text: "",
+		}
+
+		assert.True(t, ok)
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("exceed length 4", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s %d yes oke nais 123", types.CommandRespond, types.RespondTypeBorrow, 123)
 		r, ok := GetRespondCommands(s)
 

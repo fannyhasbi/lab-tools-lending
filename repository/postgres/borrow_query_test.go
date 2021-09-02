@@ -27,12 +27,16 @@ func TestCanFindBorrowByID(t *testing.T) {
 		Tool: types.Tool{
 			Name: "Test Tool Name 1",
 		},
+		User: types.User{
+			NIM:  "21120XXXXXXXXX",
+			Name: "Test Name",
+		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name"}).
-		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.Tool.Name)
+	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name", "user_name", "nim"}).
+		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.Tool.Name, borrow.User.Name, borrow.User.NIM)
 
-	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ LEFT JOIN tools .+ WHERE .+id = .+").WithArgs(id).WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ INNER JOIN tools .+ INNER JOIN users .+ WHERE .+id = .+").WithArgs(id).WillReturnRows(rows)
 
 	result := query.FindByID(id)
 	assert.NoError(t, result.Error)

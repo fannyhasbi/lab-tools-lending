@@ -19,7 +19,7 @@ func NewToolReturningQueryPostgres(DB *sql.DB) repository.ToolReturningQuery {
 
 func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult {
 	row := trq.DB.QueryRow(`
-		SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name
+		SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name, u.nim
 		FROM tool_returning tr
 		INNER JOIN tools t
 			ON t.id = tr.tool_id
@@ -40,6 +40,7 @@ func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult 
 		&ret.AdditionalInfo,
 		&ret.Tool.Name,
 		&ret.User.Name,
+		&ret.User.NIM,
 	)
 
 	if err != nil {

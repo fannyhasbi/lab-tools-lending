@@ -733,7 +733,7 @@ func (ms *MessageService) borrowConfirm() error {
 	var message string
 	if userResponse {
 		borrow.Status = types.GetBorrowStatus("request")
-		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan."
+		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan."
 	} else {
 		borrow.Status = types.GetBorrowStatus("cancel")
 		message = "Pengajuan berhasil dibatalkan"
@@ -916,7 +916,7 @@ func (ms *MessageService) toolReturningInit() error {
 
 	if err != sql.ErrNoRows {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus mengkonfirmasi pengajuan tersebut.",
+			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus menanggapi pengajuan tersebut.",
 		})
 	}
 
@@ -1077,7 +1077,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 	go ms.sendToolReturningToAdmin(toolReturning)
 
 	reqBody := types.MessageRequest{
-		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus mengkonfirmasi pengajuan.",
+		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan tersebut.",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -1112,7 +1112,10 @@ func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolRetur
  */
 
 func (ms *MessageService) isEligibleAdmin() bool {
-	// todo: check from db
+	if ms.requestType != types.RequestTypeGroup {
+		return false
+	}
+
 	adminIDs := []int64{284324420}
 	for _, id := range adminIDs {
 		if ms.user.ID == id {
@@ -1123,27 +1126,29 @@ func (ms *MessageService) isEligibleAdmin() bool {
 }
 
 func (ms *MessageService) Respond() error {
-	if ok := ms.isEligibleAdmin(); !ok || ms.requestType != types.RequestTypeGroup {
+	if ok := ms.isEligibleAdmin(); !ok {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}
 
 	respCommands, ok := helper.GetRespondCommands(ms.messageText)
-	if ok {
-		if respCommands.Text != "yes" && respCommands.Text != "no" {
-			return ms.sendMessage(types.MessageRequest{
-				Text: "Maaf, perintah tidak dikenali. Pilihan yang tersedia adalah \"yes\" dan \"no\"",
-			})
-		}
-
-		if respCommands.Type == types.RespondTypeBorrow {
-			return ms.respondBorrow(respCommands)
-		} else if respCommands.Type == types.RespondTypeToolReturning {
-			return ms.respondToolReturning(respCommands)
-		}
+	if !ok {
+		return ms.ListToRespond()
 	}
 
-	return ms.ListToRespond()
+	if respCommands.Text != "yes" && respCommands.Text != "no" && respCommands.Text != "" {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, perintah tidak dikenali. Pilihan yang tersedia adalah \"yes\" dan \"no\"",
+		})
+	}
+
+	if respCommands.Type == types.RespondTypeBorrow {
+		return ms.respondBorrow(respCommands)
+	} else if respCommands.Type == types.RespondTypeToolReturning {
+		return ms.respondToolReturning(respCommands)
+	}
+
+	return ms.Unknown()
 }
 
 func (ms *MessageService) ListToRespond() error {
@@ -1198,9 +1203,26 @@ func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
 
 	if commands.Text == "yes" {
 		return ms.respondBorrowPositive(borrow)
+	} else if commands.Text == "" {
+		return ms.respondBorrowDetail(borrow)
 	}
 
 	return ms.respondBorrowNegative(borrow)
+}
+
+func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
+	message := fmt.Sprintf(`
+		ID: %d
+		Nama pemohon: %s (%s)
+		Barang: %s
+		Diajukan pada: %s
+		Estimasi pengembalian: %s
+	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String))
+	message = helper.RemoveTab(message)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
@@ -1265,9 +1287,25 @@ func (ms *MessageService) respondToolReturning(commands types.RespondCommands) e
 
 	if commands.Text == "yes" {
 		return ms.respondToolReturningPositive(toolReturning)
+	} else if commands.Text == "" {
+		return ms.respondToolReturningDetail(toolReturning)
 	}
 
 	return ms.respondToolReturningNegative(toolReturning)
+}
+
+func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolReturning) error {
+	message := fmt.Sprintf(`
+		ID: %d
+		Nama pemohon: %s (%s)
+		Barang: %s
+		Diajukan pada: %s
+	`, toolReturning.ID, toolReturning.User.Name, toolReturning.User.NIM, toolReturning.Tool.Name, helper.TranslateDateStringToBahasa(toolReturning.ReturnedAt))
+	message = helper.RemoveTab(message)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolReturning) error {
