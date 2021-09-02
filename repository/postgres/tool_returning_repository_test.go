@@ -27,7 +27,10 @@ func TestCanSaveToolReturning(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "user_id", "tool_id", "status", "created_at", "additional_info"}).
 		AddRow(toolReturning.ID, toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo)
 
-	mock.ExpectQuery("^INSERT INTO tool_returning .+ VALUES .+ RETURNING .+").WillReturnRows(rows)
+	mock.ExpectPrepare("^INSERT INTO tool_returning .+ VALUES .+ RETURNING .+").
+		ExpectQuery().
+		WithArgs(toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.AdditionalInfo).
+		WillReturnRows(rows)
 
 	result, err := repository.Save(&toolReturning)
 	assert.NoError(t, err)

@@ -736,6 +736,8 @@ func (ms *MessageService) borrowReason() error {
 		Jumlah : %d
 		Tanggal Pengembalian : %s (%d hari)
 		Alamat peminjam : %s
+
+		Pastikan data sudah benar. Tekan "Lanjutkan" untuk mengajukan ke pengurus.
 	`, tool.Name, 1, helper.TranslateDateStringToBahasa(borrow.ReturnDate.String), borrowDateRange, ms.user.Address)
 	message = helper.RemoveTab(message)
 
@@ -943,10 +945,18 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 		message += fmt.Sprintf("Durasi peminjaman tersisa %d hari lagi.", dayDifference)
 	}
 
-	message += fmt.Sprintf("\n\nPengajuan pengembalian dapat dilakukan dengan mengirim perintah \"/%s %s\"", types.CommandReturn, types.ToolReturningFlag)
-
 	reqBody := types.MessageRequest{
 		Text: message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Ajukan Pengembalian",
+						CallbackData: fmt.Sprintf("/%s %s", types.CommandReturn, types.ToolReturningFlag),
+					},
+				},
+			},
+		},
 	}
 
 	return ms.sendMessage(reqBody)
