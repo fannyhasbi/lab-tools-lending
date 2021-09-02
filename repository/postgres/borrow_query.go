@@ -20,7 +20,7 @@ func NewBorrowQueryPostgres(DB *sql.DB) repository.BorrowQuery {
 
 func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 	row := bq.DB.QueryRow(`
-	SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, b.reason, t.name AS tool_name, t.stock AS tool_stock, u.name AS user_name, u.nim
+	SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, b.reason, t.name AS tool_name, t.stock AS tool_stock, u.name AS user_name, u.nim
 	FROM borrows b
 	INNER JOIN tools t
 		ON t.id = b.tool_id
@@ -35,11 +35,12 @@ func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 	err := row.Scan(
 		&borrow.ID,
 		&borrow.Amount,
-		&borrow.ReturnDate,
+		&borrow.Duration,
 		&borrow.Status,
 		&borrow.UserID,
 		&borrow.ToolID,
 		&borrow.CreatedAt,
+		&borrow.ConfirmedAt,
 		&borrow.Reason,
 		&borrow.Tool.Name,
 		&borrow.Tool.Stock,
@@ -58,7 +59,7 @@ func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 
 func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.BorrowStatus) repository.QueryResult {
 	row := bq.DB.QueryRow(`
-		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name
+		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name
 		FROM borrows b
 		LEFT JOIN tools t
 			ON t.id = b.tool_id
@@ -73,11 +74,12 @@ func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.Borro
 	err := row.Scan(
 		&borrow.ID,
 		&borrow.Amount,
-		&borrow.ReturnDate,
+		&borrow.Duration,
 		&borrow.Status,
 		&borrow.UserID,
 		&borrow.ToolID,
 		&borrow.CreatedAt,
+		&borrow.ConfirmedAt,
 		&borrow.Tool.Name,
 	)
 
@@ -92,7 +94,7 @@ func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.Borro
 
 func (bq BorrowQueryPostgres) FindByUserID(id int64) repository.QueryResult {
 	rows, err := bq.DB.Query(`
-		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name
+		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name
 		FROM borrows b
 		INNER JOIN tools t
 			ON t.id = b.tool_id
@@ -111,11 +113,12 @@ func (bq BorrowQueryPostgres) FindByUserID(id int64) repository.QueryResult {
 			rows.Scan(
 				&temp.ID,
 				&temp.Amount,
-				&temp.ReturnDate,
+				&temp.Duration,
 				&temp.Status,
 				&temp.UserID,
 				&temp.ToolID,
 				&temp.CreatedAt,
+				&temp.ConfirmedAt,
 				&temp.Tool.Name,
 			)
 
@@ -128,7 +131,7 @@ func (bq BorrowQueryPostgres) FindByUserID(id int64) repository.QueryResult {
 
 func (bq BorrowQueryPostgres) GetByStatus(status types.BorrowStatus) repository.QueryResult {
 	rows, err := bq.DB.Query(`
-		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name, u.name AS user_name
+		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name, u.name AS user_name
 		FROM borrows b
 		INNER JOIN tools t
 			ON t.id = b.tool_id
@@ -149,11 +152,12 @@ func (bq BorrowQueryPostgres) GetByStatus(status types.BorrowStatus) repository.
 			rows.Scan(
 				&temp.ID,
 				&temp.Amount,
-				&temp.ReturnDate,
+				&temp.Duration,
 				&temp.Status,
 				&temp.UserID,
 				&temp.ToolID,
 				&temp.CreatedAt,
+				&temp.ConfirmedAt,
 				&temp.Tool.Name,
 				&temp.User.Name,
 			)
@@ -167,7 +171,7 @@ func (bq BorrowQueryPostgres) GetByStatus(status types.BorrowStatus) repository.
 
 func (bq BorrowQueryPostgres) GetByUserIDAndMultipleStatus(id int64, statuses []types.BorrowStatus) repository.QueryResult {
 	rows, err := bq.DB.Query(`
-		SELECT b.id, b.amount, b.return_date, b.status, b.user_id, b.tool_id, b.created_at, t.name AS tool_name, u.name AS user_name
+		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name, u.name AS user_name
 		FROM borrows b
 		INNER JOIN tools t
 			ON t.id = b.tool_id
@@ -188,11 +192,12 @@ func (bq BorrowQueryPostgres) GetByUserIDAndMultipleStatus(id int64, statuses []
 			rows.Scan(
 				&temp.ID,
 				&temp.Amount,
-				&temp.ReturnDate,
+				&temp.Duration,
 				&temp.Status,
 				&temp.UserID,
 				&temp.ToolID,
 				&temp.CreatedAt,
+				&temp.ConfirmedAt,
 				&temp.Tool.Name,
 				&temp.User.Name,
 			)

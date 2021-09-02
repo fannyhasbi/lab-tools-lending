@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/repository/postgres"
@@ -46,6 +48,10 @@ func (bs BorrowService) UpdateBorrow(borrow types.Borrow) (types.Borrow, error) 
 
 func (bs BorrowService) UpdateBorrowReason(id int64, reason string) error {
 	return bs.Repository.UpdateReason(id, reason)
+}
+
+func (bs BorrowService) UpdateBorrowConfirmedAt(id int64, confirmedAt time.Time) error {
+	return bs.Repository.UpdateConfirmedAt(id, confirmedAt)
 }
 
 func (bs BorrowService) FindBorrowByID(id int64) (types.Borrow, error) {

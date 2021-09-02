@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-var (
-	BasicDateLayout = "2006-01-02"
-)
-
 func GetDateFromTimestamp(s string) string {
 	return s[:10]
 }
@@ -70,6 +66,6 @@ func monthNameSwitcher(month int) (m string) {
 	return
 }
 
-func GetBorrowTimeRangeValue(message string) (r int, err error) {
+func GetDurationValue(message string) (r int, err error) {
 	return strconv.Atoi(message)
 }

@@ -62,10 +62,10 @@ func TestSessionGeneratorBorrowInit(t *testing.T) {
 	assert.JSONEq(t, expected, r)
 }
 
-func TestSessionGeneratorBorrowDateRange(t *testing.T) {
+func TestSessionGeneratorBorrowDuration(t *testing.T) {
 	duration := 30
 	gen := NewSessionDataGenerator()
-	r := gen.BorrowDateRange(duration)
+	r := gen.BorrowDuration(duration)
 
 	expected := fmt.Sprintf(`{"type":"%s","duration":%d}`, string(types.Topic["borrow_date"]), duration)
 

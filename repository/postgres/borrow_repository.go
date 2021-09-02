@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -19,17 +20,18 @@ func NewBorrowRepositoryPostgres(DB *sql.DB) repository.BorrowRepository {
 
 func (br *BorrowRepositoryPostgres) Save(borrow *types.Borrow) (types.Borrow, error) {
 	row := br.DB.QueryRow(`INSERT INTO borrows (amount, status, user_id, tool_id) VALUES ($1, $2, $3, $4)
-		RETURNING id, amount, return_date, status, user_id, tool_id, created_at`, borrow.Amount, borrow.Status, borrow.UserID, borrow.ToolID)
+		RETURNING id, amount, duration, status, user_id, tool_id, created_at, confirmed_at`, borrow.Amount, borrow.Status, borrow.UserID, borrow.ToolID)
 
 	b := types.Borrow{}
 	err := row.Scan(
 		&b.ID,
 		&b.Amount,
-		&b.ReturnDate,
+		&b.Duration,
 		&b.Status,
 		&b.UserID,
 		&b.ToolID,
 		&b.CreatedAt,
+		&b.ConfirmedAt,
 	)
 	if err != nil {
 		return types.Borrow{}, err
@@ -41,23 +43,24 @@ func (br *BorrowRepositoryPostgres) Save(borrow *types.Borrow) (types.Borrow, er
 func (br *BorrowRepositoryPostgres) Update(borrow *types.Borrow) (types.Borrow, error) {
 	row := br.DB.QueryRow(`UPDATE borrows SET
 		amount = $1,
-		return_date = $2,
+		duration = $2,
 		status = $3,
 		user_id = $4,
 		tool_id = $5
 		WHERE id = $6
-		RETURNING id, amount, return_date, status, user_id, tool_id, created_at
-	`, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.ID)
+		RETURNING id, amount, duration, status, user_id, tool_id, created_at, confirmed_at
+	`, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.ID)
 
 	b := types.Borrow{}
 	err := row.Scan(
 		&b.ID,
 		&b.Amount,
-		&b.ReturnDate,
+		&b.Duration,
 		&b.Status,
 		&b.UserID,
 		&b.ToolID,
 		&b.CreatedAt,
+		&b.ConfirmedAt,
 	)
 	if err != nil {
 		return types.Borrow{}, err
@@ -73,5 +76,10 @@ func (br *BorrowRepositoryPostgres) UpdateReason(id int64, reason string) error 
 	}
 
 	_, err = stmt.Exec(reason, id)
+	return err
+}
+
+func (br *BorrowRepositoryPostgres) UpdateConfirmedAt(id int64, confirmedAt time.Time) error {
+	_, err := br.DB.Exec(`UPDATE borrows SET confirmed_at = $1 WHERE id = $2`, confirmedAt, id)
 	return err
 }

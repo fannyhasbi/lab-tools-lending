@@ -1,0 +1,3 @@
+ALTER TABLE borrows DROP COLUMN IF EXISTS duration;
+ALTER TABLE borrows DROP COLUMN IF EXISTS confirmed_at;
+ALTER TABLE borrows ADD COLUMN IF NOT EXISTS return_date DATE;

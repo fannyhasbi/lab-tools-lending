@@ -653,7 +653,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 }
 
 func (ms *MessageService) borrowAskDateRange() error {
-	borrowDateRange, err := helper.GetBorrowTimeRangeValue(ms.messageText)
+	duration, err := helper.GetDurationValue(ms.messageText)
 	if err != nil {
 		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
 		return ms.sendMessage(types.MessageRequest{
@@ -661,13 +661,11 @@ func (ms *MessageService) borrowAskDateRange() error {
 		})
 	}
 
-	if borrowDateRange < types.BorrowMinimalDuration {
+	if duration < types.BorrowMinimalDuration {
 		return ms.sendMessage(types.MessageRequest{
 			Text: fmt.Sprintf("Minimal durasi peminjaman adalah %d hari", types.BorrowMinimalDuration),
 		})
 	}
-
-	returnDate := time.Now().AddDate(0, 0, borrowDateRange)
 
 	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
 	if err != nil {
@@ -675,11 +673,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 		return ms.Error()
 	}
 
-	borrow.ReturnDate = sql.NullString{
-		Valid:  true,
-		String: returnDate.Format("2006-01-02"),
-	}
-
+	borrow.Duration = duration
 	borrow, err = ms.borrowService.UpdateBorrow(borrow)
 	if err != nil {
 		log.Println("[ERR][Borrow][UpdateBorrow]", err)
@@ -687,7 +681,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 	}
 
 	sessionDataGenerator := helper.NewSessionDataGenerator()
-	generatedSessionData := sessionDataGenerator.BorrowDateRange(borrowDateRange)
+	generatedSessionData := sessionDataGenerator.BorrowDuration(duration)
 
 	if err = ms.saveChatSessionDetail(types.Topic["borrow_date"], generatedSessionData); err != nil {
 		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
@@ -722,15 +716,7 @@ func (ms *MessageService) borrowReason() error {
 		return ms.Error()
 	}
 
-	returnDateStr := helper.ChangeDateStringFormat(borrow.ReturnDate.String)
-	returnDateTime, err := time.Parse(helper.BasicDateLayout, returnDateStr)
-	if err != nil {
-		log.Println("[ERR][borrowReason][Parse]")
-		return ms.Error()
-	}
-
-	currentDateTime := time.Now()
-	borrowDateRange := int(returnDateTime.Sub(currentDateTime).Hours()/24) + 1 // because current day is counted
+	returnDate := time.Now().AddDate(0, 0, borrow.Duration).Format(types.BasicDateLayout)
 
 	message := fmt.Sprintf(`Nama alat : %s
 		Jumlah : %d
@@ -738,7 +724,7 @@ func (ms *MessageService) borrowReason() error {
 		Alamat peminjam : %s
 
 		Pastikan data sudah benar. Tekan "Lanjutkan" untuk mengajukan ke pengurus.
-	`, tool.Name, 1, helper.TranslateDateStringToBahasa(borrow.ReturnDate.String), borrowDateRange, ms.user.Address)
+	`, tool.Name, 1, helper.TranslateDateStringToBahasa(returnDate), borrow.Duration, ms.user.Address)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -909,7 +895,6 @@ func isFlagWithinReturningCommand(s string) bool {
 
 func (ms *MessageService) currentlyBorrowedTools() error {
 	var message string
-	var returnDateLayout string = "2006-01-02T15:04:05Z"
 
 	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
@@ -926,16 +911,17 @@ func (ms *MessageService) currentlyBorrowedTools() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	message += fmt.Sprintf("Anda sedang meminjam %s sejak %s.\nJadwal pengembalian pada %s\n\n", borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String))
-
-	returnDateTime, err := time.Parse(returnDateLayout, borrow.ReturnDate.String)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+	returnDate := borrow.ConfirmedAt.Time.AddDate(0, 0, borrow.Duration)
+	returnDateStr := returnDate.Format(types.BasicDateLayout)
+	message += fmt.Sprintf(
+		"Anda sedang meminjam %s sejak %s.\nJadwal pengembalian pada %s\n\n",
+		borrow.Tool.Name,
+		helper.TranslateDateStringToBahasa(borrow.ConfirmedAt.Time.Format(types.BasicDateLayout)),
+		helper.TranslateDateStringToBahasa(returnDateStr),
+	)
 
 	currentDateTime := time.Now()
-	dayDifference := int(returnDateTime.Sub(currentDateTime).Hours() / 24)
+	dayDifference := int(returnDate.Sub(currentDateTime).Hours() / 24)
 
 	if dayDifference < 0 {
 		message += fmt.Sprintf("Anda sudah lewat %d hari dari jadwal pengembalian barang.", -dayDifference)
@@ -1021,7 +1007,7 @@ func (ms *MessageService) toolReturningConfirm() error {
 		Tanggal pengembalian: %s
 		Keterangan:
 		%s
-	`, ms.user.Name, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateToBahasa(time.Now()), ms.messageText)
+	`, ms.user.Name, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.ConfirmedAt.Time.Format(types.BasicDateLayout)), helper.TranslateDateToBahasa(time.Now()), ms.messageText)
 	message = helper.RemoveTab(message)
 
 	errs, _ := errgroup.WithContext(context.Background())
@@ -1281,10 +1267,10 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 		Nama pemohon: %s (%s)
 		Barang: %s
 		Diajukan pada: %s
-		Estimasi pengembalian: %s
+		Durasi peminjaman: %d
 		Alasan peminjaman:
 		%s
-	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), helper.TranslateDateStringToBahasa(borrow.ReturnDate.String), borrow.Reason.String)
+	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.Reason.String)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1324,6 +1310,11 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
+	if err := ms.borrowService.UpdateBorrowConfirmedAt(borrow.ID, time.Now()); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: borrow.UserID,
 		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah disetujui oleh pengurus.", borrow.Tool.Name),
@@ -1342,6 +1333,11 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 	borrow.Status = types.GetBorrowStatus("reject")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][respondBorrowNegative][UpdateBorrow]", err)
+		return ms.Error()
+	}
+
+	if err := ms.borrowService.UpdateBorrowConfirmedAt(borrow.ID, time.Now()); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
 		return ms.Error()
 	}
 

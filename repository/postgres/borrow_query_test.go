@@ -18,14 +18,14 @@ func TestCanFindBorrowByID(t *testing.T) {
 
 	var id int64 = 123
 	borrow := types.Borrow{
-		ID:         123,
-		Amount:     1,
-		ReturnDate: sql.NullString{Valid: false, String: ""},
-		Status:     types.GetBorrowStatus("request"),
-		UserID:     111,
-		ToolID:     222,
-		CreatedAt:  timeNowString(),
-		Reason:     sql.NullString{Valid: true, String: "test reason"},
+		ID:        123,
+		Amount:    1,
+		Duration:  7,
+		Status:    types.GetBorrowStatus("request"),
+		UserID:    111,
+		ToolID:    222,
+		CreatedAt: timeNowString(),
+		Reason:    sql.NullString{Valid: true, String: "test reason"},
 		Tool: types.Tool{
 			Name:  "Test Tool Name 1",
 			Stock: 10,
@@ -36,8 +36,8 @@ func TestCanFindBorrowByID(t *testing.T) {
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "reason", "tool_name", "tool_stock", "user_name", "nim"}).
-		AddRow(borrow.ID, borrow.Amount, borrow.ReturnDate, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.Reason, borrow.Tool.Name, borrow.Tool.Stock, borrow.User.Name, borrow.User.NIM)
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "reason", "tool_name", "tool_stock", "user_name", "nim"}).
+		AddRow(borrow.ID, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.ConfirmedAt, borrow.Reason, borrow.Tool.Name, borrow.Tool.Stock, borrow.User.Name, borrow.User.NIM)
 
 	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ INNER JOIN tools .+ INNER JOIN users .+ WHERE .+id = .+").WithArgs(id).WillReturnRows(rows)
 
@@ -59,20 +59,20 @@ func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 
 	var userID int64 = 555
 	tt := types.Borrow{
-		ID:         123,
-		Amount:     1,
-		ReturnDate: sql.NullString{Valid: false, String: ""},
-		Status:     types.GetBorrowStatus("init"),
-		UserID:     111,
-		ToolID:     222,
-		CreatedAt:  timeNowString(),
+		ID:        123,
+		Amount:    1,
+		Duration:  7,
+		Status:    types.GetBorrowStatus("init"),
+		UserID:    111,
+		ToolID:    222,
+		CreatedAt: timeNowString(),
 		Tool: types.Tool{
 			Name: "Test Tool Name 1",
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name"}).
-		AddRow(tt.ID, tt.Amount, tt.ReturnDate, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.Tool.Name)
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name"}).
+		AddRow(tt.ID, tt.Amount, tt.Duration, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.ConfirmedAt, tt.Tool.Name)
 
 	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ LEFT JOIN tools .+ WHERE .+user_id = (.+) AND .+status (.+) ORDER BY .+id DESC").
 		WithArgs(userID, types.GetBorrowStatus("init")).
@@ -96,34 +96,34 @@ func TestCanFindBorrowByUserID(t *testing.T) {
 	var userID int64 = 555
 	tt := []types.Borrow{
 		{
-			ID:         123,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("init"),
-			UserID:     111,
-			ToolID:     222,
-			CreatedAt:  timeNowString(),
+			ID:        123,
+			Amount:    1,
+			Duration:  14,
+			Status:    types.GetBorrowStatus("init"),
+			UserID:    111,
+			ToolID:    222,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 1",
 			},
 		},
 		{
-			ID:         124,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("progress"),
-			UserID:     111,
-			ToolID:     223,
-			CreatedAt:  timeNowString(),
+			ID:        124,
+			Amount:    1,
+			Duration:  7,
+			Status:    types.GetBorrowStatus("progress"),
+			UserID:    111,
+			ToolID:    223,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 2",
 			},
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name"})
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name"})
 	for _, v := range tt {
-		rows.AddRow(v.ID, v.Amount, v.ReturnDate, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.Tool.Name)
+		rows.AddRow(v.ID, v.Amount, v.Duration, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.ConfirmedAt, v.Tool.Name)
 	}
 
 	mock.ExpectQuery("^SELECT .+ FROM borrows .+ INNER JOIN tools .+ WHERE .+user_id = .+ ORDER BY .+id DESC").
@@ -148,13 +148,13 @@ func TestCanGetBorrowsByStatus(t *testing.T) {
 	status := types.GetBorrowStatus("init")
 	tt := []types.Borrow{
 		{
-			ID:         123,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("progress"),
-			UserID:     111,
-			ToolID:     222,
-			CreatedAt:  timeNowString(),
+			ID:        123,
+			Amount:    1,
+			Duration:  14,
+			Status:    types.GetBorrowStatus("progress"),
+			UserID:    111,
+			ToolID:    222,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 1",
 			},
@@ -163,13 +163,13 @@ func TestCanGetBorrowsByStatus(t *testing.T) {
 			},
 		},
 		{
-			ID:         124,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("progress"),
-			UserID:     111,
-			ToolID:     223,
-			CreatedAt:  timeNowString(),
+			ID:        124,
+			Amount:    1,
+			Duration:  7,
+			Status:    types.GetBorrowStatus("progress"),
+			UserID:    111,
+			ToolID:    223,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 2",
 			},
@@ -179,9 +179,9 @@ func TestCanGetBorrowsByStatus(t *testing.T) {
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name", "user_name"})
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name", "user_name"})
 	for _, v := range tt {
-		rows.AddRow(v.ID, v.Amount, v.ReturnDate, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.Tool.Name, v.User.Name)
+		rows.AddRow(v.ID, v.Amount, v.Duration, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.ConfirmedAt, v.Tool.Name, v.User.Name)
 	}
 
 	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status = .+ ORDER BY b.id ASC").
@@ -210,13 +210,13 @@ func TestCanGetBorrowByMultipleStatus(t *testing.T) {
 	}
 	tt := []types.Borrow{
 		{
-			ID:         123,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("progress"),
-			UserID:     userID,
-			ToolID:     222,
-			CreatedAt:  timeNowString(),
+			ID:        123,
+			Amount:    1,
+			Duration:  14,
+			Status:    types.GetBorrowStatus("progress"),
+			UserID:    userID,
+			ToolID:    222,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 1",
 			},
@@ -225,13 +225,13 @@ func TestCanGetBorrowByMultipleStatus(t *testing.T) {
 			},
 		},
 		{
-			ID:         124,
-			Amount:     1,
-			ReturnDate: sql.NullString{Valid: false, String: ""},
-			Status:     types.GetBorrowStatus("progress"),
-			UserID:     userID,
-			ToolID:     223,
-			CreatedAt:  timeNowString(),
+			ID:        124,
+			Amount:    1,
+			Duration:  7,
+			Status:    types.GetBorrowStatus("progress"),
+			UserID:    userID,
+			ToolID:    223,
+			CreatedAt: timeNowString(),
 			Tool: types.Tool{
 				Name: "Tool Name Test 2",
 			},
@@ -241,9 +241,9 @@ func TestCanGetBorrowByMultipleStatus(t *testing.T) {
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "return_date", "status", "user_id", "tool_id", "created_at", "tool_name", "user_name"})
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name", "user_name"})
 	for _, v := range tt {
-		rows.AddRow(v.ID, v.Amount, v.ReturnDate, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.Tool.Name, v.User.Name)
+		rows.AddRow(v.ID, v.Amount, v.Duration, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.ConfirmedAt, v.Tool.Name, v.User.Name)
 	}
 
 	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.user_id = .+ AND b.status = ANY.+ ORDER BY b.id ASC").

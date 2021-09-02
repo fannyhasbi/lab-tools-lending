@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/fannyhasbi/lab-tools-lending/types"
+import (
+	"time"
+
+	"github.com/fannyhasbi/lab-tools-lending/types"
+)
 
 type BorrowQuery interface {
 	FindByID(id int64) QueryResult
@@ -14,4 +18,5 @@ type BorrowRepository interface {
 	Save(borrow *types.Borrow) (types.Borrow, error)
 	Update(borrow *types.Borrow) (types.Borrow, error)
 	UpdateReason(id int64, reason string) error
+	UpdateConfirmedAt(id int64, confirmedAt time.Time) error
 }
