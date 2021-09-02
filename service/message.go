@@ -1299,11 +1299,6 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		})
 	}
 
-	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
-		log.Println("[ERR][respondBorrowPositive][DecreaseStock]", err)
-		return ms.Error()
-	}
-
 	borrow.Status = types.GetBorrowStatus("progress")
 	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
 		log.Println("[ERR][respondBorrowPositive][UpdateBorrow]", err)
@@ -1312,6 +1307,11 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 
 	if err := ms.borrowService.UpdateBorrowConfirmedAt(borrow.ID, time.Now()); err != nil {
 		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
+		return ms.Error()
+	}
+
+	if err := ms.toolService.DecreaseStock(borrow.ToolID); err != nil {
+		log.Println("[ERR][respondBorrowPositive][DecreaseStock]", err)
 		return ms.Error()
 	}
 
@@ -1408,11 +1408,6 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 }
 
 func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolReturning) error {
-	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
-		log.Println("[ERR][respondToolReturningPositive][IncreaseStock]", err)
-		return ms.Error()
-	}
-
 	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(toolReturning.UserID)
 	if err != nil {
 		log.Println("[ERR][respondToolReturningPositive][FindCurrentlyBeingBorrowedByUserID]", err)
@@ -1432,6 +1427,11 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 
 	if err := ms.toolReturningService.UpdateToolReturningConfirmedAt(toolReturning.ID, time.Now()); err != nil {
 		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
+		return ms.Error()
+	}
+
+	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
+		log.Println("[ERR][respondToolReturningPositive][IncreaseStock]", err)
 		return ms.Error()
 	}
 
