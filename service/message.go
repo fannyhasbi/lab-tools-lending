@@ -801,16 +801,23 @@ func (ms *MessageService) borrowConfirm() error {
 func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
 	message := fmt.Sprintf(`Seseorang baru saja mengajukan peminjaman barang
 
-	ID Pengajuan: %d
-	Nama Barang: %s
-	
-	Anda dapat menanggapi pengajuan ini dengan mengetik perintah "/%s %s %d"`,
-		borrow.ID, borrow.Tool.Name, types.CommandRespond, types.RespondTypeBorrow, borrow.ID)
+	Nama Pemohon: %s
+	Barang: %s`, borrow.User.Name, borrow.Tool.Name)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
 		ChatID: types.AdminGroupIDs[0],
 		Text:   message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Tanggapi",
+						CallbackData: fmt.Sprintf("/%s %s %d", types.CommandRespond, types.RespondTypeBorrow, borrow.ID),
+					},
+				},
+			},
+		},
 	})
 }
 
@@ -1145,14 +1152,22 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
 	message := fmt.Sprintf(`Seseorang baru saja mengajukan pengembalian barang
 	
-	ID Pengajuan: %d
-	Nama Barang: %s
-
-	Anda dapat menanggapi pengajuan ini dengan mengetik perintah "/%s %s %d"`, toolReturning.ID, toolReturning.Tool.Name, types.CommandRespond, types.RespondTypeToolReturning, toolReturning.ID)
+	Nama Pemohon: %s
+	Barang: %s`, toolReturning.User.Name, toolReturning.Tool.Name)
 
 	return ms.sendMessage(types.MessageRequest{
 		ChatID: types.AdminGroupIDs[0],
 		Text:   message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Tanggapi",
+						CallbackData: fmt.Sprintf("/%s %s %d", types.CommandRespond, types.RespondTypeToolReturning, toolReturning.ID),
+					},
+				},
+			},
+		},
 	})
 }
 
@@ -1267,7 +1282,7 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 		Nama pemohon: %s (%s)
 		Barang: %s
 		Diajukan pada: %s
-		Durasi peminjaman: %d
+		Durasi peminjaman: %d hari
 		Alasan peminjaman:
 		%s
 	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.Reason.String)

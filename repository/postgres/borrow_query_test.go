@@ -69,12 +69,15 @@ func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 		Tool: types.Tool{
 			Name: "Test Tool Name 1",
 		},
+		User: types.User{
+			Name: "Test Name 1",
+		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name"}).
-		AddRow(tt.ID, tt.Amount, tt.Duration, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.ConfirmedAt, tt.Tool.Name)
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "tool_name", "user_name"}).
+		AddRow(tt.ID, tt.Amount, tt.Duration, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.ConfirmedAt, tt.Tool.Name, tt.User.Name)
 
-	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ LEFT JOIN tools .+ WHERE .+user_id = (.+) AND .+status (.+) ORDER BY .+id DESC").
+	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ INNER JOIN tools .+ INNER JOIN users u .+ WHERE .+user_id = (.+) AND .+status (.+) ORDER BY .+id DESC").
 		WithArgs(userID, types.GetBorrowStatus("init")).
 		WillReturnRows(rows)
 

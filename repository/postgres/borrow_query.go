@@ -59,10 +59,12 @@ func (bq BorrowQueryPostgres) FindByID(id int64) repository.QueryResult {
 
 func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.BorrowStatus) repository.QueryResult {
 	row := bq.DB.QueryRow(`
-		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name
+		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, t.name AS tool_name, u.name AS user_name
 		FROM borrows b
-		LEFT JOIN tools t
+		INNER JOIN tools t
 			ON t.id = b.tool_id
+		INNER JOIN users u
+			ON u.id = b.user_id
 		WHERE b.user_id = $1
 			AND b.status = $2
 		ORDER BY b.id DESC
@@ -81,6 +83,7 @@ func (bq BorrowQueryPostgres) FindByUserIDAndStatus(id int64, status types.Borro
 		&borrow.CreatedAt,
 		&borrow.ConfirmedAt,
 		&borrow.Tool.Name,
+		&borrow.User.Name,
 	)
 
 	if err != nil {
