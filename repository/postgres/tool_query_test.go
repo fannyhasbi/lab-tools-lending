@@ -29,7 +29,9 @@ func TestCanFindToolByID(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "brand", "product_type", "weight", "stock", "additional_info", "created_at", "updated_at"}).
 		AddRow(tt.ID, tt.Name, tt.Brand, tt.ProductType, tt.Weight, tt.Stock, tt.AdditionalInformation, tt.CreatedAt, tt.UpdatedAt)
 
-	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE id = (.+)").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE id = (.+)").
+		WithArgs(tt.ID).
+		WillReturnRows(rows)
 
 	result := query.FindByID(tt.ID)
 	assert.NoError(t, result.Error)

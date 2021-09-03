@@ -27,6 +27,7 @@ func TestCanSaveUser(t *testing.T) {
 		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt)
 
 	mock.ExpectQuery("^INSERT INTO users (.+) VALUES (.+) RETURNING (.+)").
+		WithArgs(user.ID, user.Name, user.NIM, user.Batch, user.Address).
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&user)
@@ -56,6 +57,7 @@ func TestCanUpdateUser(t *testing.T) {
 		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt)
 
 	mock.ExpectQuery("^UPDATE users SET (.+) WHERE id = (.+)").
+		WithArgs(user.Name, user.NIM, user.Batch, user.Address, user.ID).
 		WillReturnRows(rows)
 
 	result, err := repository.Update(&user)
