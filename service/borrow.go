@@ -28,10 +28,10 @@ func NewBorrowService() *BorrowService {
 	}
 }
 
-func (bs BorrowService) SaveBorrow(borrow types.Borrow) (types.Borrow, error) {
+func (bs BorrowService) SaveBorrow(borrow types.Borrow) (int64, error) {
 	result, err := bs.Repository.Save(&borrow)
 	if err != nil {
-		return types.Borrow{}, err
+		return int64(0), err
 	}
 
 	return result, nil
@@ -46,25 +46,12 @@ func (bs BorrowService) UpdateBorrow(borrow types.Borrow) (types.Borrow, error) 
 	return result, nil
 }
 
-func (bs BorrowService) UpdateBorrowReason(id int64, reason string) error {
-	return bs.Repository.UpdateReason(id, reason)
-}
-
 func (bs BorrowService) UpdateBorrowConfirmedAt(id int64, confirmedAt time.Time) error {
 	return bs.Repository.UpdateConfirmedAt(id, confirmedAt)
 }
 
 func (bs BorrowService) FindBorrowByID(id int64) (types.Borrow, error) {
 	result := bs.Query.FindByID(id)
-	if result.Error != nil {
-		return types.Borrow{}, result.Error
-	}
-
-	return result.Result.(types.Borrow), nil
-}
-
-func (bs BorrowService) FindInitialByUserID(id int64) (types.Borrow, error) {
-	result := bs.Query.FindByUserIDAndStatus(id, types.GetBorrowStatus("init"))
 	if result.Error != nil {
 		return types.Borrow{}, result.Error
 	}

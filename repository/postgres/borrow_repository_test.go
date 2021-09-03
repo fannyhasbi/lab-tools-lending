@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ func TestCanSaveBorrow(t *testing.T) {
 		Amount:    5,
 		Duration:  7,
 		Status:    types.GetBorrowStatus("progress"),
+		Reason:    sql.NullString{Valid: true, String: "test borrow reason"},
 		UserID:    111,
 		ToolID:    222,
 		CreatedAt: timeNowString(),
@@ -25,14 +27,16 @@ func TestCanSaveBorrow(t *testing.T) {
 
 	repository := NewBorrowRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at"}).
-		AddRow(borrow.ID, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.ConfirmedAt)
+	rows := sqlmock.NewRows([]string{"id"}).
+		AddRow(borrow.ID)
 
-	mock.ExpectQuery("^INSERT INTO borrows (.+) VALUES (.+) RETURNING (.+)").WillReturnRows(rows)
+	mock.ExpectQuery("^INSERT INTO borrows (.+) VALUES (.+) RETURNING id").
+		WithArgs(borrow.Amount, borrow.Status, borrow.UserID, borrow.ToolID, borrow.Reason, borrow.Duration).
+		WillReturnRows(rows)
 
 	result, err := repository.Save(&borrow)
 	assert.NoError(t, err)
-	assert.Equal(t, borrow, result)
+	assert.Equal(t, borrow.ID, result)
 
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
@@ -64,26 +68,6 @@ func TestCanUpdateBorrow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, borrow, result)
 
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
-}
-
-func TestCanUpdateBorrowReason(t *testing.T) {
-	db, mock, _ := sqlmock.New()
-	defer db.Close()
-
-	var id int64 = 123
-	var reason string = "test reason text"
-
-	repository := NewBorrowRepositoryPostgres(db)
-
-	mock.ExpectPrepare("^UPDATE borrows SET reason = .+ WHERE id = .+").
-		ExpectExec().
-		WithArgs(reason, id).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	err := repository.UpdateReason(id, reason)
-	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
 }

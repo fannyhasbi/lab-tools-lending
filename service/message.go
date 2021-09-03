@@ -593,24 +593,9 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 			message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.CommandReturn)
 		}
 
-		reqBody := types.MessageRequest{
+		return ms.sendMessage(types.MessageRequest{
 			Text: message,
-		}
-
-		return ms.sendMessage(reqBody)
-	}
-
-	borrow := types.Borrow{
-		Amount: 1,
-		Status: types.GetBorrowStatus("init"),
-		UserID: ms.user.ID,
-		ToolID: tool.ID,
-	}
-
-	borrow, err = ms.borrowService.SaveBorrow(borrow)
-	if err != nil {
-		log.Println("[ERR][Borrow][SaveBorrow]", err)
-		return ms.Error()
+		})
 	}
 
 	sessionDataGenerator := helper.NewSessionDataGenerator()
@@ -667,19 +652,6 @@ func (ms *MessageService) borrowAskDateRange() error {
 		})
 	}
 
-	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
-	if err != nil {
-		log.Println("[ERR][Borrow][FindInitialByUserID]", err)
-		return ms.Error()
-	}
-
-	borrow.Duration = duration
-	borrow, err = ms.borrowService.UpdateBorrow(borrow)
-	if err != nil {
-		log.Println("[ERR][Borrow][UpdateBorrow]", err)
-		return ms.Error()
-	}
-
 	sessionDataGenerator := helper.NewSessionDataGenerator()
 	generatedSessionData := sessionDataGenerator.BorrowDuration(duration)
 
@@ -694,11 +666,7 @@ func (ms *MessageService) borrowAskDateRange() error {
 }
 
 func (ms *MessageService) borrowReason() error {
-	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
-	if err != nil {
-		log.Println("[ERR][borrowReason][FindInitialByUserID]", err)
-		return ms.Error()
-	}
+	borrow := helper.GetBorrowFromChatSessionDetail(ms.chatSessionDetails)
 
 	tool, err := ms.toolService.FindByID(borrow.ToolID)
 	if err != nil {
@@ -706,12 +674,10 @@ func (ms *MessageService) borrowReason() error {
 		return ms.Error()
 	}
 
-	if err = ms.borrowService.UpdateBorrowReason(borrow.ID, ms.messageText); err != nil {
-		log.Println("[ERR][borrowReason][UpdateBorrowReason]", err)
-		return ms.Error()
-	}
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.BorrowReason(ms.messageText)
 
-	if err = ms.saveChatSessionDetail(types.Topic["borrow_reason"], ""); err != nil {
+	if err = ms.saveChatSessionDetail(types.Topic["borrow_reason"], generatedSessionData); err != nil {
 		log.Println("[ERR][borrowReason][saveChatSessionDetail]", err)
 		return ms.Error()
 	}
@@ -768,37 +734,43 @@ func (ms *MessageService) borrowConfirm() error {
 		return err
 	}
 
-	borrow, err := ms.borrowService.FindInitialByUserID(ms.user.ID)
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengajuan berhasil dibatalkan",
+		})
+	}
+
+	borrowSession := helper.GetBorrowFromChatSessionDetail(ms.chatSessionDetails)
+
+	borrow := types.Borrow{
+		Amount:   1,
+		Duration: borrowSession.Duration,
+		Status:   types.GetBorrowStatus("request"),
+		UserID:   ms.user.ID,
+		ToolID:   borrowSession.ToolID,
+		Reason:   borrowSession.Reason,
+	}
+
+	borrowID, err := ms.borrowService.SaveBorrow(borrow)
 	if err != nil {
-		log.Println("[ERR][borrowConfirm][FindInitialByUserID]", err)
+		log.Println("[ERR][borrowConfirm][SaveBorrow]", err)
 		return ms.Error()
 	}
 
-	var message string
-	if userResponse {
-		borrow.Status = types.GetBorrowStatus("request")
-		message = "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan."
-	} else {
-		borrow.Status = types.GetBorrowStatus("cancel")
-		message = "Pengajuan berhasil dibatalkan"
-	}
-
-	_, err = ms.borrowService.UpdateBorrow(borrow)
-	if err != nil {
-		log.Println("[ERR][borrowConfirm][UpdateBorrow]", err)
-		return ms.Error()
-	}
-
-	if userResponse {
-		go ms.sendBorrowToAdmin(borrow)
-	}
+	go ms.sendBorrowToAdmin(borrowID)
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: message,
+		Text: "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan.",
 	})
 }
 
-func (ms *MessageService) sendBorrowToAdmin(borrow types.Borrow) error {
+func (ms *MessageService) sendBorrowToAdmin(borrowID int64) error {
+	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
+	if err != nil {
+		log.Println("[ERR][sendBorrowToAdmin][FindBorrowByID]", err)
+		return ms.Error()
+	}
+
 	message := fmt.Sprintf(`Seseorang baru saja mengajukan peminjaman barang
 
 	Nama Pemohon: %s

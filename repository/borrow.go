@@ -15,8 +15,7 @@ type BorrowQuery interface {
 }
 
 type BorrowRepository interface {
-	Save(borrow *types.Borrow) (types.Borrow, error)
+	Save(borrow *types.Borrow) (int64, error)
 	Update(borrow *types.Borrow) (types.Borrow, error)
-	UpdateReason(id int64, reason string) error
 	UpdateConfirmedAt(id int64, confirmedAt time.Time) error
 }

@@ -1,8 +1,10 @@
 package helper
 
 import (
+	"database/sql"
 	"fmt"
 
+	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/types"
 )
 
@@ -48,4 +50,29 @@ func BuildToolReturningRequestListMessage(rets []types.ToolReturning) string {
 		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.User.Name, ret.Tool.Name)
 	}
 	return message
+}
+
+func GetBorrowFromChatSessionDetail(details []types.ChatSessionDetail) types.Borrow {
+	var borrow types.Borrow
+
+	for _, detail := range details {
+		dataParsed, err := gabs.ParseJSON([]byte(detail.Data))
+		if err != nil {
+			return borrow
+		}
+
+		switch detail.Topic {
+		case types.Topic["borrow_init"]:
+			toolID, _ := dataParsed.Path("tool_id").Data().(float64)
+			borrow.ToolID = int64(toolID)
+		case types.Topic["borrow_date"]:
+			duration, _ := dataParsed.Path("duration").Data().(float64)
+			borrow.Duration = int(duration)
+		case types.Topic["borrow_reason"]:
+			reason, _ := dataParsed.Path("reason").Data().(string)
+			borrow.Reason = sql.NullString{Valid: true, String: reason}
+		}
+	}
+
+	return borrow
 }

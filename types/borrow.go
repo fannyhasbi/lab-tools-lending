@@ -29,12 +29,10 @@ var (
 	}
 
 	borrowStatusMap = map[string]BorrowStatus{
-		"init":     "INIT",
 		"request":  "REQUEST",
 		"reject":   "REJECT",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
-		"cancel":   "CANCEL",
 	}
 
 	BorrowMinimalDuration = 7

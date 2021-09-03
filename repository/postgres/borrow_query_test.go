@@ -62,7 +62,7 @@ func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 		ID:        123,
 		Amount:    1,
 		Duration:  7,
-		Status:    types.GetBorrowStatus("init"),
+		Status:    types.GetBorrowStatus("request"),
 		UserID:    111,
 		ToolID:    222,
 		CreatedAt: timeNowString(),
@@ -78,10 +78,10 @@ func TestCanFindBorrowByUserIDAndStatus(t *testing.T) {
 		AddRow(tt.ID, tt.Amount, tt.Duration, tt.Status, tt.UserID, tt.ToolID, tt.CreatedAt, tt.ConfirmedAt, tt.Tool.Name, tt.User.Name)
 
 	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ INNER JOIN tools .+ INNER JOIN users u .+ WHERE .+user_id = (.+) AND .+status (.+) ORDER BY .+id DESC").
-		WithArgs(userID, types.GetBorrowStatus("init")).
+		WithArgs(userID, types.GetBorrowStatus("request")).
 		WillReturnRows(rows)
 
-	result := query.FindByUserIDAndStatus(userID, types.GetBorrowStatus("init"))
+	result := query.FindByUserIDAndStatus(userID, types.GetBorrowStatus("request"))
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {
@@ -102,7 +102,7 @@ func TestCanFindBorrowByUserID(t *testing.T) {
 			ID:        123,
 			Amount:    1,
 			Duration:  14,
-			Status:    types.GetBorrowStatus("init"),
+			Status:    types.GetBorrowStatus("request"),
 			UserID:    111,
 			ToolID:    222,
 			CreatedAt: timeNowString(),
@@ -148,7 +148,7 @@ func TestCanGetBorrowsByStatus(t *testing.T) {
 
 	query := NewBorrowQueryPostgres(db)
 
-	status := types.GetBorrowStatus("init")
+	status := types.GetBorrowStatus("request")
 	tt := []types.Borrow{
 		{
 			ID:        123,

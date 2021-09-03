@@ -42,6 +42,12 @@ func (sdc SessionDataContainer) BorrowDuration(dateDuration int) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) BorrowReason(reason string) string {
+	sdc.container.Set(types.Topic["borrow_reason"], "type")
+	sdc.container.Set(reason, "reason")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) BorrowConfirmation(userResponse bool) string {
 	sdc.container.Set(types.Topic["borrow_confirm"], "type")
 	sdc.container.Set(userResponse, "user_response")

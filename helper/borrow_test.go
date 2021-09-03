@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -10,7 +11,6 @@ import (
 )
 
 func TestBorrowStatusGrouping(t *testing.T) {
-	// testInit := []types.Borrow{{ID: 10, Status: types.GetBorrowStatus("init")}}
 	testProgress := []types.Borrow{
 		{
 			ID:     20,
@@ -29,7 +29,6 @@ func TestBorrowStatusGrouping(t *testing.T) {
 	}
 
 	var tt []types.Borrow
-	// tt = append(tt, testInit...)
 	tt = append(tt, testProgress...)
 	tt = append(tt, testReturned...)
 
@@ -37,7 +36,7 @@ func TestBorrowStatusGrouping(t *testing.T) {
 
 	assert.Equal(t, testProgress, r[types.GetBorrowStatus("progress")])
 	assert.Equal(t, testReturned, r[types.GetBorrowStatus("returned")])
-	assert.Empty(t, r[types.GetBorrowStatus("init")])
+	assert.Empty(t, r[types.GetBorrowStatus("request")])
 }
 
 func TestCanGetBorrowByStatus(t *testing.T) {
@@ -158,4 +157,64 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 		rets[1].ID, rets[1].User.Name, rets[1].Tool.Name)
 
 	assert.Equal(t, expected, r)
+}
+
+func TestGetBorrowFromChatSessionDetail(t *testing.T) {
+	gen := NewSessionDataGenerator()
+
+	var toolID int64 = 123
+	var duration int = 23
+	var reason string = "test borrow reason"
+
+	t.Run("full borrow session", func(t *testing.T) {
+		borrows := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["borrow_init"],
+				Data:  gen.BorrowInit(toolID),
+			},
+			{
+				Topic: types.Topic["borrow_date"],
+				Data:  gen.BorrowDuration(duration),
+			},
+			{
+				Topic: types.Topic["borrow_reason"],
+				Data:  gen.BorrowReason(reason),
+			},
+		}
+
+		r := GetBorrowFromChatSessionDetail(borrows)
+
+		expected := types.Borrow{
+			ToolID:   toolID,
+			Duration: duration,
+			Reason: sql.NullString{
+				Valid:  true,
+				String: reason,
+			},
+		}
+
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("not full session", func(t *testing.T) {
+		borrows := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["borrow_init"],
+				Data:  gen.BorrowInit(toolID),
+			},
+		}
+
+		r := GetBorrowFromChatSessionDetail(borrows)
+
+		expected := types.Borrow{
+			ToolID:   toolID,
+			Duration: 0,
+			Reason: sql.NullString{
+				Valid:  false,
+				String: "",
+			},
+		}
+
+		assert.Equal(t, expected, r)
+	})
 }
