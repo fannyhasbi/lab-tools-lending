@@ -15,15 +15,16 @@ import (
 )
 
 func WebhookHandler(c echo.Context) error {
+	var chatID int64
 	var senderID int64
 	var messageText string
+	var requestType types.RequestType
 	var bodyBytes []byte
 
 	var body *types.WebhookRequest
 	var callbackBody *types.InlineCallbackQuery
 
 	var messageService *service.MessageService
-	var userService *service.UserService
 	var chatSessionService *service.ChatSessionService
 
 	bodyBytes, _ = ioutil.ReadAll(c.Request().Body)
@@ -43,28 +44,35 @@ func WebhookHandler(c echo.Context) error {
 			return err
 		}
 
-		// todo: non message request (join group, added to group, etc still don't know)
+		// on message request (join group, added to group, etc still don't know)
 		if len(body.Message.Text) == 0 {
 			return nil
 		}
 
-		senderID = body.Message.Chat.ID
+		chatID = body.Message.Chat.ID
 		messageText = body.Message.Text
-		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeCommon)
+		if body.Message.Chat.Type == "group" {
+			senderID = body.Message.From.ID
+			requestType = types.RequestTypeGroup
+		} else {
+			senderID = chatID
+			requestType = types.RequestTypePrivate
+		}
 	} else {
-		senderID = callbackBody.CallbackQuery.From.ID
+		chatID = callbackBody.CallbackQuery.Message.Chat.ID
 		messageText = callbackBody.CallbackQuery.Data
-		messageService = service.NewMessageService(senderID, messageText, types.RequestTypeInlineCallback)
+		if callbackBody.CallbackQuery.Message.Chat.Type == "group" {
+			senderID = callbackBody.CallbackQuery.From.ID
+			requestType = types.RequestTypeGroup
+		} else {
+			senderID = chatID
+			requestType = types.RequestTypePrivate
+		}
 	}
+
+	messageService = service.NewMessageService(chatID, senderID, messageText, requestType)
 
 	user := types.User{ID: senderID}
-
-	userService = service.NewUserService()
-	user, err := userService.FindByID(senderID)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return messageService.Error()
-	}
 
 	chatSessionService = service.NewChatSessionService()
 	chatSessions, err := chatSessionService.GetChatSessions(user)
@@ -86,6 +94,11 @@ func WebhookHandler(c echo.Context) error {
 		return commandHandler(messageText, messageService)
 	}
 
+	// not interacting with chatbot in group
+	if requestType == types.RequestTypeGroup {
+		return nil
+	}
+
 	return messageService.Unknown()
 }
 
@@ -94,16 +107,18 @@ func commandHandler(message string, ms *service.MessageService) error {
 	log.Printf("the command is : %s\n", commandStr)
 
 	switch commandStr {
-	case types.Command().Help:
+	case types.CommandHelp:
 		return ms.Help()
-	case types.Command().Register:
+	case types.CommandRegister:
 		return ms.Register()
-	case types.Command().Check:
+	case types.CommandCheck:
 		return ms.Check()
-	case types.Command().Borrow:
+	case types.CommandBorrow:
 		return ms.Borrow()
-	case types.Command().Return:
+	case types.CommandReturn:
 		return ms.ReturnTool()
+	case types.CommandRespond:
+		return ms.Respond()
 	default:
 		return ms.Unknown()
 	}
@@ -129,10 +144,14 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 	switch topic {
 	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
-	case types.Topic["borrow_init"], types.Topic["borrow_date"], types.Topic["borrow_confirm"]:
+	case types.Topic["borrow_init"], types.Topic["borrow_date"], types.Topic["borrow_reason"], types.Topic["borrow_confirm"]:
 		return ms.Borrow()
 	case types.Topic["tool_returning_init"], types.Topic["tool_returning_confirm"]:
 		return ms.ReturnTool()
+	case types.Topic["respond_borrow_init"]:
+		return ms.RespondBorrow()
+	case types.Topic["respond_tool_returning_init"]:
+		return ms.RespondToolReturning()
 	default:
 		return ms.Unknown()
 	}

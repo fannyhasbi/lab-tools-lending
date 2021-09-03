@@ -22,6 +22,7 @@ func TestCanGetChatSession(t *testing.T) {
 		AddRow(1, types.ChatSessionStatus["progress"], timeNowString())
 
 	mock.ExpectQuery("^SELECT(.+)FROM chat_sessions(.+)WHERE user_id = (.+) ORDER BY id DESC").
+		WithArgs(user.ID, types.ChatSessionStatus["progress"]).
 		WillReturnRows(rows)
 
 	result := query.Get(user)
@@ -43,6 +44,7 @@ func TestCanGetChatSessionDetail(t *testing.T) {
 		AddRow(1, types.Topic["register"], chatSession.ID, timeNowString(), `{"type": "something"}`)
 
 	mock.ExpectQuery("^SELECT(.+)FROM chat_session_details(.+)WHERE chat_session_id = (.+) ORDER BY id DESC").
+		WithArgs(chatSession.ID).
 		WillReturnRows(rows)
 
 	result := query.GetDetail(chatSession)

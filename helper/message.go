@@ -15,6 +15,13 @@ func RemoveTab(s string) string {
 	return strings.Replace(s, "\t", "", -1)
 }
 
+func BuildMessageRequest(data *types.MessageRequest) {
+	if len(data.ReplyMarkup.InlineKeyboard) == 0 {
+		inlineKeyboard := make([][]types.InlineKeyboardButton, 0)
+		data.ReplyMarkup.InlineKeyboard = inlineKeyboard
+	}
+}
+
 func BuildToolListMessage(l []types.Tool) string {
 	m := ""
 	for _, t := range l {

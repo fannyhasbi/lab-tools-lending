@@ -62,10 +62,10 @@ func TestSessionGeneratorBorrowInit(t *testing.T) {
 	assert.JSONEq(t, expected, r)
 }
 
-func TestSessionGeneratorBorrowDateRange(t *testing.T) {
+func TestSessionGeneratorBorrowDuration(t *testing.T) {
 	duration := 30
 	gen := NewSessionDataGenerator()
-	r := gen.BorrowDateRange(duration)
+	r := gen.BorrowDuration(duration)
 
 	expected := fmt.Sprintf(`{"type":"%s","duration":%d}`, string(types.Topic["borrow_date"]), duration)
 
@@ -99,5 +99,45 @@ func TestSessionGeneratorToolReturningComplete(t *testing.T) {
 
 	expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, string(types.Topic["tool_returning_complete"]), resp)
 
+	assert.JSONEq(t, expected, r)
+}
+
+func TestSessionGeneratorRespondBorrowInit(t *testing.T) {
+	borrowID := int64(123)
+	userResponse := "yes"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondBorrowInit(borrowID, userResponse)
+
+	expected := fmt.Sprintf(`{"type":"%s","borrow_id":%d,"user_response":"%s"}`, string(types.Topic["respond_borrow_init"]), borrowID, userResponse)
+
+	assert.JSONEq(t, expected, r)
+}
+
+func TestSessionGeneratorRespondBorrowComplete(t *testing.T) {
+	description := "test description"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondBorrowComplete(description)
+
+	expected := fmt.Sprintf(`{"type":"%s","description":"%s"}`, string(types.Topic["respond_borrow_complete"]), description)
+	assert.JSONEq(t, expected, r)
+}
+
+func TestSessionGeneratorRespondToolReturningInit(t *testing.T) {
+	toolReturningID := int64(123)
+	userResponse := "yes"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondToolReturningInit(toolReturningID, userResponse)
+
+	expected := fmt.Sprintf(`{"type":"%s","tool_returning_id":%d,"user_response":"%s"}`, string(types.Topic["respond_tool_returning_init"]), toolReturningID, userResponse)
+
+	assert.JSONEq(t, expected, r)
+}
+
+func TestSessionGeneratorRespondToolReturningComplete(t *testing.T) {
+	description := "test description"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondToolReturningComplete(description)
+
+	expected := fmt.Sprintf(`{"type":"%s","description":"%s"}`, string(types.Topic["respond_tool_returning_complete"]), description)
 	assert.JSONEq(t, expected, r)
 }

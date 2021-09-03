@@ -1,19 +1,27 @@
 package types
 
-type command struct {
-	Register string
-	Check    string
-	Borrow   string
-	Return   string
-	Help     string
-}
+const (
+	CommandRegister = "registrasi"
+	CommandCheck    = "cek"
+	CommandBorrow   = "pinjam"
+	CommandReturn   = "pengembalian"
+	CommandHelp     = "bantuan"
 
-func Command() command {
-	return command{
-		Register: "registrasi",
-		Check:    "cek",
-		Borrow:   "pinjam",
-		Return:   "pengembalian",
-		Help:     "bantuan",
+	// admin stuffs
+	CommandRespond = "tanggapi"
+)
+
+type (
+	RespondType string
+
+	RespondCommands struct {
+		Type RespondType
+		ID   int64
+		Text string
 	}
-}
+)
+
+var (
+	RespondTypeBorrow        RespondType = "pinjam"
+	RespondTypeToolReturning RespondType = "kembali"
+)

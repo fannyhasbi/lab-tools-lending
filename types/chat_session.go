@@ -34,10 +34,17 @@ var (
 
 		"borrow_init":    "BRW_init",
 		"borrow_date":    "BRW_date",
+		"borrow_reason":  "BRW_reason",
 		"borrow_confirm": "BRW_confirm",
 
 		"tool_returning_init":     "RET_init",
 		"tool_returning_confirm":  "RET_confim",
 		"tool_returning_complete": "RET_complete",
+
+		// admin stuffs
+		"respond_borrow_init":             "RESPOND_brw_init",
+		"respond_borrow_complete":         "RESPOND_brw_complete",
+		"respond_tool_returning_init":     "RESPOND_ret_init",
+		"respond_tool_returning_complete": "RESPOND_ret_complete",
 	}
 )

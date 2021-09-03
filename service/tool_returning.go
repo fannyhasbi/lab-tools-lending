@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/repository/postgres"
@@ -39,11 +41,33 @@ func (trs ToolReturningService) UpdateToolReturningStatus(id int64, status types
 	return trs.Repository.UpdateStatus(id, status)
 }
 
-func (trs ToolReturningService) FindOnProgressByUserID(id int64) (types.ToolReturning, error) {
-	result := trs.Query.FindByUserIDAndStatus(id, types.GetToolReturningStatus("progress"))
+func (trs ToolReturningService) UpdateToolReturningConfirmedAt(id int64, datetime time.Time) error {
+	return trs.Repository.UpdateConfirmedAt(id, datetime)
+}
+
+func (trs ToolReturningService) FindToolReturningByID(id int64) (types.ToolReturning, error) {
+	result := trs.Query.FindByID(id)
 	if result.Error != nil {
 		return types.ToolReturning{}, result.Error
 	}
 
 	return result.Result.(types.ToolReturning), nil
+}
+
+func (trs ToolReturningService) FindOnProgressByUserID(id int64) (types.ToolReturning, error) {
+	result := trs.Query.FindByUserIDAndStatus(id, types.GetToolReturningStatus("request"))
+	if result.Error != nil {
+		return types.ToolReturning{}, result.Error
+	}
+
+	return result.Result.(types.ToolReturning), nil
+}
+
+func (trs ToolReturningService) GetToolReturningRequests() ([]types.ToolReturning, error) {
+	result := trs.Query.GetByStatus(types.GetToolReturningStatus("request"))
+	if result.Error != nil {
+		return []types.ToolReturning{}, result.Error
+	}
+
+	return result.Result.([]types.ToolReturning), nil
 }

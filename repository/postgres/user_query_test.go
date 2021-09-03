@@ -18,6 +18,7 @@ func TestCanFindUserByID(t *testing.T) {
 		AddRow(id, "testname", "2111", 2016, "testaddress", timeNowString())
 
 	mock.ExpectQuery("^SELECT(.+)FROM users(.+)WHERE id = (.+)").
+		WithArgs(id).
 		WillReturnRows(rows)
 
 	result := query.FindByID(id)

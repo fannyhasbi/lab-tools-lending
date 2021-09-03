@@ -26,6 +26,7 @@ func TestCanSaveChatSession(t *testing.T) {
 		AddRow(chatSession.ID, chatSession.Status, chatSession.UserID, chatSession.CreatedAt, chatSession.UpdatedAt)
 
 	mock.ExpectQuery("^INSERT INTO chat_sessions (.+) VALUES (.+) RETURNING (.+)").
+		WithArgs(chatSession.Status, chatSession.UserID).
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&chatSession)
@@ -91,6 +92,7 @@ func TestCanSaveChatSessionDetail(t *testing.T) {
 		AddRow(detail.ID, detail.Topic, detail.ChatSessionID, detail.CreatedAt, detail.Data)
 
 	mock.ExpectQuery("^INSERT INTO chat_session_details (.+) VALUES (.+) RETURNING (.+)").
+		WithArgs(detail.Topic, detail.ChatSessionID, detail.Data).
 		WillReturnRows(rows)
 
 	result, err := repository.SaveDetail(&detail)

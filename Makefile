@@ -24,16 +24,16 @@ deploy: test
 	heroku container:release web -a $(appname)
 
 migrate-up:
-	migrate -path database/migration \
+	@migrate -path database/migration \
 		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
 		-verbose up
 
 migrate-down:
-	migrate -path database/migration \
+	@migrate -path database/migration \
 		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
 		-verbose down
 
 migrate-force:
-	migrate -path database/migration \
+	@migrate -path database/migration \
 		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
 		-verbose force $(VERSION)

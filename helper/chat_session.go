@@ -36,9 +36,15 @@ func (sdc SessionDataContainer) BorrowInit(toolID int64) string {
 	return sdc.container.String()
 }
 
-func (sdc SessionDataContainer) BorrowDateRange(dateDuration int) string {
+func (sdc SessionDataContainer) BorrowDuration(dateDuration int) string {
 	sdc.container.Set(types.Topic["borrow_date"], "type")
 	sdc.container.Set(dateDuration, "duration")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) BorrowReason(reason string) string {
+	sdc.container.Set(types.Topic["borrow_reason"], "type")
+	sdc.container.Set(reason, "reason")
 	return sdc.container.String()
 }
 
@@ -57,5 +63,31 @@ func (sdc SessionDataContainer) ToolReturningConfirm(additionalInfo string) stri
 func (sdc SessionDataContainer) ToolReturningComplete(userResponse bool) string {
 	sdc.container.Set(types.Topic["tool_returning_complete"], "type")
 	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) RespondBorrowInit(borrowID int64, userResponse string) string {
+	sdc.container.Set(types.Topic["respond_borrow_init"], "type")
+	sdc.container.Set(borrowID, "borrow_id")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) RespondBorrowComplete(description string) string {
+	sdc.container.Set(types.Topic["respond_borrow_complete"], "type")
+	sdc.container.Set(description, "description")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) RespondToolReturningInit(toolReturningID int64, userResponse string) string {
+	sdc.container.Set(types.Topic["respond_tool_returning_init"], "type")
+	sdc.container.Set(toolReturningID, "tool_returning_id")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) RespondToolReturningComplete(description string) string {
+	sdc.container.Set(types.Topic["respond_tool_returning_complete"], "type")
+	sdc.container.Set(description, "description")
 	return sdc.container.String()
 }

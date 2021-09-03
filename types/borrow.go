@@ -6,14 +6,17 @@ type (
 	BorrowStatus string
 
 	Borrow struct {
-		ID         int64          `json:"id"`
-		Amount     int            `json:"amount"`
-		ReturnDate sql.NullString `json:"return_date"`
-		Status     BorrowStatus   `json:"status"`
-		UserID     int64          `json:"user_id"`
-		ToolID     int64          `json:"tool_id"`
-		CreatedAt  string         `json:"created_at"`
-		Tool       Tool           `json:"tool"`
+		ID          int64          `json:"id"`
+		Amount      int            `json:"amount"`
+		Duration    int            `json:"duration"`
+		Status      BorrowStatus   `json:"status"`
+		UserID      int64          `json:"user_id"`
+		ToolID      int64          `json:"tool_id"`
+		CreatedAt   string         `json:"created_at"`
+		ConfirmedAt sql.NullTime   `json:"confirmed_at"`
+		Reason      sql.NullString `json:"reason"`
+		Tool        Tool           `json:"tool"`
+		User        User           `json:"user"`
 	}
 )
 
@@ -26,11 +29,13 @@ var (
 	}
 
 	borrowStatusMap = map[string]BorrowStatus{
-		"init":     "INIT",
+		"request":  "REQUEST",
+		"reject":   "REJECT",
 		"progress": "PROGRESS",
 		"returned": "RETURNED",
-		"cancel":   "CANCEL",
 	}
+
+	BorrowMinimalDuration = 7
 )
 
 func GetBorrowStatus(s string) BorrowStatus {
