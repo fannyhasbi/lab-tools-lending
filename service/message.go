@@ -1193,7 +1193,7 @@ func (ms *MessageService) Respond() error {
 	if respCommands.Type == types.RespondTypeBorrow {
 		return ms.respondBorrowInit(respCommands)
 	} else if respCommands.Type == types.RespondTypeToolReturning {
-		return ms.respondToolReturning(respCommands)
+		return ms.respondToolReturningInit(respCommands)
 	}
 
 	return ms.Unknown()
@@ -1427,7 +1427,23 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 	})
 }
 
-func (ms *MessageService) respondToolReturning(commands types.RespondCommands) error {
+func (ms *MessageService) RespondToolReturning() error {
+	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
+		return ms.Unknown()
+	}
+
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["respond_tool_returning_init"]:
+			return ms.respondToolReturningComplete()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) respondToolReturningInit(commands types.RespondCommands) error {
 	toolReturning, err := ms.toolReturningService.FindToolReturningByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondToolReturning][FindToolReturningByID]", err)
@@ -1440,13 +1456,62 @@ func (ms *MessageService) respondToolReturning(commands types.RespondCommands) e
 		})
 	}
 
-	if commands.Text == "yes" {
-		return ms.respondToolReturningPositive(toolReturning)
-	} else if commands.Text == "no" {
-		return ms.respondToolReturningNegative(toolReturning)
+	if commands.Text == "" {
+		return ms.respondToolReturningDetail(toolReturning)
 	}
 
-	return ms.respondToolReturningDetail(toolReturning)
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RespondToolReturningInit(toolReturning.ID, commands.Text)
+
+	if err = ms.saveChatSessionDetail(types.Topic["respond_tool_returning_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][respondToolReturningInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan keterangan tambahan.",
+	})
+}
+
+func (ms *MessageService) respondToolReturningComplete() error {
+	respondToolReturningSession, ok := helper.GetChatSessionDetailByTopic(ms.chatSessionDetails, types.Topic["respond_tool_returning_init"])
+	if !ok {
+		return ms.Unknown()
+	}
+
+	dataParsed, err := gabs.ParseJSON([]byte(respondToolReturningSession.Data))
+	if err != nil {
+		log.Println("[ERR][respondToolReturningComplete][ParseJSON]", err)
+		return ms.Error()
+	}
+
+	var toolReturningID int64
+	trID, ok := dataParsed.Path("tool_returning_id").Data().(float64)
+	if ok {
+		toolReturningID = int64(trID)
+	}
+
+	toolReturning, err := ms.toolReturningService.FindToolReturningByID(toolReturningID)
+	if err != nil {
+		log.Println("[ERR][respondToolReturningComplete][FindToolReturningByID]", err)
+		return ms.Error()
+	}
+
+	userResponse, _ := dataParsed.Path("user_response").Data().(string)
+
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RespondToolReturningComplete(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["respond_tool_returning_complete"], generatedSessionData); err != nil {
+		log.Println("[ERR][respondToolReturningComplete][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	if userResponse == "yes" {
+		return ms.respondToolReturningPositive(toolReturning)
+	}
+
+	return ms.respondToolReturningNegative(toolReturning)
 }
 
 func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolReturning) error {
@@ -1506,9 +1571,15 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 		return ms.Error()
 	}
 
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][respondToolReturningPositive][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: toolReturning.UserID,
-		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.", toolReturning.Tool.Name),
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
@@ -1531,9 +1602,15 @@ func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolR
 		return ms.Error()
 	}
 
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][respondToolReturningPositive][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: toolReturning.UserID,
-		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah ditolak oleh pengurus.", toolReturning.Tool.Name),
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah ditolak oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)

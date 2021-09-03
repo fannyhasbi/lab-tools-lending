@@ -42,7 +42,9 @@ var (
 		"tool_returning_complete": "RET_complete",
 
 		// admin stuffs
-		"respond_borrow_init":     "RESPOND_brw_init",
-		"respond_borrow_complete": "RESPOND_brw_complete",
+		"respond_borrow_init":             "RESPOND_brw_init",
+		"respond_borrow_complete":         "RESPOND_brw_complete",
+		"respond_tool_returning_init":     "RESPOND_ret_init",
+		"respond_tool_returning_complete": "RESPOND_ret_complete",
 	}
 )
