@@ -32,33 +32,9 @@ func (br *BorrowRepositoryPostgres) Save(borrow *types.Borrow) (int64, error) {
 	return id, nil
 }
 
-func (br *BorrowRepositoryPostgres) Update(borrow *types.Borrow) (types.Borrow, error) {
-	row := br.DB.QueryRow(`UPDATE borrows SET
-		amount = $1,
-		duration = $2,
-		status = $3,
-		user_id = $4,
-		tool_id = $5
-		WHERE id = $6
-		RETURNING id, amount, duration, status, user_id, tool_id, created_at, confirmed_at
-	`, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.ID)
-
-	b := types.Borrow{}
-	err := row.Scan(
-		&b.ID,
-		&b.Amount,
-		&b.Duration,
-		&b.Status,
-		&b.UserID,
-		&b.ToolID,
-		&b.CreatedAt,
-		&b.ConfirmedAt,
-	)
-	if err != nil {
-		return types.Borrow{}, err
-	}
-
-	return b, nil
+func (br *BorrowRepositoryPostgres) UpdateStatus(id int64, status types.BorrowStatus) error {
+	_, err := br.DB.Exec(`UPDATE borrows SET status = $1 WHERE id = $2`, status, id)
+	return err
 }
 
 func (br *BorrowRepositoryPostgres) UpdateConfirmedAt(id int64, confirmedAt time.Time) error {

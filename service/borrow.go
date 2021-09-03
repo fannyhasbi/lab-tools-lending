@@ -37,13 +37,8 @@ func (bs BorrowService) SaveBorrow(borrow types.Borrow) (int64, error) {
 	return result, nil
 }
 
-func (bs BorrowService) UpdateBorrow(borrow types.Borrow) (types.Borrow, error) {
-	result, err := bs.Repository.Update(&borrow)
-	if err != nil {
-		return types.Borrow{}, err
-	}
-
-	return result, nil
+func (bs BorrowService) UpdateBorrowStatus(id int64, status types.BorrowStatus) error {
+	return bs.Repository.UpdateStatus(id, status)
 }
 
 func (bs BorrowService) UpdateBorrowConfirmedAt(id int64, confirmedAt time.Time) error {

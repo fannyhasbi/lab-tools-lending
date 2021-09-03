@@ -1286,9 +1286,8 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		})
 	}
 
-	borrow.Status = types.GetBorrowStatus("progress")
-	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
-		log.Println("[ERR][respondBorrowPositive][UpdateBorrow]", err)
+	if err := ms.borrowService.UpdateBorrowStatus(borrow.ID, types.GetBorrowStatus("progress")); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateBorrowStatus]", err)
 		return ms.Error()
 	}
 
@@ -1317,9 +1316,8 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 }
 
 func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
-	borrow.Status = types.GetBorrowStatus("reject")
-	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
-		log.Println("[ERR][respondBorrowNegative][UpdateBorrow]", err)
+	if err := ms.borrowService.UpdateBorrowStatus(borrow.ID, types.GetBorrowStatus("reject")); err != nil {
+		log.Println("[ERR][respondBorrowNegative][UpdateBorrowStatus]", err)
 		return ms.Error()
 	}
 
@@ -1401,9 +1399,8 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 		return ms.Error()
 	}
 
-	borrow.Status = types.GetBorrowStatus("returned")
-	if _, err := ms.borrowService.UpdateBorrow(borrow); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrow]", err)
+	if err := ms.borrowService.UpdateBorrowStatus(borrow.ID, types.GetBorrowStatus("returned")); err != nil {
+		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrowStatus]", err)
 		return ms.Error()
 	}
 
