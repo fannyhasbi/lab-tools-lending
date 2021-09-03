@@ -522,7 +522,7 @@ func (ms *MessageService) Borrow() error {
 	if len(ms.chatSessionDetails) > 0 {
 		switch ms.chatSessionDetails[0].Topic {
 		case types.Topic["borrow_init"]:
-			return ms.borrowAskDateRange()
+			return ms.borrowDuration()
 		case types.Topic["borrow_date"]:
 			return ms.borrowReason()
 		case types.Topic["borrow_reason"]:
@@ -647,10 +647,10 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	return ms.sendMessage(reqBody)
 }
 
-func (ms *MessageService) borrowAskDateRange() error {
+func (ms *MessageService) borrowDuration() error {
 	duration, err := helper.GetDurationValue(ms.messageText)
 	if err != nil {
-		log.Println("[ERR][Borrow][getBorrowDateRange]", err)
+		log.Println("[ERR][Borrow][borrowDuration]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Mohon sebutkan jumlah hari.",
 		})
