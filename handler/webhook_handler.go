@@ -94,6 +94,11 @@ func WebhookHandler(c echo.Context) error {
 		return commandHandler(messageText, messageService)
 	}
 
+	// not interacting with chatbot in group
+	if requestType == types.RequestTypeGroup {
+		return nil
+	}
+
 	return messageService.Unknown()
 }
 

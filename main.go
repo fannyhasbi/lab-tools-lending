@@ -18,14 +18,6 @@ func main() {
 
 	e := echo.New()
 
-	// middleware
-	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
-		log.Println("REQUEST")
-		log.Println(string(reqBody))
-		log.Println("RESPONSE")
-		log.Println(string(resBody))
-	}))
-
 	e.Use(middleware.Logger())
 
 	e.POST("/", handler.WebhookHandler)
