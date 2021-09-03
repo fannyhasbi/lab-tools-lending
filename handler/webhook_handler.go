@@ -148,6 +148,8 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 		return ms.Borrow()
 	case types.Topic["tool_returning_init"], types.Topic["tool_returning_confirm"]:
 		return ms.ReturnTool()
+	case types.Topic["respond_borrow_init"]:
+		return ms.RespondBorrow()
 	default:
 		return ms.Unknown()
 	}

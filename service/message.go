@@ -71,6 +71,16 @@ func (ms *MessageService) initToolReturningService() {
 	ms.toolReturningService = NewToolReturningService()
 }
 
+func (ms *MessageService) isRegistered() bool {
+	user, err := ms.userService.FindByID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		return false
+	}
+
+	ms.user = user
+	return ms.user.IsRegistered()
+}
+
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
 		reqBody.ChatID = ms.chatID
@@ -1164,7 +1174,7 @@ func (ms *MessageService) isEligibleAdmin() bool {
 }
 
 func (ms *MessageService) Respond() error {
-	if ok := ms.isEligibleAdmin(); !ok {
+	if !ms.isEligibleAdmin() {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}
@@ -1181,7 +1191,7 @@ func (ms *MessageService) Respond() error {
 	}
 
 	if respCommands.Type == types.RespondTypeBorrow {
-		return ms.respondBorrow(respCommands)
+		return ms.respondBorrowInit(respCommands)
 	} else if respCommands.Type == types.RespondTypeToolReturning {
 		return ms.respondToolReturning(respCommands)
 	}
@@ -1226,10 +1236,26 @@ func (ms *MessageService) ListToRespond() error {
 	})
 }
 
-func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
+func (ms *MessageService) RespondBorrow() error {
+	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
+		return ms.Unknown()
+	}
+
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["respond_borrow_init"]:
+			return ms.respondBorrowComplete()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) respondBorrowInit(commands types.RespondCommands) error {
 	borrow, err := ms.borrowService.FindBorrowByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println("[ERR][respondBorrow][FindBorrowByID]", err)
+		log.Println("[ERR][respondBorrowInit][FindBorrowByID]", err)
 		return ms.Error()
 	}
 
@@ -1239,13 +1265,62 @@ func (ms *MessageService) respondBorrow(commands types.RespondCommands) error {
 		})
 	}
 
-	if commands.Text == "yes" {
-		return ms.respondBorrowPositive(borrow)
-	} else if commands.Text == "no" {
-		return ms.respondBorrowNegative(borrow)
+	if commands.Text == "" {
+		return ms.respondBorrowDetail(borrow)
 	}
 
-	return ms.respondBorrowDetail(borrow)
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RespondBorrowInit(borrow.ID, commands.Text)
+
+	if err = ms.saveChatSessionDetail(types.Topic["respond_borrow_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][respondBorrowInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan keterangan tambahan.",
+	})
+}
+
+func (ms *MessageService) respondBorrowComplete() error {
+	respondBorrowSession, ok := helper.GetChatSessionDetailByTopic(ms.chatSessionDetails, types.Topic["respond_borrow_init"])
+	if !ok {
+		return ms.Unknown()
+	}
+
+	dataParsed, err := gabs.ParseJSON([]byte(respondBorrowSession.Data))
+	if err != nil {
+		log.Println("[ERR][respondBorrowComplete][ParseJSON]", err)
+		return ms.Error()
+	}
+
+	var borrowID int64
+	bID, ok := dataParsed.Path("borrow_id").Data().(float64)
+	if ok {
+		borrowID = int64(bID)
+	}
+
+	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
+	if err != nil {
+		log.Println("[ERR][respondBorrowComplete][FindBorrowByID]", err)
+		return ms.Error()
+	}
+
+	userResponse, _ := dataParsed.Path("user_response").Data().(string)
+
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.RespondBorrowComplete(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["respond_borrow_complete"], generatedSessionData); err != nil {
+		log.Println("[ERR][respondBorrowPositive][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	if userResponse == "yes" {
+		return ms.respondBorrowPositive(borrow)
+	}
+
+	return ms.respondBorrowNegative(borrow)
 }
 
 func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
@@ -1301,9 +1376,15 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: borrow.UserID,
-		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah disetujui oleh pengurus.", borrow.Tool.Name),
+		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah disetujui oleh pengurus.\n\nKeterangan:\n%s", borrow.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
@@ -1326,9 +1407,15 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][respondBorrowPositive][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
 	reqBody := types.MessageRequest{
 		ChatID: borrow.UserID,
-		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah ditolak oleh pengurus.", borrow.Tool.Name),
+		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah ditolak oleh pengurus.\n\nKeterangan:\n%s", borrow.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)

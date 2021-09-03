@@ -101,3 +101,23 @@ func TestSessionGeneratorToolReturningComplete(t *testing.T) {
 
 	assert.JSONEq(t, expected, r)
 }
+
+func TestSessionGeneratorRespondBorrowInit(t *testing.T) {
+	borrowID := int64(123)
+	userResponse := "yes"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondBorrowInit(borrowID, userResponse)
+
+	expected := fmt.Sprintf(`{"type":"%s","borrow_id":%d,"user_response":"%s"}`, string(types.Topic["respond_borrow_init"]), borrowID, userResponse)
+
+	assert.JSONEq(t, expected, r)
+}
+
+func TestSessionGeneratorRespondBorrowComplete(t *testing.T) {
+	description := "test description"
+	gen := NewSessionDataGenerator()
+	r := gen.RespondBorrowComplete(description)
+
+	expected := fmt.Sprintf(`{"type":"%s","description":"%s"}`, string(types.Topic["respond_borrow_complete"]), description)
+	assert.JSONEq(t, expected, r)
+}

@@ -65,3 +65,16 @@ func (sdc SessionDataContainer) ToolReturningComplete(userResponse bool) string 
 	sdc.container.Set(userResponse, "user_response")
 	return sdc.container.String()
 }
+
+func (sdc SessionDataContainer) RespondBorrowInit(borrowID int64, userResponse string) string {
+	sdc.container.Set(types.Topic["respond_borrow_init"], "type")
+	sdc.container.Set(borrowID, "borrow_id")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) RespondBorrowComplete(description string) string {
+	sdc.container.Set(types.Topic["respond_borrow_complete"], "type")
+	sdc.container.Set(description, "description")
+	return sdc.container.String()
+}
