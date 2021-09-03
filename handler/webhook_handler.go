@@ -119,6 +119,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.ReturnTool()
 	case types.CommandRespond:
 		return ms.Respond()
+	case types.CommandManage:
+		return ms.Manage()
 	default:
 		return ms.Unknown()
 	}
@@ -152,6 +154,8 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 		return ms.RespondBorrow()
 	case types.Topic["respond_tool_returning_init"]:
 		return ms.RespondToolReturning()
+	case types.Topic["manage_add_init"], types.Topic["manage_add_name"], types.Topic["manage_add_brand"], types.Topic["manage_add_type"], types.Topic["manage_add_weight"], types.Topic["manage_add_stock"], types.Topic["manage_add_info"], types.Topic["manage_add_confirm"]:
+		return ms.ManageAdd()
 	default:
 		return ms.Unknown()
 	}

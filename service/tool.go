@@ -26,6 +26,15 @@ func NewToolService() *ToolService {
 	}
 }
 
+func (ts ToolService) SaveTool(tool types.Tool) (int64, error) {
+	result, err := ts.Repository.Save(&tool)
+	if err != nil {
+		return int64(0), err
+	}
+
+	return result, nil
+}
+
 func (ts ToolService) IncreaseStock(id int64) error {
 	return ts.Repository.IncreaseStock(id)
 }

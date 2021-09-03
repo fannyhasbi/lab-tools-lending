@@ -91,3 +91,45 @@ func (sdc SessionDataContainer) RespondToolReturningComplete(description string)
 	sdc.container.Set(description, "description")
 	return sdc.container.String()
 }
+
+func (sdc SessionDataContainer) ManageAddName(name string) string {
+	sdc.container.Set(types.Topic["manage_add_name"], "type")
+	sdc.container.Set(name, "name")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddBrand(brand string) string {
+	sdc.container.Set(types.Topic["manage_add_brand"], "type")
+	sdc.container.Set(brand, "brand")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddType(toolType string) string {
+	sdc.container.Set(types.Topic["manage_add_type"], "type")
+	sdc.container.Set(toolType, "product_type")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddWeight(weight float32) string {
+	sdc.container.Set(types.Topic["manage_add_weight"], "type")
+	sdc.container.Set(weight, "weight")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddStock(stock int64) string {
+	sdc.container.Set(types.Topic["manage_add_stock"], "type")
+	sdc.container.Set(stock, "stock")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddInfo(info string) string {
+	sdc.container.Set(types.Topic["manage_add_info"], "type")
+	sdc.container.Set(info, "info")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageAddConfirm(userResponse bool) string {
+	sdc.container.Set(types.Topic["manage_add_confirm"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}

@@ -4,8 +4,40 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/fannyhasbi/lab-tools-lending/types"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCanSaveTool(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	var id int64 = 123
+	tool := types.Tool{
+		Name:                  "Test Name",
+		Brand:                 "Test Brand",
+		ProductType:           "Test Product Type",
+		Weight:                120,
+		Stock:                 23,
+		AdditionalInformation: "test additional info",
+	}
+
+	repository := NewToolRepositoryPostgres(db)
+
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(id)
+
+	mock.ExpectPrepare("^INSERT INTO tools .+ VALUES .+ RETURNING id").
+		ExpectQuery().
+		WithArgs(tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation).
+		WillReturnRows(rows)
+
+	result, err := repository.Save(&tool)
+	assert.NoError(t, err)
+	assert.Equal(t, id, result)
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
 
 func TestCanIncreaseStock(t *testing.T) {
 	db, mock, _ := sqlmock.New()

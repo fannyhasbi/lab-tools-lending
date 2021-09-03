@@ -46,5 +46,14 @@ var (
 		"respond_borrow_complete":         "RESPOND_brw_complete",
 		"respond_tool_returning_init":     "RESPOND_ret_init",
 		"respond_tool_returning_complete": "RESPOND_ret_complete",
+
+		"manage_add_init":    "MNG_add_init",
+		"manage_add_name":    "MNG_add_name",
+		"manage_add_brand":   "MNG_add_brand",
+		"manage_add_type":    "MNG_add_type",
+		"manage_add_weight":  "MNG_add_weight",
+		"manage_add_stock":   "MNG_add_stock",
+		"manage_add_info":    "MNG_add_info",
+		"manage_add_confirm": "MNG_add_confirm",
 	}
 )
