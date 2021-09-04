@@ -16,13 +16,13 @@ type (
 	RespondType string
 	ManageType  string
 
-	RespondCommands struct {
+	RespondCommandOrder struct {
 		Type RespondType
 		ID   int64
 		Text string
 	}
 
-	ManageCommands struct {
+	ManageCommandOrder struct {
 		Type ManageType
 		ID   int64
 	}

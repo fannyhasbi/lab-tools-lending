@@ -1254,7 +1254,7 @@ func (ms *MessageService) RespondBorrow() error {
 	return ms.Unknown()
 }
 
-func (ms *MessageService) respondBorrowInit(commands types.RespondCommands) error {
+func (ms *MessageService) respondBorrowInit(commands types.RespondCommandOrder) error {
 	borrow, err := ms.borrowService.FindBorrowByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondBorrowInit][FindBorrowByID]", err)
@@ -1445,7 +1445,7 @@ func (ms *MessageService) RespondToolReturning() error {
 	return ms.Unknown()
 }
 
-func (ms *MessageService) respondToolReturningInit(commands types.RespondCommands) error {
+func (ms *MessageService) respondToolReturningInit(commands types.RespondCommandOrder) error {
 	toolReturning, err := ms.toolReturningService.FindToolReturningByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondToolReturning][FindToolReturningByID]", err)

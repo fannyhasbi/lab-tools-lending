@@ -43,7 +43,7 @@ func TestGetRespondCommands(t *testing.T) {
 		s := fmt.Sprintf("/%s %s %d yes", types.CommandRespond, types.RespondTypeBorrow, 123)
 		r, ok := GetRespondCommands(s)
 
-		expected := types.RespondCommands{
+		expected := types.RespondCommandOrder{
 			Type: types.RespondTypeBorrow,
 			ID:   123,
 			Text: "yes",
@@ -58,14 +58,14 @@ func TestGetRespondCommands(t *testing.T) {
 		r, ok := GetRespondCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.RespondCommands{}, r)
+		assert.Equal(t, types.RespondCommandOrder{}, r)
 	})
 
 	t.Run("length equal 3", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s %d", types.CommandRespond, types.RespondTypeBorrow, 123)
 		r, ok := GetRespondCommands(s)
 
-		expected := types.RespondCommands{
+		expected := types.RespondCommandOrder{
 			Type: types.RespondTypeBorrow,
 			ID:   123,
 			Text: "",
@@ -80,7 +80,7 @@ func TestGetRespondCommands(t *testing.T) {
 		r, ok := GetRespondCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.RespondCommands{}, r)
+		assert.Equal(t, types.RespondCommandOrder{}, r)
 	})
 
 	t.Run("not in category", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestGetRespondCommands(t *testing.T) {
 		r, ok := GetRespondCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.RespondCommands{}, r)
+		assert.Equal(t, types.RespondCommandOrder{}, r)
 	})
 
 	t.Run("wrong id", func(t *testing.T) {
@@ -96,7 +96,7 @@ func TestGetRespondCommands(t *testing.T) {
 		r, ok := GetRespondCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.RespondCommands{}, r)
+		assert.Equal(t, types.RespondCommandOrder{}, r)
 	})
 }
 
@@ -127,7 +127,7 @@ func TestGetManageCommands(t *testing.T) {
 		s := fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, 123)
 		r, ok := GetManageCommands(s)
 
-		expected := types.ManageCommands{
+		expected := types.ManageCommandOrder{
 			Type: types.ManageTypeEdit,
 			ID:   123,
 		}
@@ -141,14 +141,14 @@ func TestGetManageCommands(t *testing.T) {
 		r, ok := GetManageCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.ManageCommands{}, r)
+		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 
 	t.Run("length equal 2 with correct type", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeAdd)
 		r, ok := GetManageCommands(s)
 
-		expected := types.ManageCommands{
+		expected := types.ManageCommandOrder{
 			Type: types.ManageTypeAdd,
 		}
 		assert.True(t, ok)
@@ -160,7 +160,7 @@ func TestGetManageCommands(t *testing.T) {
 		r, ok := GetManageCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.ManageCommands{}, r)
+		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 
 	t.Run("length exceed 3", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestGetManageCommands(t *testing.T) {
 		r, ok := GetManageCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.ManageCommands{}, r)
+		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 
 	t.Run("wrong type", func(t *testing.T) {
@@ -176,7 +176,7 @@ func TestGetManageCommands(t *testing.T) {
 		r, ok := GetManageCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.ManageCommands{}, r)
+		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 
 	t.Run("wrong id", func(t *testing.T) {
@@ -184,6 +184,6 @@ func TestGetManageCommands(t *testing.T) {
 		r, ok := GetManageCommands(s)
 
 		assert.False(t, ok)
-		assert.Equal(t, types.ManageCommands{}, r)
+		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 }

@@ -23,22 +23,22 @@ func GetCommand(message string) string {
 	return message[1:]
 }
 
-func GetRespondCommands(s string) (types.RespondCommands, bool) {
+func GetRespondCommands(s string) (types.RespondCommandOrder, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) < 3 || len(ss) > 4 {
-		return types.RespondCommands{}, false
+		return types.RespondCommandOrder{}, false
 	}
 
 	ss[1] = strings.ToLower(ss[1])
 	resType := types.RespondType(ss[1])
 	isExist := isRespondTypeExists(resType)
 	if !isExist {
-		return types.RespondCommands{}, false
+		return types.RespondCommandOrder{}, false
 	}
 
 	id, err := strconv.ParseInt(ss[2], 10, 64)
 	if err != nil {
-		return types.RespondCommands{}, false
+		return types.RespondCommandOrder{}, false
 	}
 
 	text := ""
@@ -46,7 +46,7 @@ func GetRespondCommands(s string) (types.RespondCommands, bool) {
 		text = ss[3]
 	}
 
-	result := types.RespondCommands{
+	result := types.RespondCommandOrder{
 		Type: resType,
 		ID:   id,
 		Text: text,
@@ -68,32 +68,32 @@ func isManageTypeExists(c types.ManageType) bool {
 	return false
 }
 
-func GetManageCommands(s string) (types.ManageCommands, bool) {
+func GetManageCommands(s string) (types.ManageCommandOrder, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) < 2 || len(ss) > 3 {
-		return types.ManageCommands{}, false
+		return types.ManageCommandOrder{}, false
 	}
 
 	ss[1] = strings.ToLower(ss[1])
 	manageType := types.ManageType(ss[1])
 	isExist := isManageTypeExists(manageType)
 	if !isExist {
-		return types.ManageCommands{}, false
+		return types.ManageCommandOrder{}, false
 	}
 
 	if len(ss) == 2 {
 		if manageType == types.ManageTypeAdd {
-			return types.ManageCommands{Type: manageType}, true
+			return types.ManageCommandOrder{Type: manageType}, true
 		}
-		return types.ManageCommands{}, false
+		return types.ManageCommandOrder{}, false
 	}
 
 	id, err := strconv.ParseInt(ss[2], 10, 64)
 	if err != nil {
-		return types.ManageCommands{}, false
+		return types.ManageCommandOrder{}, false
 	}
 
-	result := types.ManageCommands{
+	result := types.ManageCommandOrder{
 		Type: manageType,
 		ID:   id,
 	}
