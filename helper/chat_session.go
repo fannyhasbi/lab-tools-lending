@@ -128,6 +128,14 @@ func (sdc SessionDataContainer) ManageAddInfo(info string) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) ManageAddPhoto(mediaGroupID, fileID, fileUniqueID string) string {
+	sdc.container.Set(types.Topic["manage_add_photo"], "type")
+	sdc.container.Set(mediaGroupID, "media_group_id")
+	sdc.container.Set(fileID, "file_id")
+	sdc.container.Set(fileUniqueID, "file_unique_id")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) ManageAddConfirm(userResponse bool) string {
 	sdc.container.Set(types.Topic["manage_add_confirm"], "type")
 	sdc.container.Set(userResponse, "user_response")

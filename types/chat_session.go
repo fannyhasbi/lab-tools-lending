@@ -54,6 +54,7 @@ var (
 		"manage_add_weight":  "MNG_add_weight",
 		"manage_add_stock":   "MNG_add_stock",
 		"manage_add_info":    "MNG_add_info",
+		"manage_add_photo":   "MNG_add_photo",
 		"manage_add_confirm": "MNG_add_confirm",
 	}
 )

@@ -39,6 +39,34 @@ func TestCanSaveTool(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestCanSaveToolPhotos(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	var toolID int64 = 123
+	photos := []types.TelePhotoSize{
+		{
+			FileID:       "abc123",
+			FileUniqueID: "123abc",
+		},
+		{
+			FileID:       "xyz456",
+			FileUniqueID: "456xyz",
+		},
+	}
+
+	repository := NewToolRepositoryPostgres(db)
+
+	mock.ExpectExec(`^INSERT INTO tool_photos \(tool_id,file_id,file_unique_id\) VALUES \(.+,.+,.+\),\(.+,.+,.+\)`).
+		WithArgs(toolID, photos[0].FileID, photos[0].FileUniqueID, toolID, photos[1].FileID, photos[1].FileUniqueID).
+		WillReturnResult(sqlmock.NewResult(2, 2))
+
+	err := repository.SavePhotos(toolID, photos)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
 func TestCanIncreaseStock(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()

@@ -35,6 +35,10 @@ func (ts ToolService) SaveTool(tool types.Tool) (int64, error) {
 	return result, nil
 }
 
+func (ts ToolService) SaveToolPhotos(toolID int64, photos []types.TelePhotoSize) error {
+	return ts.Repository.SavePhotos(toolID, photos)
+}
+
 func (ts ToolService) IncreaseStock(id int64) error {
 	return ts.Repository.IncreaseStock(id)
 }

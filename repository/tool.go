@@ -9,6 +9,7 @@ type ToolQuery interface {
 
 type ToolRepository interface {
 	Save(tool *types.Tool) (int64, error)
+	SavePhotos(toolID int64, photos []types.TelePhotoSize) error
 	IncreaseStock(toolID int64) error
 	DecreaseStock(toolID int64) error
 }

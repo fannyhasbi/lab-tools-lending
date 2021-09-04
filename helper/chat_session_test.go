@@ -141,3 +141,61 @@ func TestSessionGeneratorRespondToolReturningComplete(t *testing.T) {
 	expected := fmt.Sprintf(`{"type":"%s","description":"%s"}`, string(types.Topic["respond_tool_returning_complete"]), description)
 	assert.JSONEq(t, expected, r)
 }
+
+func TestSessionGeneratorManageAdd(t *testing.T) {
+	tool := types.Tool{
+		Name:                  "Test Tool Name",
+		Brand:                 "Test Brand",
+		ProductType:           "testPr0duc7Typ3",
+		Weight:                123.96,
+		Stock:                 32,
+		AdditionalInformation: "test additional information",
+	}
+
+	t.Run("name", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddName(tool.Name)
+		expected := fmt.Sprintf(`{"type":"%s","name":"%s"}`, types.Topic["manage_add_name"], tool.Name)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("brand", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddBrand(tool.Brand)
+		expected := fmt.Sprintf(`{"type":"%s","brand":"%s"}`, types.Topic["manage_add_brand"], tool.Brand)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("product type", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddType(tool.ProductType)
+		expected := fmt.Sprintf(`{"type":"%s","product_type":"%s"}`, types.Topic["manage_add_type"], tool.ProductType)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("weight", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddWeight(tool.Weight)
+		expected := fmt.Sprintf(`{"type":"%s","weight":%.2f}`, types.Topic["manage_add_weight"], tool.Weight)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("stock", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddStock(tool.Stock)
+		expected := fmt.Sprintf(`{"type":"%s","stock":%d}`, types.Topic["manage_add_stock"], tool.Stock)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("info", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddInfo(tool.AdditionalInformation)
+		expected := fmt.Sprintf(`{"type":"%s","info":"%s"}`, types.Topic["manage_add_info"], tool.AdditionalInformation)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("photo", func(t *testing.T) {
+		mediaGroupdID := "123"
+		fileID := "testFileID1234"
+		fileUniqueID := "testFileUniqueID4321"
+
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddPhoto(mediaGroupdID, fileID, fileUniqueID)
+		expected := fmt.Sprintf(`{"type":"%s","media_group_id":"%s","file_id":"%s","file_unique_id":"%s"}`, types.Topic["manage_add_photo"], mediaGroupdID, fileID, fileUniqueID)
+		assert.JSONEq(t, expected, r)
+	})
+}

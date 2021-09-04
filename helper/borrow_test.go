@@ -160,8 +160,6 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 }
 
 func TestGetBorrowFromChatSessionDetail(t *testing.T) {
-	gen := NewSessionDataGenerator()
-
 	var toolID int64 = 123
 	var duration int = 23
 	var reason string = "test borrow reason"
@@ -170,15 +168,15 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 		borrows := []types.ChatSessionDetail{
 			{
 				Topic: types.Topic["borrow_init"],
-				Data:  gen.BorrowInit(toolID),
+				Data:  NewSessionDataGenerator().BorrowInit(toolID),
 			},
 			{
 				Topic: types.Topic["borrow_date"],
-				Data:  gen.BorrowDuration(duration),
+				Data:  NewSessionDataGenerator().BorrowDuration(duration),
 			},
 			{
 				Topic: types.Topic["borrow_reason"],
-				Data:  gen.BorrowReason(reason),
+				Data:  NewSessionDataGenerator().BorrowReason(reason),
 			},
 		}
 
@@ -200,7 +198,7 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 		borrows := []types.ChatSessionDetail{
 			{
 				Topic: types.Topic["borrow_init"],
-				Data:  gen.BorrowInit(toolID),
+				Data:  NewSessionDataGenerator().BorrowInit(toolID),
 			},
 		}
 

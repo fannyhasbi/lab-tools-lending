@@ -12,21 +12,31 @@ type (
 		Type string `json:"type"`
 	}
 
-	teleMessage struct {
-		MessageID int64           `json:"message_id"`
-		From      teleMessageFrom `json:"from"`
-		Text      string          `json:"text"`
-		Chat      teleMessageChat `json:"chat"`
+	TelePhotoSize struct {
+		FileID       string `json:"file_id"`
+		FileUniqueID string `json:"file_unique_id"`
+		FileSize     int64  `json:"file_size"`
+		Width        int    `json:"width"`
+		Height       int    `json:"height"`
+	}
+
+	TeleMessage struct {
+		MessageID    int64           `json:"message_id"`
+		From         teleMessageFrom `json:"from"`
+		Text         string          `json:"text"`
+		Chat         teleMessageChat `json:"chat"`
+		MediaGroupID string          `json:"media_group_id"`
+		Photo        []TelePhotoSize `json:"photo"`
 	}
 
 	WebhookRequest struct {
-		Message teleMessage `json:"message"`
+		Message TeleMessage `json:"message"`
 	}
 
 	teleCallbackQuery struct {
 		ID      string          `json:"id"`
 		From    teleMessageFrom `json:"from"`
-		Message teleMessage     `json:"message"`
+		Message TeleMessage     `json:"message"`
 		Data    string          `json:"data"`
 	}
 

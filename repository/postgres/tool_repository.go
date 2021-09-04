@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
+	"strconv"
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -37,8 +39,34 @@ func (tr *ToolRepositoryPostgres) Save(tool *types.Tool) (int64, error) {
 	return id, nil
 }
 
-func (tr *ToolRepositoryPostgres) Update(tool *types.Tool) error {
-	return nil
+func (tr *ToolRepositoryPostgres) SavePhotos(toolID int64, photos []types.TelePhotoSize) error {
+	columns := []string{"tool_id", "file_id", "file_unique_id"}
+
+	columnStr := ""
+	for i := range columns {
+		columnStr += columns[i] + ","
+	}
+	columnStr = columnStr[:len(columnStr)-1]
+
+	query := fmt.Sprintf("INSERT INTO tool_photos (%s) VALUES ", columnStr)
+
+	values := []interface{}{}
+	for i, s := range photos {
+		values = append(values, toolID, s.FileID, s.FileUniqueID)
+
+		numFields := len(columns)
+		n := i * numFields
+
+		query += `(`
+		for j := 0; j < numFields; j++ {
+			query += `$` + strconv.Itoa(n+j+1) + `,`
+		}
+		query = query[:len(query)-1] + `),`
+	}
+	query = query[:len(query)-1] // remove the trailing comma
+
+	_, err := tr.DB.Exec(query, values...)
+	return err
 }
 
 func (tr *ToolRepositoryPostgres) IncreaseStock(toolID int64) error {

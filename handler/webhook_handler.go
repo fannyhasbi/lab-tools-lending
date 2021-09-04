@@ -18,6 +18,7 @@ func WebhookHandler(c echo.Context) error {
 	var chatID int64
 	var senderID int64
 	var messageText string
+	var teleMessage types.TeleMessage
 	var requestType types.RequestType
 	var bodyBytes []byte
 
@@ -44,13 +45,9 @@ func WebhookHandler(c echo.Context) error {
 			return err
 		}
 
-		// on message request (join group, added to group, etc still don't know)
-		if len(body.Message.Text) == 0 {
-			return nil
-		}
-
 		chatID = body.Message.Chat.ID
 		messageText = body.Message.Text
+		teleMessage = body.Message
 		if body.Message.Chat.Type == "group" {
 			senderID = body.Message.From.ID
 			requestType = types.RequestTypeGroup
@@ -61,6 +58,7 @@ func WebhookHandler(c echo.Context) error {
 	} else {
 		chatID = callbackBody.CallbackQuery.Message.Chat.ID
 		messageText = callbackBody.CallbackQuery.Data
+		teleMessage = callbackBody.CallbackQuery.Message
 		if callbackBody.CallbackQuery.Message.Chat.Type == "group" {
 			senderID = callbackBody.CallbackQuery.From.ID
 			requestType = types.RequestTypeGroup
@@ -70,7 +68,7 @@ func WebhookHandler(c echo.Context) error {
 		}
 	}
 
-	messageService = service.NewMessageService(chatID, senderID, messageText, requestType)
+	messageService = service.NewMessageService(chatID, senderID, messageText, requestType, teleMessage)
 
 	user := types.User{ID: senderID}
 
@@ -82,7 +80,7 @@ func WebhookHandler(c echo.Context) error {
 	}
 
 	if err != sql.ErrNoRows && len(chatSessions) > 0 && chatSessions[0].Status != types.ChatSessionStatus["complete"] {
-		return sessionProcess(messageText, chatSessions[0], messageService, chatSessionService)
+		return sessionProcess(chatSessions[0], messageService, chatSessionService)
 	}
 
 	match, err := regexp.MatchString("^/", messageText)
@@ -94,9 +92,16 @@ func WebhookHandler(c echo.Context) error {
 		return commandHandler(messageText, messageService)
 	}
 
-	// not interacting with chatbot in group
+	// not interacting with chatbot in group (see: privacy mode in Telegrabm bot)
 	if requestType == types.RequestTypeGroup {
 		return nil
+	}
+
+	if callbackBody.CallbackQuery.From.ID == 0 {
+		// on message request (join group, added to group, etc still don't know)
+		if len(body.Message.Text) == 0 {
+			return nil
+		}
 	}
 
 	return messageService.Unknown()
@@ -126,7 +131,7 @@ func commandHandler(message string, ms *service.MessageService) error {
 	}
 }
 
-func sessionProcess(message string, chatSession types.ChatSession, messageService *service.MessageService, chatSessionService *service.ChatSessionService) error {
+func sessionProcess(chatSession types.ChatSession, messageService *service.MessageService, chatSessionService *service.ChatSessionService) error {
 	var chatSessionDetails []types.ChatSessionDetail
 	chatSessionDetails, err := chatSessionService.GetChatSessionDetails(chatSession)
 	if err != nil && err != sql.ErrNoRows {
@@ -136,13 +141,13 @@ func sessionProcess(message string, chatSession types.ChatSession, messageServic
 
 	if len(chatSessionDetails) > 0 {
 		messageService.ChangeChatSessionDetails(chatSessionDetails)
-		return sessionHandler(chatSessionDetails[0].Topic, message, messageService)
+		return sessionHandler(chatSessionDetails[0].Topic, messageService)
 	}
 
 	return nil
 }
 
-func sessionHandler(topic types.TopicType, message string, ms *service.MessageService) error {
+func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 	switch topic {
 	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
@@ -154,7 +159,7 @@ func sessionHandler(topic types.TopicType, message string, ms *service.MessageSe
 		return ms.RespondBorrow()
 	case types.Topic["respond_tool_returning_init"]:
 		return ms.RespondToolReturning()
-	case types.Topic["manage_add_init"], types.Topic["manage_add_name"], types.Topic["manage_add_brand"], types.Topic["manage_add_type"], types.Topic["manage_add_weight"], types.Topic["manage_add_stock"], types.Topic["manage_add_info"], types.Topic["manage_add_confirm"]:
+	case types.Topic["manage_add_init"], types.Topic["manage_add_name"], types.Topic["manage_add_brand"], types.Topic["manage_add_type"], types.Topic["manage_add_weight"], types.Topic["manage_add_stock"], types.Topic["manage_add_info"], types.Topic["manage_add_photo"], types.Topic["manage_add_confirm"]:
 		return ms.ManageAdd()
 	default:
 		return ms.Unknown()

@@ -39,3 +39,37 @@ func GetToolFromChatSessionDetail(details []types.ChatSessionDetail) types.Tool 
 
 	return tool
 }
+
+func GetToolPhotosFromChatSessionDetails(details []types.ChatSessionDetail) []types.TelePhotoSize {
+	var photos []types.TelePhotoSize
+	for _, detail := range details {
+		dataParsed, err := gabs.ParseJSON([]byte(detail.Data))
+		if err != nil {
+			return photos
+		}
+
+		if detail.Topic == types.Topic["manage_add_photo"] {
+			fileID, _ := dataParsed.Path("file_id").Data().(string)
+			fileUniqueID, _ := dataParsed.Path("file_unique_id").Data().(string)
+
+			photo := types.TelePhotoSize{
+				FileID:       fileID,
+				FileUniqueID: fileUniqueID,
+			}
+
+			photos = append(photos, photo)
+		}
+	}
+
+	return photos
+}
+
+func PickPhoto(photos []types.TelePhotoSize) types.TelePhotoSize {
+	highestSizePhoto := photos[0]
+	for i := range photos {
+		if photos[i].FileSize > highestSizePhoto.FileSize {
+			highestSizePhoto = photos[i]
+		}
+	}
+	return highestSizePhoto
+}

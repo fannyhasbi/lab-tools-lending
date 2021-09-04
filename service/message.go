@@ -23,6 +23,7 @@ import (
 type MessageService struct {
 	chatID             int64
 	messageText        string
+	message            types.TeleMessage
 	requestType        types.RequestType
 	user               types.User
 	chatSessionDetails []types.ChatSessionDetail
@@ -34,11 +35,12 @@ type MessageService struct {
 	toolReturningService *ToolReturningService
 }
 
-func NewMessageService(chatID, senderID int64, text string, requestType types.RequestType) *MessageService {
+func NewMessageService(chatID, senderID int64, text string, requestType types.RequestType, teleMessage types.TeleMessage) *MessageService {
 	ms := &MessageService{
 		chatID:      chatID,
 		messageText: text,
 		requestType: requestType,
+		message:     teleMessage,
 		user:        types.User{ID: senderID},
 	}
 
@@ -1688,6 +1690,8 @@ func (ms *MessageService) ManageAdd() error {
 		case types.Topic["manage_add_stock"]:
 			return ms.manageAddInfo()
 		case types.Topic["manage_add_info"]:
+			return ms.manageAddPhoto()
+		case types.Topic["manage_add_photo"]:
 			return ms.manageAddConfirm()
 		}
 	}
@@ -1784,10 +1788,6 @@ func (ms *MessageService) manageAddStock() error {
 }
 
 func (ms *MessageService) manageAddInfo() error {
-	tool := helper.GetToolFromChatSessionDetail(ms.chatSessionDetails)
-
-	log.Println(tool)
-
 	gen := helper.NewSessionDataGenerator()
 	generatedSessionData := gen.ManageAddInfo(ms.messageText)
 
@@ -1795,6 +1795,30 @@ func (ms *MessageService) manageAddInfo() error {
 		log.Println("[ERR][manageAddInfo][saveChatSessionDetail]", err)
 		return ms.Error()
 	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan upload foto barang. (minimal 1, maksimal 10)",
+	})
+}
+
+func (ms *MessageService) manageAddPhoto() error {
+	if len(ms.message.Photo) == 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon upload foto barang.",
+		})
+	}
+
+	pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddPhoto(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_photo"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddPhoto][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(ms.chatSessionDetails)
 
 	message := fmt.Sprintf(`Nama : %s
 		Brand/Merk : %s
@@ -1804,7 +1828,7 @@ func (ms *MessageService) manageAddInfo() error {
 		Deskripsi :
 		%s
 	
-		Pastikan data sudah benar kemudian tekan "Lanjutkan".`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, ms.messageText)
+		Pastikan data sudah benar kemudian tekan "Lanjutkan".`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -1829,6 +1853,15 @@ func (ms *MessageService) manageAddInfo() error {
 }
 
 func (ms *MessageService) manageAddConfirm() error {
+	if len(ms.message.MediaGroupID) != 0 {
+		pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+		gen := helper.NewSessionDataGenerator()
+		generatedSessionData := gen.ManageAddPhoto(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+		return ms.saveChatSessionDetail(types.Topic["manage_add_photo"], generatedSessionData)
+	}
+
 	var userResponse bool
 	if ms.messageText == "yes" {
 		userResponse = true
@@ -1857,10 +1890,16 @@ func (ms *MessageService) manageAddConfirm() error {
 	}
 
 	tool := helper.GetToolFromChatSessionDetail(ms.chatSessionDetails)
+	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
 
 	toolID, err := ms.toolService.SaveTool(tool)
 	if err != nil {
 		log.Println("[ERR][manageAddConfirm][SaveTool]", err)
+		return ms.Error()
+	}
+
+	if err = ms.toolService.SaveToolPhotos(toolID, photos); err != nil {
+		log.Println("[ERR][manageAddConfirm][SaveToolPhotos]", err)
 		return ms.Error()
 	}
 
