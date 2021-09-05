@@ -2012,5 +2012,15 @@ func (ms *MessageService) manageAddConfirm() error {
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: fmt.Sprintf("Barang berhasil ditambah dengan ID %d", toolID),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Cek barang",
+						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, toolID),
+					},
+				},
+			},
+		},
 	})
 }
