@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetToolFromChatSessionDetail(t *testing.T) {
+func TestGetToolFromChatSessionDetail_Add(t *testing.T) {
 	tool := types.Tool{
 		Name:                  "Test Name",
 		Brand:                 "Test Brand",
@@ -29,7 +29,7 @@ func TestGetToolFromChatSessionDetail(t *testing.T) {
 			},
 			{
 				Topic: types.Topic["manage_add_type"],
-				Data:  NewSessionDataGenerator().ManageAddType(tool.ProductType),
+				Data:  NewSessionDataGenerator().ManageAddProductType(tool.ProductType),
 			},
 			{
 				Topic: types.Topic["manage_add_weight"],
@@ -45,7 +45,7 @@ func TestGetToolFromChatSessionDetail(t *testing.T) {
 			},
 		}
 
-		r := GetToolFromChatSessionDetail(tools)
+		r := GetToolFromChatSessionDetail(types.ManageTypeAdd, tools)
 
 		assert.Equal(t, tool, r)
 	})
@@ -62,8 +62,83 @@ func TestGetToolFromChatSessionDetail(t *testing.T) {
 			},
 		}
 
-		r := GetToolFromChatSessionDetail(tools)
+		r := GetToolFromChatSessionDetail(types.ManageTypeAdd, tools)
 		expected := types.Tool{
+			Name:  tool.Name,
+			Brand: tool.Brand,
+		}
+
+		assert.Equal(t, expected, r)
+	})
+}
+
+func TestGetToolFromChatSessionDetail_Edit(t *testing.T) {
+	tool := types.Tool{
+		ID:                    111,
+		Name:                  "Test Name Edit",
+		Brand:                 "Test Brand Edit",
+		ProductType:           "TestPr0duc7Typ3Edit",
+		Weight:                333,
+		Stock:                 32,
+		AdditionalInformation: "test additional info edit",
+	}
+
+	t.Run("full tool session", func(t *testing.T) {
+		tools := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["manage_edit_init"],
+				Data:  NewSessionDataGenerator().ManageEditInit(tool.ID),
+			},
+			{
+				Topic: types.Topic["manage_edit_name"],
+				Data:  NewSessionDataGenerator().ManageEditName(tool.Name),
+			},
+			{
+				Topic: types.Topic["manage_edit_brand"],
+				Data:  NewSessionDataGenerator().ManageEditBrand(tool.Brand),
+			},
+			{
+				Topic: types.Topic["manage_edit_type"],
+				Data:  NewSessionDataGenerator().ManageEditProductType(tool.ProductType),
+			},
+			{
+				Topic: types.Topic["manage_edit_weight"],
+				Data:  NewSessionDataGenerator().ManageEditWeight(tool.Weight),
+			},
+			{
+				Topic: types.Topic["manage_edit_stock"],
+				Data:  NewSessionDataGenerator().ManageEditStock(tool.Stock),
+			},
+			{
+				Topic: types.Topic["manage_edit_info"],
+				Data:  NewSessionDataGenerator().ManageEditInfo(tool.AdditionalInformation),
+			},
+		}
+
+		r := GetToolFromChatSessionDetail(types.ManageTypeEdit, tools)
+
+		assert.Equal(t, tool, r)
+	})
+
+	t.Run("not full session", func(t *testing.T) {
+		tools := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["manage_edit_init"],
+				Data:  NewSessionDataGenerator().ManageEditInit(tool.ID),
+			},
+			{
+				Topic: types.Topic["manage_edit_name"],
+				Data:  NewSessionDataGenerator().ManageAddName(tool.Name),
+			},
+			{
+				Topic: types.Topic["manage_edit_brand"],
+				Data:  NewSessionDataGenerator().ManageAddBrand(tool.Brand),
+			},
+		}
+
+		r := GetToolFromChatSessionDetail(types.ManageTypeEdit, tools)
+		expected := types.Tool{
+			ID:    tool.ID,
 			Name:  tool.Name,
 			Brand: tool.Brand,
 		}

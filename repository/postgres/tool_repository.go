@@ -39,6 +39,17 @@ func (tr *ToolRepositoryPostgres) Save(tool *types.Tool) (int64, error) {
 	return id, nil
 }
 
+func (tr *ToolRepositoryPostgres) Update(tool *types.Tool) error {
+	stmt, err := tr.DB.Prepare(`UPDATE tools SET name = $1, brand = $2, product_type = $3, weight = $4, stock = $5, additional_info = $6
+		WHERE id = $7`)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation, tool.ID)
+	return err
+}
+
 func (tr *ToolRepositoryPostgres) SavePhotos(toolID int64, photos []types.TelePhotoSize) error {
 	columns := []string{"tool_id", "file_id", "file_unique_id"}
 

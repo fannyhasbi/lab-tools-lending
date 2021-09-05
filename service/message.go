@@ -1745,6 +1745,8 @@ func (ms *MessageService) Manage() error {
 	switch manageCommands.Type {
 	case types.ManageTypeAdd:
 		return ms.manageAddInit()
+	case types.ManageTypeEdit:
+		return ms.manageEditInit(manageCommands.ID)
 	}
 
 	return ms.Unknown()
@@ -1836,7 +1838,7 @@ func (ms *MessageService) manageAddBrand() error {
 
 func (ms *MessageService) manageAddType() error {
 	gen := helper.NewSessionDataGenerator()
-	generatedSessionData := gen.ManageAddType(ms.messageText)
+	generatedSessionData := gen.ManageAddProductType(ms.messageText)
 
 	if err := ms.saveChatSessionDetail(types.Topic["manage_add_type"], generatedSessionData); err != nil {
 		log.Println("[ERR][manageAddType][saveChatSessionDetail]", err)
@@ -1925,7 +1927,7 @@ func (ms *MessageService) manageAddPhoto() error {
 		return ms.Error()
 	}
 
-	tool := helper.GetToolFromChatSessionDetail(ms.chatSessionDetails)
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeAdd, ms.chatSessionDetails)
 
 	message := fmt.Sprintf(`Nama : %s
 		Brand/Merk : %s
@@ -1996,7 +1998,7 @@ func (ms *MessageService) manageAddConfirm() error {
 		})
 	}
 
-	tool := helper.GetToolFromChatSessionDetail(ms.chatSessionDetails)
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeAdd, ms.chatSessionDetails)
 	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
 
 	toolID, err := ms.toolService.SaveTool(tool)
@@ -2018,6 +2020,237 @@ func (ms *MessageService) manageAddConfirm() error {
 					{
 						Text:         "Cek barang",
 						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, toolID),
+					},
+				},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) manageEditInit(toolID int64) error {
+	_, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][manageEditInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Memulai Sesi Pengubahan Barang\n\nTulis nama barang",
+	})
+}
+
+func (ms *MessageService) ManageEdit() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_edit_init"]:
+			return ms.manageEditName()
+		case types.Topic["manage_edit_name"]:
+			return ms.manageEditBrand()
+		case types.Topic["manage_edit_brand"]:
+			return ms.manageEditType()
+		case types.Topic["manage_edit_type"]:
+			return ms.manageEditWeight()
+		case types.Topic["manage_edit_weight"]:
+			return ms.manageEditStock()
+		case types.Topic["manage_edit_stock"]:
+			return ms.manageEditInfo()
+		case types.Topic["manage_edit_info"]:
+			return ms.manageEditConfirm()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageEditName() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditName(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_name"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditName][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan merk/brand",
+	})
+}
+
+func (ms *MessageService) manageEditBrand() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditBrand(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_brand"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditBrand][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan tipe barang/alat",
+	})
+}
+
+func (ms *MessageService) manageEditType() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditProductType(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_type"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditType][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa berat alat tersebut? (dalam gram)",
+	})
+}
+
+func (ms *MessageService) manageEditWeight() error {
+	i, err := strconv.ParseFloat(ms.messageText, 10)
+	if err != nil {
+		log.Println("[ERR][manageEditWeight][ParseFloat]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan berat dalam angka.",
+		})
+	}
+
+	weight := float32(i)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditWeight(weight)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_weight"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditWeight][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa banyak stok yang tersedia untuk dipinjamkan?",
+	})
+}
+
+func (ms *MessageService) manageEditStock() error {
+	i, err := strconv.ParseInt(ms.messageText, 10, 64)
+	if err != nil {
+		log.Println("[ERR][manageEeditStock][ParseInt]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan jumlah stok dalam angka.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditStock(i)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_stock"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditStock][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan deskripsi lengkap mengenai alat ini",
+	})
+}
+
+func (ms *MessageService) manageEditInfo() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditInfo(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_info"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditInfo][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeEdit, ms.chatSessionDetails)
+
+	message := fmt.Sprintf(`Nama : %s
+		Brand/Merk : %s
+		Tipe Produk : %s
+		Berat : %.2f gram
+		Stok : %d
+		Deskripsi :
+		%s
+	
+		Pastikan data sudah benar kemudian tekan "Lanjutkan".`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, ms.messageText)
+	message = helper.RemoveTab(message)
+
+	reqBody := types.MessageRequest{
+		Text: message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Lanjutkan",
+						CallbackData: "yes",
+					},
+					{
+						Text:         "Batalkan",
+						CallbackData: "no",
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) manageEditConfirm() error {
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditConfirm(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_confirm"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditConfirm][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][manageEditConfirm][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengubahan barang berhasil dibatalkan.",
+		})
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeEdit, ms.chatSessionDetails)
+	if err := ms.toolService.UpdateTool(tool); err != nil {
+		log.Println("[ERR][manageEditConfirm][UpdateTool]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: fmt.Sprintf("Terjadi kesalahan. Barang dengan ID %d gagal diubah.", tool.ID),
+		})
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: fmt.Sprintf("Barang dengan ID %d berhasil diubah", tool.ID),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Cek barang",
+						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, tool.ID),
 					},
 				},
 			},

@@ -166,7 +166,7 @@ func TestSessionGeneratorManageAdd(t *testing.T) {
 	})
 	t.Run("product type", func(t *testing.T) {
 		gen := NewSessionDataGenerator()
-		r := gen.ManageAddType(tool.ProductType)
+		r := gen.ManageAddProductType(tool.ProductType)
 		expected := fmt.Sprintf(`{"type":"%s","product_type":"%s"}`, types.Topic["manage_add_type"], tool.ProductType)
 		assert.JSONEq(t, expected, r)
 	})
@@ -196,6 +196,76 @@ func TestSessionGeneratorManageAdd(t *testing.T) {
 		gen := NewSessionDataGenerator()
 		r := gen.ManageAddPhoto(mediaGroupdID, fileID, fileUniqueID)
 		expected := fmt.Sprintf(`{"type":"%s","media_group_id":"%s","file_id":"%s","file_unique_id":"%s"}`, types.Topic["manage_add_photo"], mediaGroupdID, fileID, fileUniqueID)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("confirm", func(t *testing.T) {
+		userResponse := true
+		gen := NewSessionDataGenerator()
+		r := gen.ManageAddConfirm(userResponse)
+		expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, types.Topic["manage_add_confirm"], userResponse)
+		assert.JSONEq(t, expected, r)
+	})
+}
+
+func TestSessionGeneratorManageEdit(t *testing.T) {
+	tool := types.Tool{
+		Name:                  "Test Tool Name",
+		Brand:                 "Test Brand",
+		ProductType:           "testPr0duc7Typ3",
+		Weight:                123.96,
+		Stock:                 32,
+		AdditionalInformation: "test additional information",
+	}
+
+	t.Run("init", func(t *testing.T) {
+		var toolID int64 = 123
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditInit(toolID)
+		expected := fmt.Sprintf(`{"type":"%s","tool_id":%d}`, types.Topic["manage_edit_init"], toolID)
+		assert.JSONEq(t, expected, r)
+	})
+
+	t.Run("name", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditName(tool.Name)
+		expected := fmt.Sprintf(`{"type":"%s","name":"%s"}`, types.Topic["manage_edit_name"], tool.Name)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("brand", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditBrand(tool.Brand)
+		expected := fmt.Sprintf(`{"type":"%s","brand":"%s"}`, types.Topic["manage_edit_brand"], tool.Brand)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("product type", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditProductType(tool.ProductType)
+		expected := fmt.Sprintf(`{"type":"%s","product_type":"%s"}`, types.Topic["manage_edit_type"], tool.ProductType)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("weight", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditWeight(tool.Weight)
+		expected := fmt.Sprintf(`{"type":"%s","weight":%.2f}`, types.Topic["manage_edit_weight"], tool.Weight)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("stock", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditStock(tool.Stock)
+		expected := fmt.Sprintf(`{"type":"%s","stock":%d}`, types.Topic["manage_edit_stock"], tool.Stock)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("info", func(t *testing.T) {
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditInfo(tool.AdditionalInformation)
+		expected := fmt.Sprintf(`{"type":"%s","info":"%s"}`, types.Topic["manage_edit_info"], tool.AdditionalInformation)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("confirm", func(t *testing.T) {
+		userResponse := true
+		gen := NewSessionDataGenerator()
+		r := gen.ManageEditConfirm(userResponse)
+		expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, types.Topic["manage_edit_confirm"], userResponse)
 		assert.JSONEq(t, expected, r)
 	})
 }

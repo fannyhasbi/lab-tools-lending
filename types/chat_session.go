@@ -56,5 +56,14 @@ var (
 		"manage_add_info":    "MNG_add_info",
 		"manage_add_photo":   "MNG_add_photo",
 		"manage_add_confirm": "MNG_add_confirm",
+
+		"manage_edit_init":    "MNG_edit_init",
+		"manage_edit_name":    "MNG_edit_name",
+		"manage_edit_brand":   "MNG_edit_brand",
+		"manage_edit_type":    "MNG_edit_type",
+		"manage_edit_weight":  "MNG_edit_weight",
+		"manage_edit_stock":   "MNG_edit_stock",
+		"manage_edit_info":    "MNG_edit_info",
+		"manage_edit_confirm": "MNG_edit_confirm",
 	}
 )

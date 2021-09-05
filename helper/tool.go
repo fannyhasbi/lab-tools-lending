@@ -1,11 +1,13 @@
 package helper
 
 import (
+	"log"
+
 	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/types"
 )
 
-func GetToolFromChatSessionDetail(details []types.ChatSessionDetail) types.Tool {
+func GetToolFromChatSessionDetail(manageType types.ManageType, details []types.ChatSessionDetail) types.Tool {
 	var tool types.Tool
 
 	for _, detail := range details {
@@ -14,30 +16,66 @@ func GetToolFromChatSessionDetail(details []types.ChatSessionDetail) types.Tool 
 			return tool
 		}
 
-		switch detail.Topic {
-		case types.Topic["manage_add_name"]:
-			name, _ := dataParsed.Path("name").Data().(string)
-			tool.Name = name
-		case types.Topic["manage_add_brand"]:
-			brand, _ := dataParsed.Path("brand").Data().(string)
-			tool.Brand = brand
-		case types.Topic["manage_add_type"]:
-			product_type, _ := dataParsed.Path("product_type").Data().(string)
-			tool.ProductType = product_type
-		case types.Topic["manage_add_weight"]:
-			weight, _ := dataParsed.Path("weight").Data().(float64)
-			w := float32(weight)
-			tool.Weight = w
-		case types.Topic["manage_add_stock"]:
-			stock, _ := dataParsed.Path("stock").Data().(float64)
-			tool.Stock = int64(stock)
-		case types.Topic["manage_add_info"]:
-			info, _ := dataParsed.Path("info").Data().(string)
-			tool.AdditionalInformation = info
+		if manageType == types.ManageTypeAdd {
+			extractToolAddBasedOnTopic(&tool, detail.Topic, dataParsed)
+		} else if manageType == types.ManageTypeEdit {
+			extractToolEditBasedOnTopic(&tool, detail.Topic, dataParsed)
 		}
 	}
+	log.Println(tool)
 
 	return tool
+}
+
+func extractToolAddBasedOnTopic(tool *types.Tool, topic types.TopicType, dataParsed *gabs.Container) {
+	switch topic {
+	case types.Topic["manage_add_name"]:
+		name, _ := dataParsed.Path("name").Data().(string)
+		tool.Name = name
+	case types.Topic["manage_add_brand"]:
+		brand, _ := dataParsed.Path("brand").Data().(string)
+		tool.Brand = brand
+	case types.Topic["manage_add_type"]:
+		product_type, _ := dataParsed.Path("product_type").Data().(string)
+		tool.ProductType = product_type
+	case types.Topic["manage_add_weight"]:
+		weight, _ := dataParsed.Path("weight").Data().(float64)
+		w := float32(weight)
+		tool.Weight = w
+	case types.Topic["manage_add_stock"]:
+		stock, _ := dataParsed.Path("stock").Data().(float64)
+		tool.Stock = int64(stock)
+	case types.Topic["manage_add_info"]:
+		info, _ := dataParsed.Path("info").Data().(string)
+		tool.AdditionalInformation = info
+	}
+}
+
+func extractToolEditBasedOnTopic(tool *types.Tool, topic types.TopicType, dataParsed *gabs.Container) {
+	switch topic {
+	case types.Topic["manage_edit_init"]:
+		id, _ := dataParsed.Path("tool_id").Data().(float64)
+		tool.ID = int64(id)
+	case types.Topic["manage_edit_name"]:
+		name, _ := dataParsed.Path("name").Data().(string)
+		tool.Name = name
+	case types.Topic["manage_edit_brand"]:
+		brand, _ := dataParsed.Path("brand").Data().(string)
+		tool.Brand = brand
+	case types.Topic["manage_edit_type"]:
+		product_type, _ := dataParsed.Path("product_type").Data().(string)
+		tool.ProductType = product_type
+	case types.Topic["manage_edit_weight"]:
+		weight, _ := dataParsed.Path("weight").Data().(float64)
+		w := float32(weight)
+		tool.Weight = w
+	case types.Topic["manage_edit_stock"]:
+		stock, _ := dataParsed.Path("stock").Data().(float64)
+		tool.Stock = int64(stock)
+	case types.Topic["manage_edit_info"]:
+		info, _ := dataParsed.Path("info").Data().(string)
+		tool.AdditionalInformation = info
+	}
 }
 
 func GetToolPhotosFromChatSessionDetails(details []types.ChatSessionDetail) []types.TelePhotoSize {

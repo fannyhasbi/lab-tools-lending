@@ -39,6 +39,33 @@ func TestCanSaveTool(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestCanUpdateTool(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	tool := types.Tool{
+		ID:                    123,
+		Name:                  "Test Name",
+		Brand:                 "Test Brand",
+		ProductType:           "Test Product Type",
+		Weight:                120,
+		Stock:                 23,
+		AdditionalInformation: "test additional info",
+	}
+
+	repository := NewToolRepositoryPostgres(db)
+
+	mock.ExpectPrepare("^UPDATE tools SET .+ WHERE id = .+").
+		ExpectExec().
+		WithArgs(tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation, tool.ID).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repository.Update(&tool)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
 func TestCanSaveToolPhotos(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
