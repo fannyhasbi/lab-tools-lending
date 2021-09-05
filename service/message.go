@@ -236,9 +236,15 @@ func (ms *MessageService) Check() error {
 		tools, err = ms.toolService.GetAvailableTools()
 	}
 
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		log.Println(err)
 		return err
+	}
+
+	if len(tools) < 1 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Tidak ada barang yang tersedia.",
+		})
 	}
 
 	message := "Berikut ini daftar alat yang masih tersedia.\n"
