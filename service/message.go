@@ -269,6 +269,12 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
+						Text:         "Lihat Foto",
+						CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+					},
+				},
+				{
+					{
 						Text:         "Pinjam",
 						CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
 					},
