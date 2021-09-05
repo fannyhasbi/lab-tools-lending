@@ -23,7 +23,7 @@ func GetCommand(message string) string {
 	return message[1:]
 }
 
-func GetRespondCommands(s string) (types.RespondCommandOrder, bool) {
+func GetRespondCommandOrder(s string) (types.RespondCommandOrder, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) < 3 || len(ss) > 4 {
 		return types.RespondCommandOrder{}, false
@@ -68,7 +68,7 @@ func isManageTypeExists(c types.ManageType) bool {
 	return false
 }
 
-func GetManageCommands(s string) (types.ManageCommandOrder, bool) {
+func GetManageCommandOrder(s string) (types.ManageCommandOrder, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) < 2 || len(ss) > 3 {
 		return types.ManageCommandOrder{}, false

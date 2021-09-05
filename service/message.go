@@ -1288,7 +1288,7 @@ func (ms *MessageService) Respond() error {
 		return ms.Unknown()
 	}
 
-	respCommands, ok := helper.GetRespondCommands(ms.messageText)
+	respCommands, ok := helper.GetRespondCommandOrder(ms.messageText)
 	if !ok {
 		return ms.ListToRespond()
 	}
@@ -1737,7 +1737,7 @@ func (ms *MessageService) Manage() error {
 		return ms.Unknown()
 	}
 
-	manageCommands, ok := helper.GetManageCommands(ms.messageText)
+	manageCommands, ok := helper.GetManageCommandOrder(ms.messageText)
 	if !ok {
 		return ms.manageMenu()
 	}
