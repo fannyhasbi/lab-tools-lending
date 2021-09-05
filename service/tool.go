@@ -61,6 +61,15 @@ func (ts ToolService) FindByID(id int64) (types.Tool, error) {
 	return result.Result.(types.Tool), nil
 }
 
+func (ts ToolService) GetTools() ([]types.Tool, error) {
+	result := ts.Query.Get()
+	if result.Error != nil {
+		return []types.Tool{}, result.Error
+	}
+
+	return result.Result.([]types.Tool), nil
+}
+
 func (ts ToolService) GetAvailableTools() ([]types.Tool, error) {
 	result := ts.Query.GetAvailableTools()
 

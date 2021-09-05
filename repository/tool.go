@@ -4,6 +4,7 @@ import "github.com/fannyhasbi/lab-tools-lending/types"
 
 type ToolQuery interface {
 	FindByID(id int64) QueryResult
+	Get() QueryResult
 	GetAvailableTools() QueryResult
 	GetPhotos(toolID int64) QueryResult
 }

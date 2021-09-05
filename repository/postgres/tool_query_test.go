@@ -42,6 +42,53 @@ func TestCanFindToolByID(t *testing.T) {
 	})
 }
 
+func TestCanGetTools(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewToolQueryPostgres(db)
+
+	tools := []types.Tool{
+		{
+			ID:                    1,
+			Name:                  "Test Name 1",
+			Brand:                 "Test Brand 1",
+			ProductType:           "test type 1",
+			Weight:                123,
+			Stock:                 10,
+			AdditionalInformation: "test additional info 1",
+			CreatedAt:             timeNowString(),
+			UpdatedAt:             timeNowString(),
+		},
+		{
+			ID:                    2,
+			Name:                  "Test Name 2",
+			Brand:                 "Test Brand 2",
+			ProductType:           "test type 2",
+			Weight:                321,
+			Stock:                 100,
+			AdditionalInformation: "test additional info 2",
+			CreatedAt:             timeNowString(),
+			UpdatedAt:             timeNowString(),
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "name", "brand", "product_type", "weight", "stock", "additional_info", "created_at", "updated_at"})
+	for _, v := range tools {
+		rows.AddRow(v.ID, v.Name, v.Brand, v.ProductType, v.Weight, v.Stock, v.AdditionalInformation, v.CreatedAt, v.UpdatedAt)
+	}
+
+	mock.ExpectQuery("^SELECT .+ FROM tools ORDER BY id ASC").WillReturnRows(rows)
+
+	result := query.Get()
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.([]types.Tool)
+		assert.Equal(t, tools, r)
+	})
+}
+
 func TestCanGetAvailableTool(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()

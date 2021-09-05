@@ -219,36 +219,55 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	tools, err := ms.toolService.GetAvailableTools()
+	checkCommandOrder, ok := helper.GetCheckCommandOrder(ms.messageText)
+	if ok {
+		if checkCommandOrder.Text == types.CheckTypePhoto {
+			return ms.checkDetailPhoto(checkCommandOrder.ID)
+		}
+
+		return ms.checkDetail(checkCommandOrder.ID)
+	}
+
+	var tools []types.Tool
+	var err error
+	if ms.isEligibleAdmin() {
+		tools, err = ms.toolService.GetTools()
+	} else {
+		tools, err = ms.toolService.GetAvailableTools()
+	}
+
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return err
 	}
 
-	checkCommandOrder, ok := helper.GetCheckCommandOrder(ms.messageText)
-	if !ok {
-		message := "Berikut ini daftar alat yang masih tersedia.\n"
-		message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
-		message += helper.BuildToolListMessage(tools)
+	message := "Berikut ini daftar alat yang masih tersedia.\n"
+	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
+	message += helper.BuildToolListMessage(tools)
 
-		return ms.sendMessage(types.MessageRequest{
-			Text: message,
-		})
-	}
-
-	if checkCommandOrder.Text == types.CheckTypePhoto {
-		return ms.checkDetailPhoto(checkCommandOrder.ID)
-	}
-
-	return ms.checkDetail(checkCommandOrder.ID)
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) checkDetail(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
-	if err != nil || tool.Stock < 1 {
-		log.Println("[ERR][Borrow][FindByID]", err)
+	if err != nil {
+		log.Println("[ERR][checkDetail][FindByID]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID tidak ditemukan.",
+		})
+	}
+
+	if tool.Stock < 1 && !ms.isEligibleAdmin() {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia",
 		})
 	}
 
