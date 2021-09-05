@@ -187,3 +187,42 @@ func TestGetManageCommands(t *testing.T) {
 		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 }
+
+func TestGetCheckCommandOrder(t *testing.T) {
+	t.Run("full value", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %d %s", types.CommandCheck, 123, types.CheckTypePhoto)
+		r, ok := GetCheckCommandOrder(s)
+
+		expected := types.CheckCommandOrder{
+			ID:   123,
+			Text: types.CheckTypePhoto,
+		}
+
+		assert.True(t, ok)
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("length less than 2", func(t *testing.T) {
+		s := fmt.Sprintf("/%s", types.CommandCheck)
+		r, ok := GetCheckCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.CheckCommandOrder{}, r)
+	})
+
+	t.Run("length exceed 3", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %d %s testexceed", types.CommandCheck, 123, types.CheckTypePhoto)
+		r, ok := GetCheckCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.CheckCommandOrder{}, r)
+	})
+
+	t.Run("wrong id", func(t *testing.T) {
+		s := fmt.Sprintf("/%s testwrongid %s", types.CommandCheck, types.CheckTypePhoto)
+		r, ok := GetCheckCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.CheckCommandOrder{}, r)
+	})
+}

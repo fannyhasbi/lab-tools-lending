@@ -73,3 +73,26 @@ func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
 	}
 	return result
 }
+
+func (tq ToolQueryPostgres) GetPhotos(toolID int64) repository.QueryResult {
+	rows, err := tq.DB.Query(`SELECT file_id, file_unique_id FROM tool_photos WHERE tool_id = $1 ORDER BY id DESC`, toolID)
+
+	photos := []types.TelePhotoSize{}
+	result := repository.QueryResult{}
+
+	if err != nil {
+		result.Error = err
+	} else {
+		for rows.Next() {
+			temp := types.TelePhotoSize{}
+			rows.Scan(
+				&temp.FileID,
+				&temp.FileUniqueID,
+			)
+
+			photos = append(photos, temp)
+		}
+		result.Result = photos
+	}
+	return result
+}

@@ -66,3 +66,13 @@ func (ts ToolService) GetAvailableTools() ([]types.Tool, error) {
 
 	return result.Result.([]types.Tool), nil
 }
+
+func (ts ToolService) GetPhotos(toolID int64) ([]types.TelePhotoSize, error) {
+	result := ts.Query.GetPhotos(toolID)
+
+	if result.Error != nil {
+		return []types.TelePhotoSize{}, result.Error
+	}
+
+	return result.Result.([]types.TelePhotoSize), nil
+}

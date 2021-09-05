@@ -16,6 +16,11 @@ type (
 	RespondType string
 	ManageType  string
 
+	CheckCommandOrder struct {
+		ID   int64
+		Text string
+	}
+
 	RespondCommandOrder struct {
 		Type RespondType
 		ID   int64
@@ -29,6 +34,8 @@ type (
 )
 
 var (
+	CheckTypePhoto string = "foto"
+
 	RespondTypeBorrow        RespondType = "pinjam"
 	RespondTypeToolReturning RespondType = "kembali"
 

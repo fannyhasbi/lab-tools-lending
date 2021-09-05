@@ -99,3 +99,21 @@ func GetManageCommands(s string) (types.ManageCommandOrder, bool) {
 	}
 	return result, true
 }
+
+func GetCheckCommandOrder(s string) (types.CheckCommandOrder, bool) {
+	ss := strings.Split(s, " ")
+	if len(ss) < 2 || len(ss) > 3 {
+		return types.CheckCommandOrder{}, false
+	}
+
+	i, err := strconv.ParseInt(ss[1], 10, 64)
+	if err != nil {
+		return types.CheckCommandOrder{}, false
+	}
+
+	if len(ss) == 2 {
+		return types.CheckCommandOrder{ID: i}, true
+	}
+
+	return types.CheckCommandOrder{ID: i, Text: ss[2]}, true
+}

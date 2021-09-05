@@ -1,3 +1,10 @@
 package config
 
-const WebhookUrl = "https://api.telegram.org/bot1701903841:AAHBGnkqTsEPggVwNt56oNMVW2ynnWbv2OI"
+import (
+	"os"
+)
+
+func WebhookUrl() string {
+	var url string = "https://api.telegram.org/" + os.Getenv("BOT_TOKEN")
+	return url
+}

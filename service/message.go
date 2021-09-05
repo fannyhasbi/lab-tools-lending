@@ -95,7 +95,7 @@ func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 		return err
 	}
 
-	res, err := http.Post(fmt.Sprintf("%s/sendMessage", config.WebhookUrl), "application/json", bytes.NewBuffer(reqBytes))
+	res, err := http.Post(fmt.Sprintf("%s/sendMessage", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,65 @@ func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 			panic(err)
 		}
 		fmt.Printf("%#v\n", j)
-		return errors.New("unexpected status" + res.Status)
+		return errors.New("unexpected status " + res.Status)
+	}
+
+	return nil
+}
+
+func (ms *MessageService) sendPhoto(reqBody types.PhotoRequest) error {
+	if reqBody.ChatID == 0 {
+		reqBody.ChatID = ms.chatID
+	}
+
+	reqBytes, err := json.Marshal(&reqBody)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Post(fmt.Sprintf("%s/sendPhoto", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+
+		var j interface{}
+		err = json.NewDecoder(res.Body).Decode(&j)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%#v\n", j)
+		return errors.New("unexpected status " + res.Status)
+	}
+
+	return nil
+}
+
+func (ms *MessageService) sendPhotoGroup(reqBody types.PhotoGroupRequest) error {
+	if reqBody.ChatID == 0 {
+		reqBody.ChatID = ms.chatID
+	}
+
+	reqBytes, err := json.Marshal(&reqBody)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Post(fmt.Sprintf("%s/sendMediaGroup", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+
+		var j interface{}
+		err = json.NewDecoder(res.Body).Decode(&j)
+		if err != nil {
+			panic(err)
+		}
+
+		return errors.New("unexpected status " + res.Status)
 	}
 
 	return nil
@@ -167,20 +225,22 @@ func (ms *MessageService) Check() error {
 		return err
 	}
 
-	toolID, ok := isIDWithinCommand(ms.messageText)
-	if ok && toolID > 0 {
-		return ms.checkDetail(toolID)
+	checkCommandOrder, ok := helper.GetCheckCommandOrder(ms.messageText)
+	if !ok {
+		message := "Berikut ini daftar alat yang masih tersedia.\n"
+		message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
+		message += helper.BuildToolListMessage(tools)
+
+		return ms.sendMessage(types.MessageRequest{
+			Text: message,
+		})
 	}
 
-	message := "Berikut ini daftar alat yang masih tersedia.\n"
-	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
-	message += helper.BuildToolListMessage(tools)
-
-	reqBody := types.MessageRequest{
-		Text: message,
+	if checkCommandOrder.Text == types.CheckTypePhoto {
+		return ms.checkDetailPhoto(checkCommandOrder.ID)
 	}
 
-	return ms.sendMessage(reqBody)
+	return ms.checkDetail(checkCommandOrder.ID)
 }
 
 func (ms *MessageService) checkDetail(toolID int64) error {
@@ -215,6 +275,47 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 				},
 			},
 		},
+	})
+}
+
+func (ms *MessageService) checkDetailPhoto(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil || tool.Stock < 1 {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	photos, err := ms.toolService.GetPhotos(toolID)
+	if err != nil {
+		log.Println("[ERR][checkDetailPhoto][GetPhotos]", err)
+		return ms.Error()
+	}
+
+	if len(photos) > 1 {
+		var media []types.InputMediaPhoto
+		for _, photo := range photos {
+			temp := types.InputMediaPhoto{
+				Type:  "photo",
+				Media: photo.FileID,
+			}
+			media = append(media, temp)
+		}
+
+		return ms.sendPhotoGroup(types.PhotoGroupRequest{
+			Media: media,
+		})
+	}
+
+	if len(photos) == 1 {
+		return ms.sendPhoto(types.PhotoRequest{
+			Photo: photos[0].FileID,
+		})
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Foto tidak tersedia untuk barang ini.",
 	})
 }
 

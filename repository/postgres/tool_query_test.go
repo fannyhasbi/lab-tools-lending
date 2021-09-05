@@ -58,3 +58,34 @@ func TestCanGetAvailableTool(t *testing.T) {
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 }
+
+func TestCanGetPhotos(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewToolQueryPostgres(db)
+
+	var toolID int64 = 123
+	photos := []types.TelePhotoSize{
+		{
+			FileID:       "abc123",
+			FileUniqueID: "123abc",
+		},
+		{
+			FileID:       "xyz456",
+			FileUniqueID: "456xyz",
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"file_id", "file_unique_id"}).AddRow(photos[0].FileID, photos[0].FileUniqueID).AddRow(photos[1].FileID, photos[1].FileUniqueID)
+
+	mock.ExpectQuery("^SELECT file_id, file_unique_id FROM tool_photos WHERE tool_id = .+").WithArgs(toolID).WillReturnRows(rows)
+
+	result := query.GetPhotos(toolID)
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.([]types.TelePhotoSize)
+		assert.Equal(t, photos, r)
+	})
+}
