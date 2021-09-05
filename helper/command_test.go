@@ -9,11 +9,13 @@ import (
 )
 
 func TestGetCommand(t *testing.T) {
-	t.Run("return the help command", func(t *testing.T) {
-		m := "/help"
+	botUsername := "peminjaman_testing_bot"
+
+	t.Run("return the command", func(t *testing.T) {
+		m := fmt.Sprintf("/%s", types.CommandBorrow)
 		r := GetCommand(m)
 
-		assert.Equal(t, "help", r)
+		assert.Equal(t, types.CommandBorrow, r)
 	})
 
 	t.Run("return empty string if no '/' symbol", func(t *testing.T) {
@@ -31,10 +33,24 @@ func TestGetCommand(t *testing.T) {
 	})
 
 	t.Run("return the command, separated with space char", func(t *testing.T) {
-		m := "/help haztest"
+		m := fmt.Sprintf("/%s haztest", types.CommandBorrow)
 		r := GetCommand(m)
 
-		assert.Equal(t, "help", r)
+		assert.Equal(t, types.CommandBorrow, r)
+	})
+
+	t.Run("mention", func(t *testing.T) {
+		m := fmt.Sprintf("/%s@%s", types.CommandCheck, botUsername)
+		r := GetCommand(m)
+
+		assert.Equal(t, types.CommandCheck, r)
+	})
+
+	t.Run("mention with another data", func(t *testing.T) {
+		m := fmt.Sprintf("/%s@%s %s %d", types.CommandRespond, botUsername, types.RespondTypeBorrow, 123)
+		r := GetCommand(m)
+
+		assert.Equal(t, types.CommandRespond, r)
 	})
 }
 

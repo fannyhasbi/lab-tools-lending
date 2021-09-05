@@ -8,11 +8,17 @@ import (
 	"github.com/fannyhasbi/lab-tools-lending/types"
 )
 
-func GetCommand(message string) string {
+func GetCommand(msg string) string {
+	message := msg
 	match, _ := regexp.MatchString("^/", message)
 
 	if !match {
 		return ""
+	}
+
+	mentionIndex := strings.Index(message, "@")
+	if mentionIndex > -1 {
+		message = message[:mentionIndex]
 	}
 
 	spaceIndex := strings.Index(message, " ")
