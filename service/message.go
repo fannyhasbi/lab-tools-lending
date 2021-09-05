@@ -263,25 +263,39 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 	`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
 	message = helper.RemoveTab(message)
 
-	return ms.sendMessage(types.MessageRequest{
+	var inlineKeyboard [][]types.InlineKeyboardButton
+	if ms.isEligibleAdmin() {
+		inlineKeyboard = [][]types.InlineKeyboardButton{
+			{{
+				Text:         "Lihat Foto",
+				CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+			}},
+			{{
+				Text:         "Ubah Data",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, tool.ID),
+			}},
+		}
+	} else {
+		inlineKeyboard = [][]types.InlineKeyboardButton{
+			{{
+				Text:         "Lihat Foto",
+				CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+			}},
+			{{
+				Text:         "Pinjam",
+				CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
+			}},
+		}
+	}
+
+	reqBody := types.MessageRequest{
 		Text: message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
-			InlineKeyboard: [][]types.InlineKeyboardButton{
-				{
-					{
-						Text:         "Lihat Foto",
-						CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
-					},
-				},
-				{
-					{
-						Text:         "Pinjam",
-						CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
-					},
-				},
-			},
+			InlineKeyboard: inlineKeyboard,
 		},
-	})
+	}
+
+	return ms.sendMessage(reqBody)
 }
 
 func (ms *MessageService) checkDetailPhoto(toolID int64) error {
