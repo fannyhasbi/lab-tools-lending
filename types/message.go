@@ -8,6 +8,21 @@ type (
 		ReplyMarkup InlineKeyboardMarkup `json:"reply_markup"`
 	}
 
+	PhotoRequest struct {
+		ChatID int64  `json:"chat_id"`
+		Photo  string `json:"photo"`
+	}
+
+	PhotoGroupRequest struct {
+		ChatID int64             `json:"chat_id"`
+		Media  []InputMediaPhoto `json:"media"`
+	}
+
+	InputMediaPhoto struct {
+		Type  string `json:"type"`
+		Media string `json:"media"`
+	}
+
 	InlineKeyboardMarkup struct {
 		InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 	}

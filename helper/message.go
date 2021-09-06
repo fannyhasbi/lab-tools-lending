@@ -25,7 +25,11 @@ func BuildMessageRequest(data *types.MessageRequest) {
 func BuildToolListMessage(l []types.Tool) string {
 	m := ""
 	for _, t := range l {
-		m = fmt.Sprintf("%s[%d] %s\n", m, t.ID, t.Name)
+		m = fmt.Sprintf("%s[%d] %s", m, t.ID, t.Name)
+		if t.Stock < 1 {
+			m += " (stok kosong)"
+		}
+		m += "\n"
 	}
 	return m
 }

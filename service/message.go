@@ -23,6 +23,7 @@ import (
 type MessageService struct {
 	chatID             int64
 	messageText        string
+	message            types.TeleMessage
 	requestType        types.RequestType
 	user               types.User
 	chatSessionDetails []types.ChatSessionDetail
@@ -34,11 +35,12 @@ type MessageService struct {
 	toolReturningService *ToolReturningService
 }
 
-func NewMessageService(chatID, senderID int64, text string, requestType types.RequestType) *MessageService {
+func NewMessageService(chatID, senderID int64, text string, requestType types.RequestType, teleMessage types.TeleMessage) *MessageService {
 	ms := &MessageService{
 		chatID:      chatID,
 		messageText: text,
 		requestType: requestType,
+		message:     teleMessage,
 		user:        types.User{ID: senderID},
 	}
 
@@ -93,7 +95,7 @@ func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 		return err
 	}
 
-	res, err := http.Post(fmt.Sprintf("%s/sendMessage", config.WebhookUrl), "application/json", bytes.NewBuffer(reqBytes))
+	res, err := http.Post(fmt.Sprintf("%s/sendMessage", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return err
 	}
@@ -106,7 +108,65 @@ func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 			panic(err)
 		}
 		fmt.Printf("%#v\n", j)
-		return errors.New("unexpected status" + res.Status)
+		return errors.New("unexpected status " + res.Status)
+	}
+
+	return nil
+}
+
+func (ms *MessageService) sendPhoto(reqBody types.PhotoRequest) error {
+	if reqBody.ChatID == 0 {
+		reqBody.ChatID = ms.chatID
+	}
+
+	reqBytes, err := json.Marshal(&reqBody)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Post(fmt.Sprintf("%s/sendPhoto", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+
+		var j interface{}
+		err = json.NewDecoder(res.Body).Decode(&j)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%#v\n", j)
+		return errors.New("unexpected status " + res.Status)
+	}
+
+	return nil
+}
+
+func (ms *MessageService) sendPhotoGroup(reqBody types.PhotoGroupRequest) error {
+	if reqBody.ChatID == 0 {
+		reqBody.ChatID = ms.chatID
+	}
+
+	reqBytes, err := json.Marshal(&reqBody)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Post(fmt.Sprintf("%s/sendMediaGroup", config.WebhookUrl()), "application/json", bytes.NewBuffer(reqBytes))
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusOK {
+		defer res.Body.Close()
+
+		var j interface{}
+		err = json.NewDecoder(res.Body).Decode(&j)
+		if err != nil {
+			panic(err)
+		}
+
+		return errors.New("unexpected status " + res.Status)
 	}
 
 	return nil
@@ -159,34 +219,61 @@ func (ms *MessageService) Unknown() error {
 }
 
 func (ms *MessageService) Check() error {
-	tools, err := ms.toolService.GetAvailableTools()
-	if err != nil && err != sql.ErrNoRows {
+	checkCommandOrder, ok := helper.GetCheckCommandOrder(ms.messageText)
+	if ok {
+		if checkCommandOrder.Text == types.CheckTypePhoto {
+			return ms.checkDetailPhoto(checkCommandOrder.ID)
+		}
+
+		return ms.checkDetail(checkCommandOrder.ID)
+	}
+
+	var tools []types.Tool
+	var err error
+	if ms.isEligibleAdmin() {
+		tools, err = ms.toolService.GetTools()
+	} else {
+		tools, err = ms.toolService.GetAvailableTools()
+	}
+
+	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	toolID, ok := isIDWithinCommand(ms.messageText)
-	if ok && toolID > 0 {
-		return ms.checkDetail(toolID)
+	if len(tools) < 1 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Tidak ada barang yang tersedia.",
+		})
 	}
 
 	message := "Berikut ini daftar alat yang masih tersedia.\n"
 	message += fmt.Sprintf("untuk melihat detail alat, ketik perintah \"/%s [id]\"\n\n", types.CommandCheck)
 	message += helper.BuildToolListMessage(tools)
 
-	reqBody := types.MessageRequest{
+	return ms.sendMessage(types.MessageRequest{
 		Text: message,
-	}
-
-	return ms.sendMessage(reqBody)
+	})
 }
 
 func (ms *MessageService) checkDetail(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
-	if err != nil || tool.Stock < 1 {
-		log.Println("[ERR][Borrow][FindByID]", err)
+	if err != nil {
+		log.Println("[ERR][checkDetail][FindByID]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID tidak ditemukan.",
+		})
+	}
+
+	if tool.Stock < 1 && !ms.isEligibleAdmin() {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia",
 		})
 	}
 
@@ -201,18 +288,95 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 	`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
 	message = helper.RemoveTab(message)
 
-	return ms.sendMessage(types.MessageRequest{
+	var inlineKeyboard [][]types.InlineKeyboardButton
+	if ms.isEligibleAdmin() {
+		inlineKeyboard = [][]types.InlineKeyboardButton{
+			{{
+				Text:         "Lihat Foto",
+				CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+			}},
+			{{
+				Text:         "Ubah Foto",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypePhoto, tool.ID),
+			}},
+			{{
+				Text:         "Ubah Data",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, tool.ID),
+			}},
+		}
+	} else {
+		inlineKeyboard = [][]types.InlineKeyboardButton{
+			{{
+				Text:         "Lihat Foto",
+				CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+			}},
+			{{
+				Text:         "Pinjam",
+				CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
+			}},
+		}
+	}
+
+	reqBody := types.MessageRequest{
 		Text: message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
-			InlineKeyboard: [][]types.InlineKeyboardButton{
-				{
-					{
-						Text:         "Pinjam",
-						CallbackData: fmt.Sprintf("/%s %d", types.CommandBorrow, tool.ID),
-					},
-				},
-			},
+			InlineKeyboard: inlineKeyboard,
 		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) checkDetailPhoto(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil {
+		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID tidak ditemukan.",
+		})
+	}
+
+	if tool.Stock < 1 && !ms.isEligibleAdmin() {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	photos, err := ms.toolService.GetPhotos(toolID)
+	if err != nil {
+		log.Println("[ERR][checkDetailPhoto][GetPhotos]", err)
+		return ms.Error()
+	}
+
+	if len(photos) > 1 {
+		var media []types.InputMediaPhoto
+		for _, photo := range photos {
+			temp := types.InputMediaPhoto{
+				Type:  "photo",
+				Media: photo.FileID,
+			}
+			media = append(media, temp)
+		}
+
+		return ms.sendPhotoGroup(types.PhotoGroupRequest{
+			Media: media,
+		})
+	}
+
+	if len(photos) == 1 {
+		return ms.sendPhoto(types.PhotoRequest{
+			Photo: photos[0].FileID,
+		})
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Foto tidak tersedia untuk barang ini.",
 	})
 }
 
@@ -440,7 +604,7 @@ func (ms *MessageService) registerCompleteNegative() error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: "Registrasi berhasil dibatalkan.",
+		Text: "Registrasi dibatalkan.",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -746,7 +910,7 @@ func (ms *MessageService) borrowConfirm() error {
 
 	if !userResponse {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Pengajuan berhasil dibatalkan",
+			Text: "Pengajuan dibatalkan",
 		})
 	}
 
@@ -1125,7 +1289,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 
 func (ms *MessageService) toolReturningCompleteNegative() error {
 	reqBody := types.MessageRequest{
-		Text: "Pengajuan pengembalian berhasil dibatalkan.",
+		Text: "Pengajuan pengembalian dibatalkan.",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -1179,7 +1343,7 @@ func (ms *MessageService) Respond() error {
 		return ms.Unknown()
 	}
 
-	respCommands, ok := helper.GetRespondCommands(ms.messageText)
+	respCommands, ok := helper.GetRespondCommandOrder(ms.messageText)
 	if !ok {
 		return ms.ListToRespond()
 	}
@@ -1252,7 +1416,7 @@ func (ms *MessageService) RespondBorrow() error {
 	return ms.Unknown()
 }
 
-func (ms *MessageService) respondBorrowInit(commands types.RespondCommands) error {
+func (ms *MessageService) respondBorrowInit(commands types.RespondCommandOrder) error {
 	borrow, err := ms.borrowService.FindBorrowByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondBorrowInit][FindBorrowByID]", err)
@@ -1443,7 +1607,7 @@ func (ms *MessageService) RespondToolReturning() error {
 	return ms.Unknown()
 }
 
-func (ms *MessageService) respondToolReturningInit(commands types.RespondCommands) error {
+func (ms *MessageService) respondToolReturningInit(commands types.RespondCommandOrder) error {
 	toolReturning, err := ms.toolReturningService.FindToolReturningByID(commands.ID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println("[ERR][respondToolReturning][FindToolReturningByID]", err)
@@ -1619,5 +1783,669 @@ func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolR
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: "Pengajuan pengembalian berhasil ditolak",
+	})
+}
+
+func (ms *MessageService) Manage() error {
+	if !ms.isEligibleAdmin() {
+		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
+		return ms.Unknown()
+	}
+
+	manageCommands, ok := helper.GetManageCommandOrder(ms.messageText)
+	if !ok {
+		return ms.manageMenu()
+	}
+
+	switch manageCommands.Type {
+	case types.ManageTypeAdd:
+		return ms.manageAddInit()
+	case types.ManageTypeEdit:
+		return ms.manageEditInit(manageCommands.ID)
+	case types.ManageTypePhoto:
+		return ms.managePhotoInit(manageCommands.ID)
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageMenu() error {
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan pilih menu pengelolaan.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Tambah Barang",
+						CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeAdd),
+					},
+					{
+						Text:         "Edit Barang",
+						CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeEdit),
+					},
+				},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) manageAddInit() error {
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_init"], ""); err != nil {
+		log.Println("[ERR][manageAddInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Memulai Sesi Penambahan Barang\n\nTulis nama barang",
+	})
+}
+
+func (ms *MessageService) ManageAdd() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_add_init"]:
+			return ms.manageAddName()
+		case types.Topic["manage_add_name"]:
+			return ms.manageAddBrand()
+		case types.Topic["manage_add_brand"]:
+			return ms.manageAddType()
+		case types.Topic["manage_add_type"]:
+			return ms.manageAddWeight()
+		case types.Topic["manage_add_weight"]:
+			return ms.manageAddStock()
+		case types.Topic["manage_add_stock"]:
+			return ms.manageAddInfo()
+		case types.Topic["manage_add_info"]:
+			return ms.manageAddPhoto()
+		case types.Topic["manage_add_photo"]:
+			return ms.manageAddConfirm()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageAddName() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddName(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_name"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddName][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan merk/brand",
+	})
+}
+
+func (ms *MessageService) manageAddBrand() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddBrand(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_brand"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddBrand][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan tipe barang/alat",
+	})
+}
+
+func (ms *MessageService) manageAddType() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddProductType(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_type"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddType][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa berat alat tersebut? (dalam gram)",
+	})
+}
+
+func (ms *MessageService) manageAddWeight() error {
+	i, err := strconv.ParseFloat(ms.messageText, 10)
+	if err != nil {
+		log.Println("[ERR][manageAddWeight][ParseFloat]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan berat dalam angka.",
+		})
+	}
+
+	weight := float32(i)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddWeight(weight)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_weight"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddWeight][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa banyak stok yang tersedia untuk dipinjamkan?",
+	})
+}
+
+func (ms *MessageService) manageAddStock() error {
+	i, err := strconv.ParseInt(ms.messageText, 10, 64)
+	if err != nil {
+		log.Println("[ERR][manageAddStock][ParseInt]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan jumlah stok dalam angka.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddStock(i)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_stock"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddStock][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan deskripsi lengkap mengenai alat ini",
+	})
+}
+
+func (ms *MessageService) manageAddInfo() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddInfo(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_info"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddInfo][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan upload foto barang. (minimal 1, maksimal 10)",
+	})
+}
+
+func (ms *MessageService) manageAddPhoto() error {
+	if len(ms.message.Photo) == 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon upload foto barang.",
+		})
+	}
+
+	pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddPhoto(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_photo"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddPhoto][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeAdd, ms.chatSessionDetails)
+
+	message := fmt.Sprintf(`Nama : %s
+		Brand/Merk : %s
+		Tipe Produk : %s
+		Berat : %.2f gram
+		Stok : %d
+		Deskripsi :
+		%s
+	
+		Pastikan data sudah benar kemudian tekan "Lanjutkan".`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation)
+	message = helper.RemoveTab(message)
+
+	reqBody := types.MessageRequest{
+		Text: message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Lanjutkan",
+						CallbackData: "yes",
+					},
+					{
+						Text:         "Batalkan",
+						CallbackData: "no",
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) manageAddConfirm() error {
+	if len(ms.message.MediaGroupID) != 0 {
+		pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+		gen := helper.NewSessionDataGenerator()
+		generatedSessionData := gen.ManageAddPhoto(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+		return ms.saveChatSessionDetail(types.Topic["manage_add_photo"], generatedSessionData)
+	}
+
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageAddConfirm(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_add_confirm"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageAddConfirm][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][manageAddConfirm][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Penambahan barang dibatalkan.",
+		})
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeAdd, ms.chatSessionDetails)
+	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
+
+	toolID, err := ms.toolService.SaveTool(tool)
+	if err != nil {
+		log.Println("[ERR][manageAddConfirm][SaveTool]", err)
+		return ms.Error()
+	}
+
+	if err = ms.toolService.SaveToolPhotos(toolID, photos); err != nil {
+		log.Println("[ERR][manageAddConfirm][SaveToolPhotos]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: fmt.Sprintf("Barang berhasil ditambah dengan ID %d", toolID),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Cek Barang",
+						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, toolID),
+					},
+				},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) manageEditInit(toolID int64) error {
+	_, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][manageEditInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Memulai Sesi Pengubahan Barang\n\nTulis nama barang",
+	})
+}
+
+func (ms *MessageService) ManageEdit() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_edit_init"]:
+			return ms.manageEditName()
+		case types.Topic["manage_edit_name"]:
+			return ms.manageEditBrand()
+		case types.Topic["manage_edit_brand"]:
+			return ms.manageEditType()
+		case types.Topic["manage_edit_type"]:
+			return ms.manageEditWeight()
+		case types.Topic["manage_edit_weight"]:
+			return ms.manageEditStock()
+		case types.Topic["manage_edit_stock"]:
+			return ms.manageEditInfo()
+		case types.Topic["manage_edit_info"]:
+			return ms.manageEditConfirm()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageEditName() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditName(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_name"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditName][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan merk/brand",
+	})
+}
+
+func (ms *MessageService) manageEditBrand() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditBrand(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_brand"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditBrand][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan tipe barang/alat",
+	})
+}
+
+func (ms *MessageService) manageEditType() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditProductType(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_type"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditType][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa berat alat tersebut? (dalam gram)",
+	})
+}
+
+func (ms *MessageService) manageEditWeight() error {
+	i, err := strconv.ParseFloat(ms.messageText, 10)
+	if err != nil {
+		log.Println("[ERR][manageEditWeight][ParseFloat]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan berat dalam angka.",
+		})
+	}
+
+	weight := float32(i)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditWeight(weight)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_weight"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditWeight][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Berapa banyak stok yang tersedia untuk dipinjamkan?",
+	})
+}
+
+func (ms *MessageService) manageEditStock() error {
+	i, err := strconv.ParseInt(ms.messageText, 10, 64)
+	if err != nil {
+		log.Println("[ERR][manageEeditStock][ParseInt]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon sebutkan jumlah stok dalam angka.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditStock(i)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_stock"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditStock][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Tuliskan deskripsi lengkap mengenai alat ini",
+	})
+}
+
+func (ms *MessageService) manageEditInfo() error {
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditInfo(ms.messageText)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_info"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditInfo][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeEdit, ms.chatSessionDetails)
+
+	message := fmt.Sprintf(`Nama : %s
+		Brand/Merk : %s
+		Tipe Produk : %s
+		Berat : %.2f gram
+		Stok : %d
+		Deskripsi :
+		%s
+	
+		Pastikan data sudah benar kemudian tekan "Lanjutkan".`, tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, ms.messageText)
+	message = helper.RemoveTab(message)
+
+	reqBody := types.MessageRequest{
+		Text: message,
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Lanjutkan",
+						CallbackData: "yes",
+					},
+					{
+						Text:         "Batalkan",
+						CallbackData: "no",
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) manageEditConfirm() error {
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageEditConfirm(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_edit_confirm"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageEditConfirm][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][manageEditConfirm][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengubahan barang dibatalkan.",
+		})
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypeEdit, ms.chatSessionDetails)
+	if err := ms.toolService.UpdateTool(tool); err != nil {
+		log.Println("[ERR][manageEditConfirm][UpdateTool]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: fmt.Sprintf("Terjadi kesalahan. Barang dengan ID %d gagal diubah.", tool.ID),
+		})
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: fmt.Sprintf("Barang dengan ID %d berhasil diubah", tool.ID),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Cek Barang",
+						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, tool.ID),
+					},
+				},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) managePhotoInit(toolID int64) error {
+	_, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][managePhotoInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan upload foto barang. (minimal 1, maksimal 10)",
+	})
+}
+
+func (ms *MessageService) ManagePhoto() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_photo_init"]:
+			return ms.managePhotoUpload()
+		case types.Topic["manage_photo_upload"]:
+			return ms.managePhotoConfirm()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) managePhotoUpload() error {
+	if len(ms.message.Photo) == 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon upload foto barang.",
+		})
+	}
+
+	pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoUpload(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_upload"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoUpload][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		Text: "Foto berhasil diunggah.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{{
+					Text:         "Simpan Perubahan",
+					CallbackData: "yes",
+				}},
+				{{
+					Text:         "Batalkan",
+					CallbackData: "no",
+				}},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) managePhotoConfirm() error {
+	if len(ms.message.MediaGroupID) != 0 {
+		pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+		gen := helper.NewSessionDataGenerator()
+		generatedSessionData := gen.ManagePhotoUpload(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+		return ms.saveChatSessionDetail(types.Topic["manage_photo_upload"], generatedSessionData)
+	}
+
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoConfirm(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_confirm"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoConfirm][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][managePhotoConfirm][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Perubahan foto barang dibatalkan.",
+		})
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypePhoto, ms.chatSessionDetails)
+	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
+
+	if err := ms.toolService.UpdatePhotos(tool.ID, photos); err != nil {
+		log.Println("[ERR][managePhotoConfirm][SaveToolPhotos]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Foto barang berhasil diubah.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Lihat Foto",
+						CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
+					},
+				},
+			},
+		},
 	})
 }

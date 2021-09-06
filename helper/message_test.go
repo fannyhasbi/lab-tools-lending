@@ -88,18 +88,20 @@ func TestCanBuildMessageRequest(t *testing.T) {
 func TestCanBuildToolListMessage(t *testing.T) {
 	tools := []types.Tool{
 		{
-			ID:   123,
-			Name: "hello1",
+			ID:    123,
+			Name:  "hello1",
+			Stock: 10,
 		},
 		{
-			ID:   321,
-			Name: "hello2",
+			ID:    321,
+			Name:  "hello2",
+			Stock: 0,
 		},
 	}
 
 	r := BuildToolListMessage(tools)
 
-	expected := fmt.Sprintf("[%d] %s\n[%d] %s\n", tools[0].ID, tools[0].Name, tools[1].ID, tools[1].Name)
+	expected := fmt.Sprintf("[%d] %s\n[%d] %s (stok kosong)\n", tools[0].ID, tools[0].Name, tools[1].ID, tools[1].Name)
 
 	assert.Equal(t, expected, r)
 }

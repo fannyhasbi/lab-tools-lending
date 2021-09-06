@@ -9,19 +9,37 @@ const (
 
 	// admin stuffs
 	CommandRespond = "tanggapi"
+	CommandManage  = "kelola"
 )
 
 type (
 	RespondType string
+	ManageType  string
 
-	RespondCommands struct {
+	CheckCommandOrder struct {
+		ID   int64
+		Text string
+	}
+
+	RespondCommandOrder struct {
 		Type RespondType
 		ID   int64
 		Text string
 	}
+
+	ManageCommandOrder struct {
+		Type ManageType
+		ID   int64
+	}
 )
 
 var (
+	CheckTypePhoto string = "foto"
+
 	RespondTypeBorrow        RespondType = "pinjam"
 	RespondTypeToolReturning RespondType = "kembali"
+
+	ManageTypeAdd   ManageType = "tambah"
+	ManageTypeEdit  ManageType = "edit"
+	ManageTypePhoto ManageType = "foto"
 )

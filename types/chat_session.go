@@ -46,5 +46,28 @@ var (
 		"respond_borrow_complete":         "RESPOND_brw_complete",
 		"respond_tool_returning_init":     "RESPOND_ret_init",
 		"respond_tool_returning_complete": "RESPOND_ret_complete",
+
+		"manage_add_init":    "MNG_add_init",
+		"manage_add_name":    "MNG_add_name",
+		"manage_add_brand":   "MNG_add_brand",
+		"manage_add_type":    "MNG_add_type",
+		"manage_add_weight":  "MNG_add_weight",
+		"manage_add_stock":   "MNG_add_stock",
+		"manage_add_info":    "MNG_add_info",
+		"manage_add_photo":   "MNG_add_photo",
+		"manage_add_confirm": "MNG_add_confirm",
+
+		"manage_edit_init":    "MNG_edit_init",
+		"manage_edit_name":    "MNG_edit_name",
+		"manage_edit_brand":   "MNG_edit_brand",
+		"manage_edit_type":    "MNG_edit_type",
+		"manage_edit_weight":  "MNG_edit_weight",
+		"manage_edit_stock":   "MNG_edit_stock",
+		"manage_edit_info":    "MNG_edit_info",
+		"manage_edit_confirm": "MNG_edit_confirm",
+
+		"manage_photo_init":    "MNG_photo_init",
+		"manage_photo_upload":  "MNG_photo_upload",
+		"manage_photo_confirm": "MNG_photo_confirm",
 	}
 )
