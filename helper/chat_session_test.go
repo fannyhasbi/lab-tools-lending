@@ -269,3 +269,30 @@ func TestSessionGeneratorManageEdit(t *testing.T) {
 		assert.JSONEq(t, expected, r)
 	})
 }
+
+func TestSessionGeneratorManagePhoto(t *testing.T) {
+	t.Run("init", func(t *testing.T) {
+		var toolID int64 = 321
+		gen := NewSessionDataGenerator()
+		r := gen.ManagePhotoInit(toolID)
+		expected := fmt.Sprintf(`{"type":"%s","tool_id":%d}`, types.Topic["manage_photo_init"], toolID)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("upload", func(t *testing.T) {
+		mediaGroupdID := "123"
+		fileID := "testFileID1234"
+		fileUniqueID := "testFileUniqueID4321"
+
+		gen := NewSessionDataGenerator()
+		r := gen.ManagePhotoUpload(mediaGroupdID, fileID, fileUniqueID)
+		expected := fmt.Sprintf(`{"type":"%s","media_group_id":"%s","file_id":"%s","file_unique_id":"%s"}`, types.Topic["manage_photo_upload"], mediaGroupdID, fileID, fileUniqueID)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("confirm", func(t *testing.T) {
+		userResponse := true
+		gen := NewSessionDataGenerator()
+		r := gen.ManagePhotoConfirm(userResponse)
+		expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, types.Topic["manage_photo_confirm"], userResponse)
+		assert.JSONEq(t, expected, r)
+	})
+}

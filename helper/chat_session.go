@@ -214,3 +214,20 @@ func (sdc SessionDataContainer) ManageEditConfirm(userResponse bool) string {
 	sdc.manageConfirm(types.Topic["manage_edit_confirm"], userResponse)
 	return sdc.container.String()
 }
+
+func (sdc SessionDataContainer) ManagePhotoInit(toolID int64) string {
+	sdc.container.Set(types.Topic["manage_photo_init"], "type")
+	sdc.container.Set(toolID, "tool_id")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManagePhotoUpload(mediaGroupID, fileID, fileUniqueID string) string {
+	sdc.managePhoto(types.Topic["manage_photo_upload"], mediaGroupID, fileID, fileUniqueID)
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManagePhotoConfirm(userResponse bool) string {
+	sdc.container.Set(types.Topic["manage_photo_confirm"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}

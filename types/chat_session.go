@@ -65,5 +65,9 @@ var (
 		"manage_edit_stock":   "MNG_edit_stock",
 		"manage_edit_info":    "MNG_edit_info",
 		"manage_edit_confirm": "MNG_edit_confirm",
+
+		"manage_photo_init":    "MNG_photo_init",
+		"manage_photo_upload":  "MNG_photo_upload",
+		"manage_photo_confirm": "MNG_photo_confirm",
 	}
 )

@@ -43,6 +43,15 @@ func (ts ToolService) SaveToolPhotos(toolID int64, photos []types.TelePhotoSize)
 	return ts.Repository.SavePhotos(toolID, photos)
 }
 
+func (ts ToolService) UpdatePhotos(toolID int64, photos []types.TelePhotoSize) error {
+	err := ts.Repository.DeletePhotos(toolID)
+	if err != nil {
+		return err
+	}
+
+	return ts.Repository.SavePhotos(toolID, photos)
+}
+
 func (ts ToolService) IncreaseStock(id int64) error {
 	return ts.Repository.IncreaseStock(id)
 }

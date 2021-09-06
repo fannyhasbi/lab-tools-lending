@@ -147,6 +147,25 @@ func TestGetToolFromChatSessionDetail_Edit(t *testing.T) {
 	})
 }
 
+func TestGetToolFromChatSessionDetail_Photo(t *testing.T) {
+	tool := types.Tool{
+		ID: 123,
+	}
+
+	t.Run("full session", func(t *testing.T) {
+		sessions := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["manage_photo_init"],
+				Data:  NewSessionDataGenerator().ManagePhotoInit(tool.ID),
+			},
+		}
+
+		r := GetToolFromChatSessionDetail(types.ManageTypePhoto, sessions)
+
+		assert.Equal(t, types.Tool{ID: tool.ID}, r)
+	})
+}
+
 func TestCanGetToolPhotosFromChatSessionDetails(t *testing.T) {
 	mediaGroupID := "123"
 	photos := []types.TelePhotoSize{
@@ -160,24 +179,48 @@ func TestCanGetToolPhotosFromChatSessionDetails(t *testing.T) {
 		},
 	}
 
-	sessions := []types.ChatSessionDetail{
-		{
-			Topic: types.Topic["manage_add_brand"],
-			Data:  NewSessionDataGenerator().ManageAddBrand("test brand"),
-		},
-		{
-			Topic: types.Topic["manage_add_photo"],
-			Data:  NewSessionDataGenerator().ManageAddPhoto(mediaGroupID, photos[0].FileID, photos[0].FileUniqueID),
-		},
-		{
-			Topic: types.Topic["manage_add_photo"],
-			Data:  NewSessionDataGenerator().ManageAddPhoto(mediaGroupID, photos[1].FileID, photos[1].FileUniqueID),
-		},
-	}
+	t.Run("add photo session", func(t *testing.T) {
+		sessions := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["manage_add_brand"],
+				Data:  NewSessionDataGenerator().ManageAddBrand("test brand"),
+			},
+			{
+				Topic: types.Topic["manage_add_photo"],
+				Data:  NewSessionDataGenerator().ManageAddPhoto(mediaGroupID, photos[0].FileID, photos[0].FileUniqueID),
+			},
+			{
+				Topic: types.Topic["manage_add_photo"],
+				Data:  NewSessionDataGenerator().ManageAddPhoto(mediaGroupID, photos[1].FileID, photos[1].FileUniqueID),
+			},
+		}
 
-	r := GetToolPhotosFromChatSessionDetails(sessions)
+		r := GetToolPhotosFromChatSessionDetails(sessions)
 
-	assert.Equal(t, photos, r)
+		assert.Equal(t, photos, r)
+	})
+
+	t.Run("edit photo session", func(t *testing.T) {
+		var toolID int64 = 555
+		sessions := []types.ChatSessionDetail{
+			{
+				Topic: types.Topic["manage_photo_init"],
+				Data:  NewSessionDataGenerator().ManagePhotoInit(toolID),
+			},
+			{
+				Topic: types.Topic["manage_photo_upload"],
+				Data:  NewSessionDataGenerator().ManagePhotoUpload(mediaGroupID, photos[0].FileID, photos[0].FileUniqueID),
+			},
+			{
+				Topic: types.Topic["manage_photo_upload"],
+				Data:  NewSessionDataGenerator().ManagePhotoUpload(mediaGroupID, photos[1].FileID, photos[1].FileUniqueID),
+			},
+		}
+
+		r := GetToolPhotosFromChatSessionDetails(sessions)
+
+		assert.Equal(t, photos, r)
+	})
 }
 
 func TestCanPickPhoto(t *testing.T) {

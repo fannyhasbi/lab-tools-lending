@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"log"
-
 	"github.com/Jeffail/gabs"
 	"github.com/fannyhasbi/lab-tools-lending/types"
 )
@@ -20,9 +18,10 @@ func GetToolFromChatSessionDetail(manageType types.ManageType, details []types.C
 			extractToolAddBasedOnTopic(&tool, detail.Topic, dataParsed)
 		} else if manageType == types.ManageTypeEdit {
 			extractToolEditBasedOnTopic(&tool, detail.Topic, dataParsed)
+		} else if manageType == types.ManageTypePhoto {
+			extractToolPhotoBasedOnTopic(&tool, detail.Topic, dataParsed)
 		}
 	}
-	log.Println(tool)
 
 	return tool
 }
@@ -78,6 +77,14 @@ func extractToolEditBasedOnTopic(tool *types.Tool, topic types.TopicType, dataPa
 	}
 }
 
+func extractToolPhotoBasedOnTopic(tool *types.Tool, topic types.TopicType, dataParsed *gabs.Container) {
+	switch topic {
+	case types.Topic["manage_photo_init"]:
+		id, _ := dataParsed.Path("tool_id").Data().(float64)
+		tool.ID = int64(id)
+	}
+}
+
 func GetToolPhotosFromChatSessionDetails(details []types.ChatSessionDetail) []types.TelePhotoSize {
 	var photos []types.TelePhotoSize
 	for _, detail := range details {
@@ -86,7 +93,7 @@ func GetToolPhotosFromChatSessionDetails(details []types.ChatSessionDetail) []ty
 			return photos
 		}
 
-		if detail.Topic == types.Topic["manage_add_photo"] {
+		if detail.Topic == types.Topic["manage_add_photo"] || detail.Topic == types.Topic["manage_photo_upload"] {
 			fileID, _ := dataParsed.Path("file_id").Data().(string)
 			fileUniqueID, _ := dataParsed.Path("file_unique_id").Data().(string)
 

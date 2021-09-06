@@ -296,6 +296,10 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 				CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
 			}},
 			{{
+				Text:         "Ubah Foto",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypePhoto, tool.ID),
+			}},
+			{{
 				Text:         "Ubah Data",
 				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, tool.ID),
 			}},
@@ -588,7 +592,7 @@ func (ms *MessageService) registerCompleteNegative() error {
 	}
 
 	reqBody := types.MessageRequest{
-		Text: "Registrasi berhasil dibatalkan.",
+		Text: "Registrasi dibatalkan.",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -894,7 +898,7 @@ func (ms *MessageService) borrowConfirm() error {
 
 	if !userResponse {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Pengajuan berhasil dibatalkan",
+			Text: "Pengajuan dibatalkan",
 		})
 	}
 
@@ -1273,7 +1277,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 
 func (ms *MessageService) toolReturningCompleteNegative() error {
 	reqBody := types.MessageRequest{
-		Text: "Pengajuan pengembalian berhasil dibatalkan.",
+		Text: "Pengajuan pengembalian dibatalkan.",
 	}
 
 	return ms.sendMessage(reqBody)
@@ -1786,6 +1790,8 @@ func (ms *MessageService) Manage() error {
 		return ms.manageAddInit()
 	case types.ManageTypeEdit:
 		return ms.manageEditInit(manageCommands.ID)
+	case types.ManageTypePhoto:
+		return ms.managePhotoInit(manageCommands.ID)
 	}
 
 	return ms.Unknown()
@@ -2033,7 +2039,7 @@ func (ms *MessageService) manageAddConfirm() error {
 
 	if !userResponse {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Penambahan barang berhasil dibatalkan.",
+			Text: "Penambahan barang dibatalkan.",
 		})
 	}
 
@@ -2057,7 +2063,7 @@ func (ms *MessageService) manageAddConfirm() error {
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
-						Text:         "Cek barang",
+						Text:         "Cek Barang",
 						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, toolID),
 					},
 				},
@@ -2270,7 +2276,7 @@ func (ms *MessageService) manageEditConfirm() error {
 
 	if !userResponse {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Pengubahan barang berhasil dibatalkan.",
+			Text: "Pengubahan barang dibatalkan.",
 		})
 	}
 
@@ -2288,8 +2294,143 @@ func (ms *MessageService) manageEditConfirm() error {
 			InlineKeyboard: [][]types.InlineKeyboardButton{
 				{
 					{
-						Text:         "Cek barang",
+						Text:         "Cek Barang",
 						CallbackData: fmt.Sprintf("/%s %d", types.CommandCheck, tool.ID),
+					},
+				},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) managePhotoInit(toolID int64) error {
+	_, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][managePhotoInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan upload foto barang. (minimal 1, maksimal 10)",
+	})
+}
+
+func (ms *MessageService) ManagePhoto() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_photo_init"]:
+			return ms.managePhotoUpload()
+		case types.Topic["manage_photo_upload"]:
+			return ms.managePhotoConfirm()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) managePhotoUpload() error {
+	if len(ms.message.Photo) == 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Mohon upload foto barang.",
+		})
+	}
+
+	pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoUpload(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_upload"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoUpload][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		Text: "Foto berhasil diunggah.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{{
+					Text:         "Simpan Perubahan",
+					CallbackData: "yes",
+				}},
+				{{
+					Text:         "Batalkan",
+					CallbackData: "no",
+				}},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) managePhotoConfirm() error {
+	if len(ms.message.MediaGroupID) != 0 {
+		pickedPhoto := helper.PickPhoto(ms.message.Photo)
+
+		gen := helper.NewSessionDataGenerator()
+		generatedSessionData := gen.ManagePhotoUpload(ms.message.MediaGroupID, pickedPhoto.FileID, pickedPhoto.FileUniqueID)
+
+		return ms.saveChatSessionDetail(types.Topic["manage_photo_upload"], generatedSessionData)
+	}
+
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManagePhotoConfirm(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_photo_confirm"], generatedSessionData); err != nil {
+		log.Println("[ERR][managePhotoConfirm][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][managePhotoConfirm][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Perubahan foto barang dibatalkan.",
+		})
+	}
+
+	tool := helper.GetToolFromChatSessionDetail(types.ManageTypePhoto, ms.chatSessionDetails)
+	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
+
+	if err := ms.toolService.UpdatePhotos(tool.ID, photos); err != nil {
+		log.Println("[ERR][managePhotoConfirm][SaveToolPhotos]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Foto barang berhasil diubah.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Lihat Foto",
+						CallbackData: fmt.Sprintf("/%s %d %s", types.CommandCheck, tool.ID, types.CheckTypePhoto),
 					},
 				},
 			},

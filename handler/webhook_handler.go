@@ -163,6 +163,8 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 		return ms.ManageAdd()
 	case types.Topic["manage_edit_init"], types.Topic["manage_edit_name"], types.Topic["manage_edit_brand"], types.Topic["manage_edit_type"], types.Topic["manage_edit_weight"], types.Topic["manage_edit_stock"], types.Topic["manage_edit_info"], types.Topic["manage_add_confirm"]:
 		return ms.ManageEdit()
+	case types.Topic["manage_photo_init"], types.Topic["manage_photo_upload"], types.Topic["manage_photo_confirm"]:
+		return ms.ManagePhoto()
 	default:
 		return ms.Unknown()
 	}

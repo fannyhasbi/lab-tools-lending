@@ -94,6 +94,23 @@ func TestCanSaveToolPhotos(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestCanDeleteToolPhotos(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	var id int64 = 555
+	repository := NewToolRepositoryPostgres(db)
+
+	mock.ExpectExec("^DELETE FROM tool_photos WHERE tool_id = .+").
+		WithArgs(id).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repository.DeletePhotos(id)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
 func TestCanIncreaseStock(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()

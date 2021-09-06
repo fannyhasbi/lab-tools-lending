@@ -80,6 +80,11 @@ func (tr *ToolRepositoryPostgres) SavePhotos(toolID int64, photos []types.TelePh
 	return err
 }
 
+func (tr *ToolRepositoryPostgres) DeletePhotos(toolID int64) error {
+	_, err := tr.DB.Exec(`DELETE FROM tool_photos WHERE tool_id = $1`, toolID)
+	return err
+}
+
 func (tr *ToolRepositoryPostgres) IncreaseStock(toolID int64) error {
 	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock + 1 WHERE id = $1`, toolID)
 	return err
