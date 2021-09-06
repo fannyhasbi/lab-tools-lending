@@ -329,8 +329,20 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 
 func (ms *MessageService) checkDetailPhoto(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
-	if err != nil || tool.Stock < 1 {
+	if err != nil {
 		log.Println("[ERR][Borrow][FindByID]", err)
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
+		})
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID tidak ditemukan.",
+		})
+	}
+
+	if tool.Stock < 1 && !ms.isEligibleAdmin() {
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
 		})
