@@ -112,6 +112,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 	log.Printf("the command is : %s\n", commandStr)
 
 	switch commandStr {
+	case types.CommandStart:
+		return ms.FirstStart()
 	case types.CommandHelp:
 		return ms.Help()
 	case types.CommandRegister:
@@ -126,6 +128,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.Respond()
 	case types.CommandManage:
 		return ms.Manage()
+	case types.CommandReport:
+		return ms.Report()
 	default:
 		return ms.Unknown()
 	}

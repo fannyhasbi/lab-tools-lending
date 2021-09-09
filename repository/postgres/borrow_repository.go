@@ -37,7 +37,7 @@ func (br *BorrowRepositoryPostgres) UpdateStatus(id int64, status types.BorrowSt
 	return err
 }
 
-func (br *BorrowRepositoryPostgres) UpdateConfirmedAt(id int64, confirmedAt time.Time) error {
-	_, err := br.DB.Exec(`UPDATE borrows SET confirmed_at = $1 WHERE id = $2`, confirmedAt, id)
+func (br *BorrowRepositoryPostgres) UpdateConfirm(id int64, confirmedAt time.Time, confirmedBy string) error {
+	_, err := br.DB.Exec(`UPDATE borrows SET confirmed_at = $1, confirmed_by = $2 WHERE id = $3`, confirmedAt, confirmedBy, id)
 	return err
 }

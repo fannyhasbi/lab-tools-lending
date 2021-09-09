@@ -74,6 +74,13 @@ func isManageTypeExists(c types.ManageType) bool {
 	return false
 }
 
+func isReportTypeExists(c types.ReportType) bool {
+	if c == types.ReportTypeBorrow || c == types.ReportTypeToolReturning {
+		return true
+	}
+	return false
+}
+
 func GetManageCommandOrder(s string) (types.ManageCommandOrder, bool) {
 	ss := strings.Split(s, " ")
 	if len(ss) < 2 || len(ss) > 3 {
@@ -122,4 +129,23 @@ func GetCheckCommandOrder(s string) (types.CheckCommandOrder, bool) {
 	}
 
 	return types.CheckCommandOrder{ID: i, Text: ss[2]}, true
+}
+
+func GetReportCommandOrder(s string) (types.ReportCommandOrder, bool) {
+	ss := strings.Split(s, " ")
+	if len(ss) != 2 {
+		return types.ReportCommandOrder{}, false
+	}
+
+	ss[1] = strings.ToLower(ss[1])
+	reportType := types.ReportType(ss[1])
+	if isExist := isReportTypeExists(reportType); !isExist {
+		return types.ReportCommandOrder{}, false
+	}
+
+	result := types.ReportCommandOrder{
+		Type: reportType,
+	}
+
+	return result, true
 }

@@ -3,8 +3,11 @@ package types
 type (
 	RequestType string
 
-	teleMessageFrom struct {
-		ID int64 `json:"id"`
+	TeleMessageFrom struct {
+		ID        int64  `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Username  string `json:"username"`
 	}
 
 	teleMessageChat struct {
@@ -22,7 +25,7 @@ type (
 
 	TeleMessage struct {
 		MessageID    int64           `json:"message_id"`
-		From         teleMessageFrom `json:"from"`
+		From         TeleMessageFrom `json:"from"`
 		Text         string          `json:"text"`
 		Chat         teleMessageChat `json:"chat"`
 		MediaGroupID string          `json:"media_group_id"`
@@ -35,7 +38,7 @@ type (
 
 	teleCallbackQuery struct {
 		ID      string          `json:"id"`
-		From    teleMessageFrom `json:"from"`
+		From    TeleMessageFrom `json:"from"`
 		Message TeleMessage     `json:"message"`
 		Data    string          `json:"data"`
 	}

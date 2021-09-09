@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
@@ -41,8 +42,13 @@ func (bs BorrowService) UpdateBorrowStatus(id int64, status types.BorrowStatus) 
 	return bs.Repository.UpdateStatus(id, status)
 }
 
-func (bs BorrowService) UpdateBorrowConfirmedAt(id int64, confirmedAt time.Time) error {
-	return bs.Repository.UpdateConfirmedAt(id, confirmedAt)
+func (bs BorrowService) UpdateBorrowConfirm(id int64, confirmedAt time.Time, firstName, lastName string) error {
+	confirmedBy := firstName
+	if len(lastName) > 0 {
+		confirmedBy = fmt.Sprintf("%s %s", firstName, lastName)
+	}
+
+	return bs.Repository.UpdateConfirm(id, confirmedAt, confirmedBy)
 }
 
 func (bs BorrowService) FindBorrowByID(id int64) (types.Borrow, error) {
@@ -87,6 +93,15 @@ func (bs BorrowService) GetCurrentlyBeingBorrowedAndRequestedByUserID(id int64) 
 
 func (bs BorrowService) GetBorrowRequests() ([]types.Borrow, error) {
 	result := bs.Query.GetByStatus(types.GetBorrowStatus("request"))
+	if result.Error != nil {
+		return []types.Borrow{}, result.Error
+	}
+
+	return result.Result.([]types.Borrow), nil
+}
+
+func (bs BorrowService) GetBorrowReport() ([]types.Borrow, error) {
+	result := bs.Query.GetReport()
 	if result.Error != nil {
 		return []types.Borrow{}, result.Error
 	}

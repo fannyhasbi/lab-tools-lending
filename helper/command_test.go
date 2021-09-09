@@ -242,3 +242,33 @@ func TestGetCheckCommandOrder(t *testing.T) {
 		assert.Equal(t, types.CheckCommandOrder{}, r)
 	})
 }
+
+func TestGetReportCommands(t *testing.T) {
+	t.Run("full value", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s", types.CommandReport, types.ReportTypeBorrow)
+		r, ok := GetReportCommandOrder(s)
+
+		expected := types.ReportCommandOrder{
+			Type: types.ReportTypeBorrow,
+		}
+
+		assert.True(t, ok)
+		assert.Equal(t, expected, r)
+	})
+
+	t.Run("length not equal 2", func(t *testing.T) {
+		s := fmt.Sprintf("/%s", types.CommandReport)
+		r, ok := GetReportCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.ReportCommandOrder{}, r)
+	})
+
+	t.Run("wrong type", func(t *testing.T) {
+		s := fmt.Sprintf("/%s testwrongtype", types.CommandReport)
+		r, ok := GetReportCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.ReportCommandOrder{}, r)
+	})
+}

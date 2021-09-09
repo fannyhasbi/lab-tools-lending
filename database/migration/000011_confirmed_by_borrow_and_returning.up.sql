@@ -1,0 +1,2 @@
+ALTER TABLE borrows ADD COLUMN IF NOT EXISTS confirmed_by TEXT;
+ALTER TABLE tool_returning ADD COLUMN IF NOT EXISTS confirmed_by TEXT;

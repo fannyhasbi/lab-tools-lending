@@ -194,6 +194,10 @@ func (ms *MessageService) RecommendRegister() error {
 	return nil
 }
 
+func (ms *MessageService) FirstStart() error {
+	return ms.Help()
+}
+
 func (ms *MessageService) Help() error {
 	reqBody := types.MessageRequest{
 		Text: "Halo ini adalah pesan bantuan!",
@@ -1151,16 +1155,16 @@ func (ms *MessageService) toolReturningConfirm() error {
 		return ms.sendMessage(reqBody)
 	}
 
-	message := fmt.Sprintf(`
-		Apakah Anda yakin data ini sudah benar?
-
-		Nama peminjam: %s
+	message := fmt.Sprintf(`Nama peminjam: %s
 		Nama barang: %s
 		Dipinjam sejak: %s
 		Tanggal pengembalian: %s
 		Keterangan:
 		%s
-	`, ms.user.Name, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.ConfirmedAt.Time.Format(types.BasicDateLayout)), helper.TranslateDateToBahasa(time.Now()), ms.messageText)
+	
+	
+		Pastikan data sudah benar kemudian tekan "Lanjutkan".`,
+		ms.user.Name, borrow.Tool.Name, helper.TranslateDateStringToBahasa(borrow.ConfirmedAt.Time.Format(types.BasicDateLayout)), helper.TranslateDateToBahasa(time.Now()), ms.messageText)
 	message = helper.RemoveTab(message)
 
 	errs, _ := errgroup.WithContext(context.Background())
@@ -1530,7 +1534,7 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
-	if err := ms.borrowService.UpdateBorrowConfirmedAt(borrow.ID, time.Now()); err != nil {
+	if err := ms.borrowService.UpdateBorrowConfirm(borrow.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
 		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
 		return ms.Error()
 	}
@@ -1566,7 +1570,7 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
-	if err := ms.borrowService.UpdateBorrowConfirmedAt(borrow.ID, time.Now()); err != nil {
+	if err := ms.borrowService.UpdateBorrowConfirm(borrow.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
 		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
 		return ms.Error()
 	}
@@ -1725,7 +1729,7 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 		return ms.Error()
 	}
 
-	if err := ms.toolReturningService.UpdateToolReturningConfirmedAt(toolReturning.ID, time.Now()); err != nil {
+	if err := ms.toolReturningService.UpdateToolReturningConfirm(toolReturning.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
 		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
 		return ms.Error()
 	}
@@ -1761,7 +1765,7 @@ func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolR
 		return ms.Error()
 	}
 
-	if err := ms.toolReturningService.UpdateToolReturningConfirmedAt(toolReturning.ID, time.Now()); err != nil {
+	if err := ms.toolReturningService.UpdateToolReturningConfirm(toolReturning.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
 		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
 		return ms.Error()
 	}
@@ -2448,4 +2452,44 @@ func (ms *MessageService) managePhotoConfirm() error {
 			},
 		},
 	})
+}
+
+func (ms *MessageService) Report() error {
+	if !ms.isEligibleAdmin() {
+		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
+		return ms.Unknown()
+	}
+
+	reportCommands, ok := helper.GetReportCommandOrder(ms.messageText)
+	if !ok {
+		return ms.Unknown()
+	}
+
+	if reportCommands.Type == types.ReportTypeBorrow {
+		return ms.reportBorrow()
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) reportBorrow() error {
+	borrows, err := ms.borrowService.GetBorrowReport()
+	if err != nil {
+		log.Println("[ERR][reportBorrow][GetBorrowReport]", err)
+		return ms.Error()
+	}
+
+	message := temporaryBuildReportMessage(borrows)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
+}
+
+func temporaryBuildReportMessage(borrows []types.Borrow) string {
+	var message string
+	for _, borrow := range borrows {
+		message = fmt.Sprintf("%s%s - %s, %s (dikonfirmasi oleh: %s)\n", message, helper.TranslateDateToBahasa(borrow.ConfirmedAt.Time), borrow.User.Name, borrow.Tool.Name, borrow.ConfirmedBy.String)
+	}
+	return message
 }

@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -254,6 +255,66 @@ func TestCanGetBorrowByMultipleStatus(t *testing.T) {
 		WillReturnRows(rows)
 
 	result := query.GetByUserIDAndMultipleStatus(userID, status)
+	assert.NoError(t, result.Error)
+	assert.NotEmpty(t, result.Result)
+	assert.NotPanics(t, func() {
+		r := result.Result.([]types.Borrow)
+		assert.Equal(t, tt, r)
+	})
+}
+
+func TestCanGetBorrowReport(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	query := NewBorrowQueryPostgres(db)
+
+	tt := []types.Borrow{
+		{
+			ID:          123,
+			Amount:      1,
+			Duration:    14,
+			Status:      types.GetBorrowStatus("progress"),
+			UserID:      111,
+			ToolID:      222,
+			CreatedAt:   timeNowString(),
+			ConfirmedAt: sql.NullTime{Valid: true, Time: time.Now()},
+			ConfirmedBy: sql.NullString{Valid: true, String: "Test Confirmed By 1"},
+			Tool: types.Tool{
+				Name: "Tool Name Test 1",
+			},
+			User: types.User{
+				Name: "Test Name 1",
+			},
+		},
+		{
+			ID:          124,
+			Amount:      1,
+			Duration:    7,
+			Status:      types.GetBorrowStatus("progress"),
+			UserID:      111,
+			ToolID:      223,
+			CreatedAt:   timeNowString(),
+			ConfirmedAt: sql.NullTime{Valid: true, Time: time.Now()},
+			ConfirmedBy: sql.NullString{Valid: true, String: "Test Confirmed By 2"},
+			Tool: types.Tool{
+				Name: "Tool Name Test 2",
+			},
+			User: types.User{
+				Name: "Test Name 2",
+			},
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "confirmed_by", "tool_name", "user_name"})
+	for _, v := range tt {
+		rows.AddRow(v.ID, v.Amount, v.Duration, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.ConfirmedAt, v.ConfirmedBy, v.Tool.Name, v.User.Name)
+	}
+
+	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status IN .+ ORDER BY b.id ASC").
+		WillReturnRows(rows)
+
+	result := query.GetReport()
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {
