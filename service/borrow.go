@@ -100,8 +100,8 @@ func (bs BorrowService) GetBorrowRequests() ([]types.Borrow, error) {
 	return result.Result.([]types.Borrow), nil
 }
 
-func (bs BorrowService) GetBorrowReport() ([]types.Borrow, error) {
-	result := bs.Query.GetReport()
+func (bs BorrowService) GetBorrowReport(year, month int) ([]types.Borrow, error) {
+	result := bs.Query.GetReport(year, month)
 	if result.Error != nil {
 		return []types.Borrow{}, result.Error
 	}

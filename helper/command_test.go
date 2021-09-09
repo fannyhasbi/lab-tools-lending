@@ -245,19 +245,44 @@ func TestGetCheckCommandOrder(t *testing.T) {
 
 func TestGetReportCommands(t *testing.T) {
 	t.Run("full value", func(t *testing.T) {
-		s := fmt.Sprintf("/%s %s", types.CommandReport, types.ReportTypeBorrow)
+		s := fmt.Sprintf("/%s %s 2021-07", types.CommandReport, types.ReportTypeBorrow)
 		r, ok := GetReportCommandOrder(s)
 
 		expected := types.ReportCommandOrder{
 			Type: types.ReportTypeBorrow,
+			Text: "2021-07",
 		}
 
 		assert.True(t, ok)
 		assert.Equal(t, expected, r)
 	})
 
-	t.Run("length not equal 2", func(t *testing.T) {
+	t.Run("length less than 2", func(t *testing.T) {
 		s := fmt.Sprintf("/%s", types.CommandReport)
+		r, ok := GetReportCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.ReportCommandOrder{}, r)
+	})
+
+	t.Run("length equal 2 with correct type", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s", types.CommandReport, types.ReportTypeBorrow)
+		r, ok := GetReportCommandOrder(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, types.ReportCommandOrder{Type: types.ReportTypeBorrow}, r)
+	})
+
+	t.Run("length equal 2 with incorrect type", func(t *testing.T) {
+		s := fmt.Sprintf("/%s testincorrecttype", types.CommandReport)
+		r, ok := GetReportCommandOrder(s)
+
+		assert.False(t, ok)
+		assert.Equal(t, types.ReportCommandOrder{}, r)
+	})
+
+	t.Run("length exceed 3", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s 2021-07 testexceed", types.CommandReport, types.ReportTypeBorrow)
 		r, ok := GetReportCommandOrder(s)
 
 		assert.False(t, ok)

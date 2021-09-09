@@ -269,6 +269,8 @@ func TestCanGetBorrowReport(t *testing.T) {
 
 	query := NewBorrowQueryPostgres(db)
 
+	year := 2021
+	month := 8
 	tt := []types.Borrow{
 		{
 			ID:          123,
@@ -311,10 +313,11 @@ func TestCanGetBorrowReport(t *testing.T) {
 		rows.AddRow(v.ID, v.Amount, v.Duration, v.Status, v.UserID, v.ToolID, v.CreatedAt, v.ConfirmedAt, v.ConfirmedBy, v.Tool.Name, v.User.Name)
 	}
 
-	mock.ExpectQuery("^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status IN .+ ORDER BY b.id ASC").
+	mock.ExpectQuery(`^SELECT .+ FROM borrows b INNER JOIN tools t .+ INNER JOIN users u .+ WHERE b.status IN .+ AND DATE_PART\('year', b.confirmed_at\) = .+ AND DATE_PART\('month', b.confirmed_at\) = .+ ORDER BY b.id ASC`).
+		WithArgs(types.GetBorrowStatus("progress"), types.GetBorrowStatus("returned"), year, month).
 		WillReturnRows(rows)
 
-	result := query.GetReport()
+	result := query.GetReport(year, month)
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {

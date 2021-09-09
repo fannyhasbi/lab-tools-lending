@@ -1818,16 +1818,14 @@ func (ms *MessageService) manageMenu() error {
 		Text: "Silahkan pilih menu pengelolaan.",
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
-				{
-					{
-						Text:         "Tambah Barang",
-						CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeAdd),
-					},
-					{
-						Text:         "Edit Barang",
-						CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeEdit),
-					},
-				},
+				{{
+					Text:         "Tambah Barang",
+					CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeAdd),
+				}},
+				{{
+					Text:         "Edit Barang",
+					CallbackData: fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeEdit),
+				}},
 			},
 		},
 	})
@@ -2462,34 +2460,88 @@ func (ms *MessageService) Report() error {
 
 	reportCommands, ok := helper.GetReportCommandOrder(ms.messageText)
 	if !ok {
-		return ms.Unknown()
+		return ms.reportMenu()
 	}
 
 	if reportCommands.Type == types.ReportTypeBorrow {
-		return ms.reportBorrow()
+		return ms.reportBorrow(reportCommands)
 	}
 
 	return ms.Unknown()
 }
 
-func (ms *MessageService) reportBorrow() error {
-	borrows, err := ms.borrowService.GetBorrowReport()
+func (ms *MessageService) reportMenu() error {
+	return ms.sendMessage(types.MessageRequest{
+		Text: "Silahkan pilih menu laporan.",
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{{
+					Text:         "Peminjaman",
+					CallbackData: fmt.Sprintf("/%s %s", types.CommandReport, types.ReportTypeBorrow),
+				}},
+				{{
+					Text:         "Pengembalian",
+					CallbackData: fmt.Sprintf("/%s %s", types.CommandReport, types.ReportTypeToolReturning),
+				}},
+			},
+		},
+	})
+}
+
+func (ms *MessageService) reportBorrow(commands types.ReportCommandOrder) error {
+	if len(commands.Text) == 0 {
+		message := fmt.Sprintf(`
+			Laporan Peminjaman Bulanan dapat dilihat dengan perintah
+			"/%s %s [tahun]-[bulan]"
+		
+			Contoh, laporan peminjaman pada bulan Agustus tahun 2021
+			"/%s %s 2021-08"		
+		`, types.CommandReport, types.ReportTypeBorrow, types.CommandReport, types.ReportTypeBorrow)
+		message = helper.RemoveTab(message)
+
+		currentTime := time.Now()
+		currentYear := currentTime.Year()
+		currentMonth := int(currentTime.Month())
+
+		return ms.sendMessage(types.MessageRequest{
+			Text: message,
+			ReplyMarkup: types.InlineKeyboardMarkup{
+				InlineKeyboard: [][]types.InlineKeyboardButton{
+					{{
+						Text:         "Laporan Bulan Ini",
+						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeBorrow, currentYear, currentMonth),
+					}},
+					{{
+						Text:         "Laporan Bulan Kemarin",
+						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeToolReturning, currentYear, currentMonth-1),
+					}},
+				},
+			},
+		})
+	}
+
+	year, month, ok := helper.GetReportTimeFromCommand(commands.Text)
+	if !ok {
+		return ms.sendMessage(types.MessageRequest{
+			Text: helper.RemoveTab(fmt.Sprintf(`
+				Mohon isi tahun dan bulan dengan format dan nilai yang sesuai.
+				Contoh: "/%s %s 2021-8"`,
+				types.CommandReport, types.ReportTypeBorrow)),
+		})
+	}
+
+	borrows, err := ms.borrowService.GetBorrowReport(year, month)
 	if err != nil {
 		log.Println("[ERR][reportBorrow][GetBorrowReport]", err)
 		return ms.Error()
 	}
 
-	message := temporaryBuildReportMessage(borrows)
+	message := "Tidak ada data peminjaman pada waktu yang dimaksud."
+	if len(borrows) > 0 {
+		message = helper.BuildBorrowReportMessage(borrows)
+	}
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,
 	})
-}
-
-func temporaryBuildReportMessage(borrows []types.Borrow) string {
-	var message string
-	for _, borrow := range borrows {
-		message = fmt.Sprintf("%s%s - %s, %s (dikonfirmasi oleh: %s)\n", message, helper.TranslateDateToBahasa(borrow.ConfirmedAt.Time), borrow.User.Name, borrow.Tool.Name, borrow.ConfirmedBy.String)
-	}
-	return message
 }

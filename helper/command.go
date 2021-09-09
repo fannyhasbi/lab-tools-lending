@@ -133,7 +133,7 @@ func GetCheckCommandOrder(s string) (types.CheckCommandOrder, bool) {
 
 func GetReportCommandOrder(s string) (types.ReportCommandOrder, bool) {
 	ss := strings.Split(s, " ")
-	if len(ss) != 2 {
+	if len(ss) < 2 || len(ss) > 3 {
 		return types.ReportCommandOrder{}, false
 	}
 
@@ -143,9 +143,9 @@ func GetReportCommandOrder(s string) (types.ReportCommandOrder, bool) {
 		return types.ReportCommandOrder{}, false
 	}
 
-	result := types.ReportCommandOrder{
-		Type: reportType,
+	if len(ss) == 2 {
+		return types.ReportCommandOrder{Type: reportType}, true
 	}
 
-	return result, true
+	return types.ReportCommandOrder{Type: reportType, Text: ss[2]}, true
 }

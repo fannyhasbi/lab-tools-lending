@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -213,17 +212,18 @@ func (bq BorrowQueryPostgres) GetByUserIDAndMultipleStatus(id int64, statuses []
 	return result
 }
 
-func (bq BorrowQueryPostgres) GetReport() repository.QueryResult {
-	rows, err := bq.DB.Query(fmt.Sprintf(`
-		SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, b.confirmed_by, t.name AS tool_name, u.name AS user_name
+func (bq BorrowQueryPostgres) GetReport(year, month int) repository.QueryResult {
+	rows, err := bq.DB.Query(`SELECT b.id, b.amount, b.duration, b.status, b.user_id, b.tool_id, b.created_at, b.confirmed_at, b.confirmed_by, t.name AS tool_name, u.name AS user_name
 		FROM borrows b
 		INNER JOIN tools t
 			ON t.id = b.tool_id
 		INNER JOIN users u
 			ON u.id = b.user_id
-		WHERE b.status IN ('%s', '%s')
+		WHERE b.status IN ($1, $2)
+			AND DATE_PART('year', b.confirmed_at) = $3
+			AND DATE_PART('month', b.confirmed_at) = $4
 		ORDER BY b.id ASC
-	`, types.GetBorrowStatus("progress"), types.GetBorrowStatus("returned")))
+	`, types.GetBorrowStatus("progress"), types.GetBorrowStatus("returned"), year, month)
 
 	borrows := []types.Borrow{}
 	result := repository.QueryResult{}

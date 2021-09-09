@@ -37,6 +37,7 @@ type (
 
 	ReportCommandOrder struct {
 		Type ReportType
+		Text string
 	}
 )
 
