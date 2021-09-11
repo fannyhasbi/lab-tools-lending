@@ -2465,6 +2465,8 @@ func (ms *MessageService) Report() error {
 
 	if reportCommands.Type == types.ReportTypeBorrow {
 		return ms.reportBorrow(reportCommands)
+	} else if reportCommands.Type == types.ReportTypeToolReturning {
+		return ms.reportToolReturning(reportCommands)
 	}
 
 	return ms.Unknown()
@@ -2495,7 +2497,7 @@ func (ms *MessageService) reportBorrow(commands types.ReportCommandOrder) error 
 			"/%s %s [tahun]-[bulan]"
 		
 			Contoh, laporan peminjaman pada bulan Agustus tahun 2021
-			"/%s %s 2021-08"		
+			"/%s %s 2021-8"		
 		`, types.CommandReport, types.ReportTypeBorrow, types.CommandReport, types.ReportTypeBorrow)
 		message = helper.RemoveTab(message)
 
@@ -2513,7 +2515,7 @@ func (ms *MessageService) reportBorrow(commands types.ReportCommandOrder) error 
 					}},
 					{{
 						Text:         "Laporan Bulan Kemarin",
-						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeToolReturning, currentYear, currentMonth-1),
+						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeBorrow, currentYear, currentMonth-1),
 					}},
 				},
 			},
@@ -2538,7 +2540,67 @@ func (ms *MessageService) reportBorrow(commands types.ReportCommandOrder) error 
 
 	message := "Tidak ada data peminjaman pada waktu yang dimaksud."
 	if len(borrows) > 0 {
-		message = helper.BuildBorrowReportMessage(borrows)
+		message = fmt.Sprintf("Laporan Peminjaman Bulan %s Tahun %d\n\n", helper.MonthNameSwitcher(month), year)
+		message += helper.BuildBorrowReportMessage(borrows)
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
+}
+
+func (ms *MessageService) reportToolReturning(commands types.ReportCommandOrder) error {
+	if len(commands.Text) == 0 {
+		message := fmt.Sprintf(`
+			Laporan Pengembalian Bulanan dapat dilihat dengan perintah
+			"/%s %s [tahun]-[bulan]"
+
+			Contoh, laporan pengembalian pada bulan Agustus tahun 2021
+			"/%s %s 2021-8"
+		`, types.CommandReport, types.ReportTypeToolReturning, types.CommandReport, types.ReportTypeToolReturning)
+		message = helper.RemoveTab(message)
+
+		currentTime := time.Now()
+		currentYear := currentTime.Year()
+		currentMonth := int(currentTime.Month())
+
+		return ms.sendMessage(types.MessageRequest{
+			Text: message,
+			ReplyMarkup: types.InlineKeyboardMarkup{
+				InlineKeyboard: [][]types.InlineKeyboardButton{
+					{{
+						Text:         "Laporan Bulan Ini",
+						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeToolReturning, currentYear, currentMonth),
+					}},
+					{{
+						Text:         "Laporan Bulan Kemarin",
+						CallbackData: fmt.Sprintf("/%s %s %d-%d", types.CommandReport, types.ReportTypeToolReturning, currentYear, currentMonth-1),
+					}},
+				},
+			},
+		})
+	}
+
+	year, month, ok := helper.GetReportTimeFromCommand(commands.Text)
+	if !ok {
+		return ms.sendMessage(types.MessageRequest{
+			Text: helper.RemoveTab(fmt.Sprintf(`
+				Mohon isi tahun dan bulan dengan format dan nilai yang sesuai.
+				Contoh: "/%s %s 2021-8"`,
+				types.CommandReport, types.ReportTypeBorrow)),
+		})
+	}
+
+	toolReturnings, err := ms.toolReturningService.GetToolReturningReport(year, month)
+	if err != nil {
+		log.Println("[ERR][reportToolReturning][GetToolReturningReport]", err)
+		return ms.Error()
+	}
+
+	message := "Tidak ada data pengembalian pada waktu yang dimaksud."
+	if len(toolReturnings) > 0 {
+		message = fmt.Sprintf("Laporan Pengembalian Bulan %s Tahun %d\n\n", helper.MonthNameSwitcher(month), year)
+		message += helper.BuildToolReturningReportMessage(toolReturnings)
 	}
 
 	return ms.sendMessage(types.MessageRequest{

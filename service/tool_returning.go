@@ -77,3 +77,12 @@ func (trs ToolReturningService) GetToolReturningRequests() ([]types.ToolReturnin
 
 	return result.Result.([]types.ToolReturning), nil
 }
+
+func (trs ToolReturningService) GetToolReturningReport(year, month int) ([]types.ToolReturning, error) {
+	result := trs.Query.GetReport(year, month)
+	if result.Error != nil {
+		return []types.ToolReturning{}, result.Error
+	}
+
+	return result.Result.([]types.ToolReturning), nil
+}
