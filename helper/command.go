@@ -95,7 +95,7 @@ func GetManageCommandOrder(s string) (types.ManageCommandOrder, bool) {
 	}
 
 	if len(ss) == 2 {
-		if manageType == types.ManageTypeAdd {
+		if manageType == types.ManageTypeAdd || manageType == types.ManageTypeEdit {
 			return types.ManageCommandOrder{Type: manageType}, true
 		}
 		return types.ManageCommandOrder{}, false

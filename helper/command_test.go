@@ -160,7 +160,7 @@ func TestGetManageCommands(t *testing.T) {
 		assert.Equal(t, types.ManageCommandOrder{}, r)
 	})
 
-	t.Run("length equal 2 with correct type", func(t *testing.T) {
+	t.Run("length equal 2 with type add", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeAdd)
 		r, ok := GetManageCommandOrder(s)
 
@@ -171,8 +171,16 @@ func TestGetManageCommands(t *testing.T) {
 		assert.Equal(t, expected, r)
 	})
 
-	t.Run("length equal 2 with incorrect type", func(t *testing.T) {
+	t.Run("length equal 2 with type edit", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeEdit)
+		r, ok := GetManageCommandOrder(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, types.ManageCommandOrder{Type: types.ManageTypeEdit}, r)
+	})
+
+	t.Run("length equal 2 with type photo", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypePhoto)
 		r, ok := GetManageCommandOrder(s)
 
 		assert.False(t, ok)

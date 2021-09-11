@@ -1801,6 +1801,14 @@ func (ms *MessageService) Manage() error {
 		return ms.manageMenu()
 	}
 
+	if manageCommands.Type == types.ManageTypeEdit && manageCommands.ID == 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: fmt.Sprintf(
+				"Untuk melakukan pengubahan data dapat dengan mengetikkan perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+				types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
+		})
+	}
+
 	switch manageCommands.Type {
 	case types.ManageTypeAdd:
 		return ms.manageAddInit()
