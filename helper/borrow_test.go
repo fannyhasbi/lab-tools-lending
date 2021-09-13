@@ -216,3 +216,48 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 		assert.Equal(t, expected, r)
 	})
 }
+
+func TestCanBuildBorrowReportMessage(t *testing.T) {
+	borrows := []types.Borrow{
+		{
+			ID: 1,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now(),
+			},
+			ConfirmedBy: sql.NullString{
+				Valid:  true,
+				String: "Test confirmed by 1",
+			},
+			User: types.User{
+				Name: "Test User 1",
+			},
+			Tool: types.Tool{
+				Name: "Test Tool 1",
+			},
+		},
+		{
+			ID: 2,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now().Add(time.Hour * 24 * 2),
+			},
+			ConfirmedBy: sql.NullString{
+				Valid:  true,
+				String: "Test confirmed by 2",
+			},
+			User: types.User{
+				Name: "Test User 2",
+			},
+			Tool: types.Tool{
+				Name: "Test Tool 2",
+			},
+		},
+	}
+
+	r := BuildBorrowReportMessage(borrows)
+
+	// todo: make a better assertion
+	assert.Contains(t, r, borrows[0].User.Name)
+	assert.Contains(t, r, borrows[1].User.Name)
+}

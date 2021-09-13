@@ -118,3 +118,43 @@ func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStat
 	}
 	return result
 }
+
+func (trq ToolReturningQueryPostgres) GetReport(year, month int) repository.QueryResult {
+	rows, err := trq.DB.Query(`SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.confirmed_at, tr.confirmed_by, t.name AS tool_name, u.name AS user_name
+		FROM tool_returning tr
+		INNER JOIN tools t
+			ON t.id = tr.tool_id
+		INNER JOIN users u
+			ON u.id = tr.user_id
+		WHERE tr.status = $1
+			AND DATE_PART('year', tr.confirmed_at) = $2
+			AND DATE_PART('month', tr.confirmed_at) = $3
+		ORDER BY tr.id ASC
+	`, types.GetToolReturningStatus("complete"), year, month)
+
+	rets := []types.ToolReturning{}
+	result := repository.QueryResult{}
+
+	if err != nil {
+		result.Error = err
+	} else {
+		for rows.Next() {
+			temp := types.ToolReturning{}
+			rows.Scan(
+				&temp.ID,
+				&temp.UserID,
+				&temp.ToolID,
+				&temp.Status,
+				&temp.CreatedAt,
+				&temp.ConfirmedAt,
+				&temp.ConfirmedBy,
+				&temp.Tool.Name,
+				&temp.User.Name,
+			)
+
+			rets = append(rets, temp)
+		}
+		result.Result = rets
+	}
+	return result
+}

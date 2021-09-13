@@ -61,20 +61,21 @@ func TestCanUpdateBorrowStatus(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestCanUpdateBorrowConfirmedAt(t *testing.T) {
+func TestCanUpdateBorrowConfirm(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
 	var id int64 = 123
-	var confirmedAt = time.Now()
+	confirmedAt := time.Now()
+	confirmedBy := "Test Confirmed By"
 
 	repository := NewBorrowRepositoryPostgres(db)
 
-	mock.ExpectExec("^UPDATE borrows SET confirmed_at = .+ WHERE id = .+").
-		WithArgs(confirmedAt, id).
+	mock.ExpectExec("^UPDATE borrows SET confirmed_at = .+ confirmed_by = .+ WHERE id = .+").
+		WithArgs(confirmedAt, confirmedBy, id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := repository.UpdateConfirmedAt(id, confirmedAt)
+	err := repository.UpdateConfirm(id, confirmedAt, confirmedBy)
 	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)

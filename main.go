@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/handler"
@@ -19,6 +20,13 @@ func main() {
 	e := echo.New()
 
 	e.Use(middleware.Logger())
+
+	if os.Getenv("ENVIRONMENT") == "development" {
+		e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+			log.Println("REQUEST", string(reqBody))
+			log.Println("RESPONSE", string(resBody))
+		}))
+	}
 
 	e.POST("/", handler.WebhookHandler)
 

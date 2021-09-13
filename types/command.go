@@ -1,6 +1,7 @@
 package types
 
 const (
+	CommandStart    = "start" // automatically sent when user add the bot for the first time
 	CommandRegister = "registrasi"
 	CommandCheck    = "cek"
 	CommandBorrow   = "pinjam"
@@ -10,11 +11,13 @@ const (
 	// admin stuffs
 	CommandRespond = "tanggapi"
 	CommandManage  = "kelola"
+	CommandReport  = "laporan"
 )
 
 type (
 	RespondType string
 	ManageType  string
+	ReportType  string
 
 	CheckCommandOrder struct {
 		ID   int64
@@ -31,6 +34,11 @@ type (
 		Type ManageType
 		ID   int64
 	}
+
+	ReportCommandOrder struct {
+		Type ReportType
+		Text string
+	}
 )
 
 var (
@@ -42,4 +50,7 @@ var (
 	ManageTypeAdd   ManageType = "tambah"
 	ManageTypeEdit  ManageType = "edit"
 	ManageTypePhoto ManageType = "foto"
+
+	ReportTypeBorrow        ReportType = "pinjam"
+	ReportTypeToolReturning ReportType = "kembali"
 )

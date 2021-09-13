@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/config"
@@ -41,8 +42,13 @@ func (trs ToolReturningService) UpdateToolReturningStatus(id int64, status types
 	return trs.Repository.UpdateStatus(id, status)
 }
 
-func (trs ToolReturningService) UpdateToolReturningConfirmedAt(id int64, datetime time.Time) error {
-	return trs.Repository.UpdateConfirmedAt(id, datetime)
+func (trs ToolReturningService) UpdateToolReturningConfirm(id int64, datetime time.Time, firstName, lastName string) error {
+	confirmedBy := firstName
+	if len(lastName) > 0 {
+		confirmedBy = fmt.Sprintf("%s %s", firstName, lastName)
+	}
+
+	return trs.Repository.UpdateConfirm(id, datetime, confirmedBy)
 }
 
 func (trs ToolReturningService) FindToolReturningByID(id int64) (types.ToolReturning, error) {
@@ -65,6 +71,15 @@ func (trs ToolReturningService) FindOnProgressByUserID(id int64) (types.ToolRetu
 
 func (trs ToolReturningService) GetToolReturningRequests() ([]types.ToolReturning, error) {
 	result := trs.Query.GetByStatus(types.GetToolReturningStatus("request"))
+	if result.Error != nil {
+		return []types.ToolReturning{}, result.Error
+	}
+
+	return result.Result.([]types.ToolReturning), nil
+}
+
+func (trs ToolReturningService) GetToolReturningReport(year, month int) ([]types.ToolReturning, error) {
+	result := trs.Query.GetReport(year, month)
 	if result.Error != nil {
 		return []types.ToolReturning{}, result.Error
 	}

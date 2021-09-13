@@ -60,47 +60,47 @@ func TestTranslateDateStringToBahasa(t *testing.T) {
 
 func TestMonthNameSwitcher(t *testing.T) {
 	t.Run("januari", func(t *testing.T) {
-		assert.Equal(t, "Januari", monthNameSwitcher(1))
+		assert.Equal(t, "Januari", MonthNameSwitcher(1))
 	})
 	t.Run("februari", func(t *testing.T) {
-		assert.Equal(t, "Februari", monthNameSwitcher(2))
+		assert.Equal(t, "Februari", MonthNameSwitcher(2))
 	})
 	t.Run("Maret", func(t *testing.T) {
-		assert.Equal(t, "Maret", monthNameSwitcher(3))
+		assert.Equal(t, "Maret", MonthNameSwitcher(3))
 	})
 	t.Run("April", func(t *testing.T) {
-		assert.Equal(t, "April", monthNameSwitcher(4))
+		assert.Equal(t, "April", MonthNameSwitcher(4))
 	})
 	t.Run("Mei", func(t *testing.T) {
-		assert.Equal(t, "Mei", monthNameSwitcher(5))
+		assert.Equal(t, "Mei", MonthNameSwitcher(5))
 	})
 	t.Run("Juni", func(t *testing.T) {
-		assert.Equal(t, "Juni", monthNameSwitcher(6))
+		assert.Equal(t, "Juni", MonthNameSwitcher(6))
 	})
 	t.Run("Juli", func(t *testing.T) {
-		assert.Equal(t, "Juli", monthNameSwitcher(7))
+		assert.Equal(t, "Juli", MonthNameSwitcher(7))
 	})
 	t.Run("Agustus", func(t *testing.T) {
-		assert.Equal(t, "Agustus", monthNameSwitcher(8))
+		assert.Equal(t, "Agustus", MonthNameSwitcher(8))
 	})
 	t.Run("September", func(t *testing.T) {
-		assert.Equal(t, "September", monthNameSwitcher(9))
+		assert.Equal(t, "September", MonthNameSwitcher(9))
 	})
 	t.Run("Oktober", func(t *testing.T) {
-		assert.Equal(t, "Oktober", monthNameSwitcher(10))
+		assert.Equal(t, "Oktober", MonthNameSwitcher(10))
 	})
 	t.Run("November", func(t *testing.T) {
-		assert.Equal(t, "November", monthNameSwitcher(11))
+		assert.Equal(t, "November", MonthNameSwitcher(11))
 	})
 	t.Run("Desember", func(t *testing.T) {
-		assert.Equal(t, "Desember", monthNameSwitcher(12))
+		assert.Equal(t, "Desember", MonthNameSwitcher(12))
 	})
 
 	t.Run("empty string", func(t *testing.T) {
 		monthInt := 999
 		expected := ""
 
-		r := monthNameSwitcher(monthInt)
+		r := MonthNameSwitcher(monthInt)
 
 		assert.Equal(t, expected, r)
 	})

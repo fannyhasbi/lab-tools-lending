@@ -48,7 +48,7 @@ func (trr *ToolReturningRepositoryPostgres) UpdateStatus(id int64, status types.
 	return err
 }
 
-func (trr *ToolReturningRepositoryPostgres) UpdateConfirmedAt(id int64, datetime time.Time) error {
-	_, err := trr.DB.Exec(`UPDATE tool_returning SET confirmed_at = $1 WHERE id = $2`, datetime, id)
+func (trr *ToolReturningRepositoryPostgres) UpdateConfirm(id int64, datetime time.Time, confirmedBy string) error {
+	_, err := trr.DB.Exec(`UPDATE tool_returning SET confirmed_at = $1, confirmed_by = $2 WHERE id = $3`, datetime, confirmedBy, id)
 	return err
 }

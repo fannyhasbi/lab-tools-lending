@@ -12,7 +12,7 @@ func GetDateFromTimestamp(s string) string {
 }
 
 func TranslateDateToBahasa(date time.Time) string {
-	month := monthNameSwitcher(int(date.Month()))
+	month := MonthNameSwitcher(int(date.Month()))
 	return fmt.Sprintf("%d %s %d", date.Day(), month, date.Year())
 }
 
@@ -32,10 +32,10 @@ func TranslateDateStringToBahasa(date string) string {
 	year, _ := strconv.Atoi(dateStr[0])
 	month, _ := strconv.Atoi(dateStr[1])
 	day, _ := strconv.Atoi(dateStr[2])
-	return fmt.Sprintf("%d %s %d", day, monthNameSwitcher(month), year)
+	return fmt.Sprintf("%d %s %d", day, MonthNameSwitcher(month), year)
 }
 
-func monthNameSwitcher(month int) (m string) {
+func MonthNameSwitcher(month int) (m string) {
 	switch month {
 	case 1:
 		m = "Januari"

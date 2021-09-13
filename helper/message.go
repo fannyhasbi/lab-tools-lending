@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -32,4 +33,27 @@ func BuildToolListMessage(l []types.Tool) string {
 		m += "\n"
 	}
 	return m
+}
+
+func GetReportTimeFromCommand(yearmonth string) (int, int, bool) {
+	splittedTime := strings.Split(yearmonth, "-")
+	if len(splittedTime) < 2 {
+		return 0, 0, false
+	}
+
+	year, err := strconv.Atoi(splittedTime[0])
+	if err != nil {
+		return 0, 0, false
+	}
+
+	month, err := strconv.Atoi(splittedTime[1])
+	if err != nil {
+		return 0, 0, false
+	}
+
+	if month < 1 || month > 12 {
+		return 0, 0, false
+	}
+
+	return year, month, true
 }

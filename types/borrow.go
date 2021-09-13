@@ -14,6 +14,7 @@ type (
 		ToolID      int64          `json:"tool_id"`
 		CreatedAt   string         `json:"created_at"`
 		ConfirmedAt sql.NullTime   `json:"confirmed_at"`
+		ConfirmedBy sql.NullString `json:"confirmed_by"`
 		Reason      sql.NullString `json:"reason"`
 		Tool        Tool           `json:"tool"`
 		User        User           `json:"user"`

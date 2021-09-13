@@ -105,3 +105,46 @@ func TestCanBuildToolListMessage(t *testing.T) {
 
 	assert.Equal(t, expected, r)
 }
+
+func TestGetReportTimeFromCommand(t *testing.T) {
+	t.Run("correct", func(t *testing.T) {
+		s := "2021-8"
+		y, m, ok := GetReportTimeFromCommand(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, 2021, y)
+		assert.Equal(t, 8, m)
+	})
+	t.Run("zero filled", func(t *testing.T) {
+		s := "00002021-00008"
+		y, m, ok := GetReportTimeFromCommand(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, 2021, y)
+		assert.Equal(t, 8, m)
+	})
+	t.Run("length exceed 2", func(t *testing.T) {
+		s := "2021-08-30"
+		y, m, ok := GetReportTimeFromCommand(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, 2021, y)
+		assert.Equal(t, 8, m)
+	})
+	t.Run("just year", func(t *testing.T) {
+		s := "2021"
+		y, m, ok := GetReportTimeFromCommand(s)
+
+		assert.False(t, ok)
+		assert.Zero(t, y)
+		assert.Zero(t, m)
+	})
+	t.Run("random words", func(t *testing.T) {
+		s := "hello-world"
+		y, m, ok := GetReportTimeFromCommand(s)
+
+		assert.False(t, ok)
+		assert.Zero(t, y)
+		assert.Zero(t, m)
+	})
+}
