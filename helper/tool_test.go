@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -74,76 +76,20 @@ func TestGetToolFromChatSessionDetail_Add(t *testing.T) {
 
 func TestGetToolFromChatSessionDetail_Edit(t *testing.T) {
 	tool := types.Tool{
-		ID:                    111,
-		Name:                  "Test Name Edit",
-		Brand:                 "Test Brand Edit",
-		ProductType:           "TestPr0duc7Typ3Edit",
-		Weight:                333,
-		Stock:                 32,
-		AdditionalInformation: "test additional info edit",
+		ID: 111,
 	}
 
-	t.Run("full tool session", func(t *testing.T) {
-		tools := []types.ChatSessionDetail{
+	t.Run("full session", func(t *testing.T) {
+		sessions := []types.ChatSessionDetail{
 			{
 				Topic: types.Topic["manage_edit_init"],
 				Data:  NewSessionDataGenerator().ManageEditInit(tool.ID),
 			},
-			{
-				Topic: types.Topic["manage_edit_name"],
-				Data:  NewSessionDataGenerator().ManageEditName(tool.Name),
-			},
-			{
-				Topic: types.Topic["manage_edit_brand"],
-				Data:  NewSessionDataGenerator().ManageEditBrand(tool.Brand),
-			},
-			{
-				Topic: types.Topic["manage_edit_type"],
-				Data:  NewSessionDataGenerator().ManageEditProductType(tool.ProductType),
-			},
-			{
-				Topic: types.Topic["manage_edit_weight"],
-				Data:  NewSessionDataGenerator().ManageEditWeight(tool.Weight),
-			},
-			{
-				Topic: types.Topic["manage_edit_stock"],
-				Data:  NewSessionDataGenerator().ManageEditStock(tool.Stock),
-			},
-			{
-				Topic: types.Topic["manage_edit_info"],
-				Data:  NewSessionDataGenerator().ManageEditInfo(tool.AdditionalInformation),
-			},
 		}
 
-		r := GetToolFromChatSessionDetail(types.ManageTypeEdit, tools)
+		r := GetToolFromChatSessionDetail(types.ManageTypeEdit, sessions)
 
 		assert.Equal(t, tool, r)
-	})
-
-	t.Run("not full session", func(t *testing.T) {
-		tools := []types.ChatSessionDetail{
-			{
-				Topic: types.Topic["manage_edit_init"],
-				Data:  NewSessionDataGenerator().ManageEditInit(tool.ID),
-			},
-			{
-				Topic: types.Topic["manage_edit_name"],
-				Data:  NewSessionDataGenerator().ManageAddName(tool.Name),
-			},
-			{
-				Topic: types.Topic["manage_edit_brand"],
-				Data:  NewSessionDataGenerator().ManageAddBrand(tool.Brand),
-			},
-		}
-
-		r := GetToolFromChatSessionDetail(types.ManageTypeEdit, tools)
-		expected := types.Tool{
-			ID:    tool.ID,
-			Name:  tool.Name,
-			Brand: tool.Brand,
-		}
-
-		assert.Equal(t, expected, r)
 	})
 }
 
@@ -262,5 +208,134 @@ func TestCanPickPhoto(t *testing.T) {
 
 		r := PickPhoto(photos)
 		assert.Equal(t, photos[0], r)
+	})
+}
+
+func TestIsToolFieldExists(t *testing.T) {
+	t.Run("correct", func(t *testing.T) {
+		f := "berat"
+		r := IsToolFieldExists(f)
+		assert.True(t, r)
+	})
+	t.Run("incorrect", func(t *testing.T) {
+		f := "testincorrectfield"
+		r := IsToolFieldExists(f)
+		assert.False(t, r)
+	})
+}
+
+func TestGetToolValueByField(t *testing.T) {
+	tool := types.Tool{
+		Name:                  "Test Tool Name",
+		Brand:                 "Test Tool Brand",
+		ProductType:           "Test product",
+		Weight:                123,
+		Stock:                 321,
+		AdditionalInformation: "test additional info",
+	}
+
+	t.Run("name", func(t *testing.T) {
+		r := GetToolValueByField(tool, "nama")
+		assert.Equal(t, tool.Name, r)
+	})
+	t.Run("brand", func(t *testing.T) {
+		r := GetToolValueByField(tool, "brand")
+		assert.Equal(t, tool.Brand, r)
+	})
+	t.Run("type", func(t *testing.T) {
+		r := GetToolValueByField(tool, "tipe")
+		assert.Equal(t, tool.ProductType, r)
+	})
+	t.Run("weight", func(t *testing.T) {
+		r := GetToolValueByField(tool, "berat")
+		assert.Equal(t, fmt.Sprintf("%.2f", tool.Weight), r)
+	})
+	t.Run("stock", func(t *testing.T) {
+		r := GetToolValueByField(tool, "stok")
+		assert.Equal(t, strconv.FormatInt(tool.Stock, 10), r)
+	})
+	t.Run("additional info", func(t *testing.T) {
+		r := GetToolValueByField(tool, "keterangan")
+		assert.Equal(t, tool.AdditionalInformation, r)
+	})
+	t.Run("no case", func(t *testing.T) {
+		r := GetToolValueByField(tool, "testnocase")
+		assert.Equal(t, "", r)
+	})
+}
+
+func TestCanChangeToolValueByField(t *testing.T) {
+	tool := types.Tool{
+		Name:                  "Test Tool Name",
+		Brand:                 "Test Brand",
+		ProductType:           "Test product type",
+		Weight:                123,
+		Stock:                 321,
+		AdditionalInformation: "test additional info",
+	}
+
+	t.Run("name", func(t *testing.T) {
+		newTool := tool
+		newTool.Name = "New Test Tool Name"
+		r, err := ChangeToolValueByField(tool, "nama", newTool.Name)
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("brand", func(t *testing.T) {
+		newTool := tool
+		newTool.Brand = "New Test Brand"
+		r, err := ChangeToolValueByField(tool, "brand", newTool.Brand)
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("type", func(t *testing.T) {
+		newTool := tool
+		newTool.ProductType = "New test product type"
+		r, err := ChangeToolValueByField(tool, "tipe", newTool.ProductType)
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("weight", func(t *testing.T) {
+		newTool := tool
+		newTool.Weight = 999
+		r, err := ChangeToolValueByField(tool, "berat", fmt.Sprintf("%f", newTool.Weight))
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("stock", func(t *testing.T) {
+		newTool := tool
+		newTool.Stock = 333
+		r, err := ChangeToolValueByField(tool, "stok", strconv.FormatInt(newTool.Stock, 10))
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("additional info", func(t *testing.T) {
+		newTool := tool
+		newTool.AdditionalInformation = "new test additional info"
+		r, err := ChangeToolValueByField(tool, "keterangan", newTool.AdditionalInformation)
+		assert.NoError(t, err)
+		assert.Equal(t, newTool, r)
+	})
+	t.Run("weight negative", func(t *testing.T) {
+		weight := -100
+		r, err := ChangeToolValueByField(tool, "berat", strconv.Itoa(weight))
+		assert.Error(t, err)
+		assert.Equal(t, tool, r)
+	})
+	t.Run("weight is not a number", func(t *testing.T) {
+		r, err := ChangeToolValueByField(tool, "berat", "testnotanumber")
+		assert.Error(t, err)
+		assert.Equal(t, tool, r)
+	})
+	t.Run("Stock negative", func(t *testing.T) {
+		stock := -90
+		r, err := ChangeToolValueByField(tool, "stok", strconv.Itoa(stock))
+		assert.Error(t, err)
+		assert.Equal(t, tool, r)
+	})
+	t.Run("stock is not a number", func(t *testing.T) {
+		r, err := ChangeToolValueByField(tool, "stok", "testnotanumber")
+		assert.Error(t, err)
+		assert.Equal(t, tool, r)
 	})
 }

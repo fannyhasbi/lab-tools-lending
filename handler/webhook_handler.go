@@ -165,7 +165,7 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 		return ms.RespondToolReturning()
 	case types.Topic["manage_add_init"], types.Topic["manage_add_name"], types.Topic["manage_add_brand"], types.Topic["manage_add_type"], types.Topic["manage_add_weight"], types.Topic["manage_add_stock"], types.Topic["manage_add_info"], types.Topic["manage_add_photo"], types.Topic["manage_add_confirm"]:
 		return ms.ManageAdd()
-	case types.Topic["manage_edit_init"], types.Topic["manage_edit_name"], types.Topic["manage_edit_brand"], types.Topic["manage_edit_type"], types.Topic["manage_edit_weight"], types.Topic["manage_edit_stock"], types.Topic["manage_edit_info"], types.Topic["manage_add_confirm"]:
+	case types.Topic["manage_edit_init"], types.Topic["manage_edit_field"], types.Topic["manage_edit_complete"]:
 		return ms.ManageEdit()
 	case types.Topic["manage_photo_init"], types.Topic["manage_photo_upload"], types.Topic["manage_photo_confirm"]:
 		return ms.ManagePhoto()
