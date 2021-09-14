@@ -1265,8 +1265,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 	}
 
 	toolReturning := types.ToolReturning{
-		UserID:         ms.user.ID,
-		ToolID:         borrow.ToolID,
+		BorrowID:       borrow.ID,
 		Status:         types.GetToolReturningStatus("request"),
 		AdditionalInfo: additionalInfo,
 	}
@@ -1303,7 +1302,7 @@ func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolRetur
 	message := fmt.Sprintf(`Seseorang baru saja mengajukan pengembalian barang
 	
 	Nama Pemohon: %s
-	Barang: %s`, toolReturning.User.Name, toolReturning.Tool.Name)
+	Barang: %s`, toolReturning.Borrow.User.Name, toolReturning.Borrow.Tool.Name)
 
 	return ms.sendMessage(types.MessageRequest{
 		ChatID: types.AdminGroupIDs[0],
@@ -1685,12 +1684,15 @@ func (ms *MessageService) respondToolReturningComplete() error {
 func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolReturning) error {
 	message := fmt.Sprintf(`
 		ID: %d
+		Diajukan pada: %s
 		Nama pemohon: %s (%s)
 		Barang: %s
-		Diajukan pada: %s
+		Dipinjam sejak: %s
+		Durasi peminjaman: %d hari
+
 		Keterangan:
 		%s
-	`, toolReturning.ID, toolReturning.User.Name, toolReturning.User.NIM, toolReturning.Tool.Name, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.AdditionalInfo)
+	`, toolReturning.ID, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM, toolReturning.Borrow.Tool.Name, helper.TranslateDateToBahasa(toolReturning.Borrow.ConfirmedAt.Time), toolReturning.Borrow.Duration, toolReturning.AdditionalInfo)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1713,7 +1715,7 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 }
 
 func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolReturning) error {
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(toolReturning.UserID)
+	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(toolReturning.Borrow.UserID)
 	if err != nil {
 		log.Println("[ERR][respondToolReturningPositive][FindCurrentlyBeingBorrowedByUserID]", err)
 		return ms.Error()
@@ -1734,7 +1736,7 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 		return ms.Error()
 	}
 
-	if err := ms.toolService.IncreaseStock(toolReturning.ToolID); err != nil {
+	if err := ms.toolService.IncreaseStock(toolReturning.Borrow.ToolID); err != nil {
 		log.Println("[ERR][respondToolReturningPositive][IncreaseStock]", err)
 		return ms.Error()
 	}
@@ -1746,8 +1748,8 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 	}
 
 	reqBody := types.MessageRequest{
-		ChatID: toolReturning.UserID,
-		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Tool.Name, ms.messageText),
+		ChatID: toolReturning.Borrow.UserID,
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah disetujui oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Borrow.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
@@ -1777,8 +1779,8 @@ func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolR
 	}
 
 	reqBody := types.MessageRequest{
-		ChatID: toolReturning.UserID,
-		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah ditolak oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Tool.Name, ms.messageText),
+		ChatID: toolReturning.Borrow.UserID,
+		Text:   fmt.Sprintf("Pengajuan pengembalian \"%s\" telah ditolak oleh pengurus.\n\nKeterangan:\n%s", toolReturning.Borrow.Tool.Name, ms.messageText),
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)

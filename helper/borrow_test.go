@@ -132,20 +132,24 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 	rets := []types.ToolReturning{
 		{
 			ID: 123,
-			Tool: types.Tool{
-				Name: "Test Tool Name 1",
-			},
-			User: types.User{
-				Name: "Test Name 1",
+			Borrow: types.Borrow{
+				Tool: types.Tool{
+					Name: "Test Tool Name 1",
+				},
+				User: types.User{
+					Name: "Test Name 1",
+				},
 			},
 		},
 		{
 			ID: 321,
-			Tool: types.Tool{
-				Name: "Test Tool Name 2",
-			},
-			User: types.User{
-				Name: "Test Name 2",
+			Borrow: types.Borrow{
+				Tool: types.Tool{
+					Name: "Test Tool Name 2",
+				},
+				User: types.User{
+					Name: "Test Name 2",
+				},
 			},
 		},
 	}
@@ -153,8 +157,8 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 	r := BuildToolReturningRequestListMessage(rets)
 
 	expected := fmt.Sprintf("[%d] %s - %s\n[%d] %s - %s\n",
-		rets[0].ID, rets[0].User.Name, rets[0].Tool.Name,
-		rets[1].ID, rets[1].User.Name, rets[1].Tool.Name)
+		rets[0].ID, rets[0].Borrow.User.Name, rets[0].Borrow.Tool.Name,
+		rets[1].ID, rets[1].Borrow.User.Name, rets[1].Borrow.Tool.Name)
 
 	assert.Equal(t, expected, r)
 }

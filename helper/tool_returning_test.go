@@ -21,11 +21,13 @@ func TestCanBuildToolReturningReportMessage(t *testing.T) {
 				Valid:  true,
 				String: "Test confirmed by 1",
 			},
-			User: types.User{
-				Name: "Test User 1",
-			},
-			Tool: types.Tool{
-				Name: "Test Tool 1",
+			Borrow: types.Borrow{
+				User: types.User{
+					Name: "Test User 1",
+				},
+				Tool: types.Tool{
+					Name: "Test Tool 1",
+				},
 			},
 		},
 		{
@@ -38,11 +40,13 @@ func TestCanBuildToolReturningReportMessage(t *testing.T) {
 				Valid:  true,
 				String: "Test confirmed by 2",
 			},
-			User: types.User{
-				Name: "Test User 2",
-			},
-			Tool: types.Tool{
-				Name: "Test Tool 2",
+			Borrow: types.Borrow{
+				User: types.User{
+					Name: "Test User 2",
+				},
+				Tool: types.Tool{
+					Name: "Test Tool 2",
+				},
 			},
 		},
 	}
@@ -50,6 +54,6 @@ func TestCanBuildToolReturningReportMessage(t *testing.T) {
 	r := BuildToolReturningReportMessage(rets)
 
 	// todo: make a better assertion
-	assert.Contains(t, r, rets[0].User.Name)
-	assert.Contains(t, r, rets[1].User.Name)
+	assert.Contains(t, r, rets[0].Borrow.User.Name)
+	assert.Contains(t, r, rets[1].Borrow.User.Name)
 }

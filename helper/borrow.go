@@ -47,7 +47,7 @@ func BuildBorrowRequestListMessage(borrows []types.Borrow) string {
 func BuildToolReturningRequestListMessage(rets []types.ToolReturning) string {
 	var message string
 	for _, ret := range rets {
-		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.User.Name, ret.Tool.Name)
+		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.Borrow.User.Name, ret.Borrow.Tool.Name)
 	}
 	return message
 }

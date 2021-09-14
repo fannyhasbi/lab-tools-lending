@@ -9,12 +9,10 @@ type (
 		CreatedAt      string              `json:"created_at"`
 		ConfirmedAt    sql.NullTime        `json:"confirmed_at"`
 		ConfirmedBy    sql.NullString      `json:"confirmed_by"`
-		UserID         int64               `json:"user_id"`
-		ToolID         int64               `json:"tool_id"`
+		BorrowID       int64               `json:"borrow_id"`
 		Status         ToolReturningStatus `json:"status"`
 		AdditionalInfo string              `json:"additional_info"`
-		Tool           Tool                `json:"tool"`
-		User           User                `json:"user"`
+		Borrow         Borrow              `json:"borrow"`
 	}
 )
 

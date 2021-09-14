@@ -15,8 +15,7 @@ func TestCanSaveToolReturning(t *testing.T) {
 
 	toolReturning := types.ToolReturning{
 		ID:             123,
-		UserID:         111,
-		ToolID:         222,
+		BorrowID:       111,
 		Status:         types.GetToolReturningStatus("request"),
 		CreatedAt:      timeNowString(),
 		AdditionalInfo: "Test additional info.",
@@ -24,12 +23,12 @@ func TestCanSaveToolReturning(t *testing.T) {
 
 	repository := NewToolReturningRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "tool_id", "status", "created_at", "additional_info"}).
-		AddRow(toolReturning.ID, toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo)
+	rows := sqlmock.NewRows([]string{"id", "borrow_id", "status", "created_at", "additional_info"}).
+		AddRow(toolReturning.ID, toolReturning.BorrowID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo)
 
 	mock.ExpectPrepare("^INSERT INTO tool_returning .+ VALUES .+ RETURNING .+").
 		ExpectQuery().
-		WithArgs(toolReturning.UserID, toolReturning.ToolID, toolReturning.Status, toolReturning.AdditionalInfo).
+		WithArgs(toolReturning.BorrowID, toolReturning.Status, toolReturning.AdditionalInfo).
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&toolReturning)
