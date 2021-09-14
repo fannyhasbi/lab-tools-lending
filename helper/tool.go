@@ -104,10 +104,23 @@ func PickPhoto(photos []types.TelePhotoSize) types.TelePhotoSize {
 	return highestSizePhoto
 }
 
+func toolFields() []types.ToolField {
+	return []types.ToolField{
+		types.ToolFieldName,
+		types.ToolFieldBrand,
+		types.ToolFieldProductType,
+		types.ToolFieldWeight,
+		types.ToolFieldStock,
+		types.ToolFieldAdditionalInfo,
+		types.ToolFieldPhoto,
+	}
+}
+
 func IsToolFieldExists(f string) bool {
-	fields := []string{"nama", "brand", "tipe", "berat", "stok", "keterangan", "foto"}
-	for _, v := range fields {
-		if f == v {
+	fAsserted := types.ToolField(f)
+	fields := toolFields()
+	for _, field := range fields {
+		if fAsserted == field {
 			return true
 		}
 	}
@@ -116,18 +129,20 @@ func IsToolFieldExists(f string) bool {
 
 func GetToolValueByField(tool types.Tool, f string) string {
 	var result string
-	switch f {
-	case "nama":
+	fAsserted := types.ToolField(f)
+
+	switch fAsserted {
+	case types.ToolFieldName:
 		result = tool.Name
-	case "brand":
+	case types.ToolFieldBrand:
 		result = tool.Brand
-	case "tipe":
+	case types.ToolFieldProductType:
 		result = tool.ProductType
-	case "berat":
+	case types.ToolFieldWeight:
 		result = fmt.Sprintf("%.2f", tool.Weight)
-	case "stok":
+	case types.ToolFieldStock:
 		result = strconv.FormatInt(tool.Stock, 10)
-	case "keterangan":
+	case types.ToolFieldAdditionalInfo:
 		result = tool.AdditionalInformation
 	default:
 		result = ""
@@ -139,29 +154,30 @@ func GetToolValueByField(tool types.Tool, f string) string {
 func ChangeToolValueByField(tool types.Tool, field, newValue string) (types.Tool, error) {
 	// make a new copy (clean code)
 	updatedTool := tool
+	fieldAsserted := types.ToolField(field)
 
-	switch field {
-	case "nama":
+	switch fieldAsserted {
+	case types.ToolFieldName:
 		updatedTool.Name = newValue
-	case "brand":
+	case types.ToolFieldBrand:
 		updatedTool.Brand = newValue
-	case "tipe":
+	case types.ToolFieldProductType:
 		updatedTool.ProductType = newValue
-	case "berat":
+	case types.ToolFieldWeight:
 		i, err := strconv.ParseFloat(newValue, 10)
 		if err != nil || i < 0 {
 			return updatedTool, errors.New("mohon sebutkan berat dalam angka")
 		}
 		updatedTool.Weight = float32(i)
 
-	case "stok":
+	case types.ToolFieldStock:
 		i, err := strconv.ParseInt(newValue, 10, 64)
 		if err != nil || i < 0 {
 			return updatedTool, errors.New("mohon sebutkan jumlah stok dalam angka")
 		}
 		updatedTool.Stock = i
 
-	case "keterangan":
+	case types.ToolFieldAdditionalInfo:
 		updatedTool.AdditionalInformation = newValue
 	}
 

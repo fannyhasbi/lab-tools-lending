@@ -1,6 +1,8 @@
 package types
 
 type (
+	ToolField string
+
 	Tool struct {
 		ID                    int64   `json:"id"`
 		Name                  string  `json:"name"`
@@ -12,4 +14,14 @@ type (
 		CreatedAt             string  `json:"created_at"`
 		UpdatedAt             string  `json:"updated_at"`
 	}
+)
+
+const (
+	ToolFieldName           ToolField = "nama"
+	ToolFieldBrand          ToolField = "brand"
+	ToolFieldProductType    ToolField = "tipe"
+	ToolFieldWeight         ToolField = "berat"
+	ToolFieldStock          ToolField = "stok"
+	ToolFieldAdditionalInfo ToolField = "keterangan"
+	ToolFieldPhoto          ToolField = "foto"
 )

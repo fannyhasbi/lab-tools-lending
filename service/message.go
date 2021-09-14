@@ -2185,7 +2185,7 @@ func (ms *MessageService) manageEditField() error {
 		return ms.Error()
 	}
 
-	if ms.messageText == "foto" {
+	if types.ToolField(ms.messageText) == types.ToolFieldPhoto {
 		return ms.managePhotoInit(tool.ID)
 	}
 

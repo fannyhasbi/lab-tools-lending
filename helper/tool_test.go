@@ -213,9 +213,10 @@ func TestCanPickPhoto(t *testing.T) {
 
 func TestIsToolFieldExists(t *testing.T) {
 	t.Run("correct", func(t *testing.T) {
-		f := "berat"
-		r := IsToolFieldExists(f)
-		assert.True(t, r)
+		for _, field := range toolFields() {
+			r := IsToolFieldExists(string(field))
+			assert.True(t, r)
+		}
 	})
 	t.Run("incorrect", func(t *testing.T) {
 		f := "testincorrectfield"
@@ -235,27 +236,27 @@ func TestGetToolValueByField(t *testing.T) {
 	}
 
 	t.Run("name", func(t *testing.T) {
-		r := GetToolValueByField(tool, "nama")
+		r := GetToolValueByField(tool, string(types.ToolFieldName))
 		assert.Equal(t, tool.Name, r)
 	})
 	t.Run("brand", func(t *testing.T) {
-		r := GetToolValueByField(tool, "brand")
+		r := GetToolValueByField(tool, string(types.ToolFieldBrand))
 		assert.Equal(t, tool.Brand, r)
 	})
 	t.Run("type", func(t *testing.T) {
-		r := GetToolValueByField(tool, "tipe")
+		r := GetToolValueByField(tool, string(types.ToolFieldProductType))
 		assert.Equal(t, tool.ProductType, r)
 	})
 	t.Run("weight", func(t *testing.T) {
-		r := GetToolValueByField(tool, "berat")
+		r := GetToolValueByField(tool, string(types.ToolFieldWeight))
 		assert.Equal(t, fmt.Sprintf("%.2f", tool.Weight), r)
 	})
 	t.Run("stock", func(t *testing.T) {
-		r := GetToolValueByField(tool, "stok")
+		r := GetToolValueByField(tool, string(types.ToolFieldStock))
 		assert.Equal(t, strconv.FormatInt(tool.Stock, 10), r)
 	})
 	t.Run("additional info", func(t *testing.T) {
-		r := GetToolValueByField(tool, "keterangan")
+		r := GetToolValueByField(tool, string(types.ToolFieldAdditionalInfo))
 		assert.Equal(t, tool.AdditionalInformation, r)
 	})
 	t.Run("no case", func(t *testing.T) {
@@ -277,64 +278,64 @@ func TestCanChangeToolValueByField(t *testing.T) {
 	t.Run("name", func(t *testing.T) {
 		newTool := tool
 		newTool.Name = "New Test Tool Name"
-		r, err := ChangeToolValueByField(tool, "nama", newTool.Name)
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldName), newTool.Name)
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("brand", func(t *testing.T) {
 		newTool := tool
 		newTool.Brand = "New Test Brand"
-		r, err := ChangeToolValueByField(tool, "brand", newTool.Brand)
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldBrand), newTool.Brand)
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("type", func(t *testing.T) {
 		newTool := tool
 		newTool.ProductType = "New test product type"
-		r, err := ChangeToolValueByField(tool, "tipe", newTool.ProductType)
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldProductType), newTool.ProductType)
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("weight", func(t *testing.T) {
 		newTool := tool
 		newTool.Weight = 999
-		r, err := ChangeToolValueByField(tool, "berat", fmt.Sprintf("%f", newTool.Weight))
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldWeight), fmt.Sprintf("%f", newTool.Weight))
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("stock", func(t *testing.T) {
 		newTool := tool
 		newTool.Stock = 333
-		r, err := ChangeToolValueByField(tool, "stok", strconv.FormatInt(newTool.Stock, 10))
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldStock), strconv.FormatInt(newTool.Stock, 10))
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("additional info", func(t *testing.T) {
 		newTool := tool
 		newTool.AdditionalInformation = "new test additional info"
-		r, err := ChangeToolValueByField(tool, "keterangan", newTool.AdditionalInformation)
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldAdditionalInfo), newTool.AdditionalInformation)
 		assert.NoError(t, err)
 		assert.Equal(t, newTool, r)
 	})
 	t.Run("weight negative", func(t *testing.T) {
 		weight := -100
-		r, err := ChangeToolValueByField(tool, "berat", strconv.Itoa(weight))
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldWeight), strconv.Itoa(weight))
 		assert.Error(t, err)
 		assert.Equal(t, tool, r)
 	})
 	t.Run("weight is not a number", func(t *testing.T) {
-		r, err := ChangeToolValueByField(tool, "berat", "testnotanumber")
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldWeight), "testnotanumber")
 		assert.Error(t, err)
 		assert.Equal(t, tool, r)
 	})
 	t.Run("Stock negative", func(t *testing.T) {
 		stock := -90
-		r, err := ChangeToolValueByField(tool, "stok", strconv.Itoa(stock))
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldStock), strconv.Itoa(stock))
 		assert.Error(t, err)
 		assert.Equal(t, tool, r)
 	})
 	t.Run("stock is not a number", func(t *testing.T) {
-		r, err := ChangeToolValueByField(tool, "stok", "testnotanumber")
+		r, err := ChangeToolValueByField(tool, string(types.ToolFieldStock), "testnotanumber")
 		assert.Error(t, err)
 		assert.Equal(t, tool, r)
 	})
