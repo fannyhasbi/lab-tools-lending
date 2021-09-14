@@ -935,14 +935,14 @@ func (ms *MessageService) borrowConfirm() error {
 		return ms.Error()
 	}
 
-	go ms.sendBorrowToAdmin(borrowID)
+	go ms.notifyBorrowRequestToAdmin(borrowID)
 
 	return ms.sendMessage(types.MessageRequest{
 		Text: "Pengajuan peminjaman berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan.",
 	})
 }
 
-func (ms *MessageService) sendBorrowToAdmin(borrowID int64) error {
+func (ms *MessageService) notifyBorrowRequestToAdmin(borrowID int64) error {
 	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
 	if err != nil {
 		log.Println("[ERR][sendBorrowToAdmin][FindBorrowByID]", err)
@@ -1281,7 +1281,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 		return err
 	}
 
-	go ms.sendToolReturningToAdmin(toolReturning)
+	go ms.notifyToolReturningRequestToAdmin(toolReturning)
 
 	reqBody := types.MessageRequest{
 		Text: "Pengajuan pengembalian berhasil, silahkan tunggu hingga pengurus menanggapi pengajuan tersebut.",
@@ -1298,7 +1298,7 @@ func (ms *MessageService) toolReturningCompleteNegative() error {
 	return ms.sendMessage(reqBody)
 }
 
-func (ms *MessageService) sendToolReturningToAdmin(toolReturning types.ToolReturning) error {
+func (ms *MessageService) notifyToolReturningRequestToAdmin(toolReturning types.ToolReturning) error {
 	message := fmt.Sprintf(`Seseorang baru saja mengajukan pengembalian barang
 	
 	Nama Pemohon: %s
