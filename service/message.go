@@ -759,13 +759,14 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 		return ms.Error()
 	}
 
-	if len(borrows) > 0 {
+	borrowStatus, same := helper.GetSameBorrow(borrows, toolID)
+
+	if same {
 		var message string
-		requestingBorrows := helper.GetBorrowsByStatus(borrows, types.GetBorrowStatus("request"))
-		if len(requestingBorrows) > 0 {
-			message = "Maaf, saat ini status Anda sedang mengajukan peminjaman, silahkan tunggu hingga pengurus menanggapi pengajuan tersebut."
+		if borrowStatus == types.GetBorrowStatus("request") {
+			message = "Maaf, Anda sudah mengajukan peminjaman barang yang sama, silahkan tunggu hingga pengurus menanggapi pengajuan tersebut."
 		} else {
-			message = "Maaf, saat ini status Anda sedang meminjam barang sehingga tidak dapat mengajukan peminjaman.\n"
+			message = "Maaf, Anda sedang meminjam barang yang sama sehingga tidak dapat mengajukan peminjaman.\n"
 			message += fmt.Sprintf(`Untuk melakukan pengembalian silahkan ketik "/%s"`, types.CommandReturn)
 		}
 

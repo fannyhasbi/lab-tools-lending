@@ -80,6 +80,16 @@ func GetBorrowFromChatSessionDetail(details []types.ChatSessionDetail) types.Bor
 	return borrow
 }
 
+func GetSameBorrow(borrows []types.Borrow, toolID int64) (types.BorrowStatus, bool) {
+	for _, b := range borrows {
+		if b.ToolID == toolID {
+			return b.Status, true
+		}
+	}
+
+	return "", false
+}
+
 func BuildBorrowReportMessage(borrows []types.Borrow) string {
 	var message string
 	for _, borrow := range borrows {

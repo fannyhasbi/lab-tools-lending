@@ -228,6 +228,43 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 	})
 }
 
+func TestCanGetSameBorrow(t *testing.T) {
+	t.Run("same", func(t *testing.T) {
+		var toolID int64 = 123
+		borrows := []types.Borrow{
+			{
+				ToolID: 333,
+				Status: types.GetBorrowStatus("progress"),
+			},
+			{
+				ToolID: toolID,
+				Status: types.GetBorrowStatus("request"),
+			},
+		}
+
+		r, same := GetSameBorrow(borrows, toolID)
+		assert.True(t, same)
+		assert.Equal(t, types.GetBorrowStatus("request"), r)
+	})
+	t.Run("not same", func(t *testing.T) {
+		var toolID int64 = 123
+		borrows := []types.Borrow{
+			{
+				ToolID: 111,
+				Status: types.GetBorrowStatus("progress"),
+			},
+			{
+				ToolID: 999,
+				Status: types.GetBorrowStatus("request"),
+			},
+		}
+
+		r, same := GetSameBorrow(borrows, toolID)
+		assert.False(t, same)
+		assert.Equal(t, types.BorrowStatus(""), r)
+	})
+}
+
 func TestCanBuildBorrowReportMessage(t *testing.T) {
 	borrows := []types.Borrow{
 		{
