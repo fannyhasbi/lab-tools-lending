@@ -1595,9 +1595,17 @@ func (ms *MessageService) respondBorrowPositive(borrow types.Borrow) error {
 		return ms.Error()
 	}
 
+	returnDate := time.Now().AddDate(0, 0, borrow.Duration)
+	message := fmt.Sprintf(`Pengajuan peminjaman "%s" telah disetujui oleh pengurus.
+		Batas akhir peminjaman: %s (%d hari)
+
+		Keterangan:
+		%s`, borrow.Tool.Name, helper.TranslateDateToBahasa(returnDate), borrow.Duration, ms.messageText)
+	message = helper.RemoveTab(message)
+
 	reqBody := types.MessageRequest{
 		ChatID: borrow.UserID,
-		Text:   fmt.Sprintf("Pengajuan peminjaman \"%s\" telah disetujui oleh pengurus.\n\nKeterangan:\n%s", borrow.Tool.Name, ms.messageText),
+		Text:   message,
 	}
 	if err := ms.sendMessage(reqBody); err != nil {
 		log.Println("error in sending reply:", err)
