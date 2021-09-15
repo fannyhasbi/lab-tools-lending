@@ -91,6 +91,16 @@ func TestSessionGeneratorBorrowConfirmation(t *testing.T) {
 	assert.JSONEq(t, expected, r)
 }
 
+func TestSessionGeneratorToolReturningInit(t *testing.T) {
+	var borrowID int64 = 123
+	gen := NewSessionDataGenerator()
+	r := gen.ToolReturningInit(borrowID)
+
+	expected := fmt.Sprintf(`{"type":"%s","borrow_id":%d}`, string(types.Topic["tool_returning_init"]), borrowID)
+
+	assert.JSONEq(t, expected, r)
+}
+
 func TestSessionGeneratorToolReturnConfirm(t *testing.T) {
 	additionalInfo := "test keterangan tambahan"
 	gen := NewSessionDataGenerator()

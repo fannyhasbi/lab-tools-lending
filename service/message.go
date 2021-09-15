@@ -1035,8 +1035,9 @@ func (ms *MessageService) ReturnTool() error {
 		return ms.notRegistered()
 	}
 
-	if ok := isFlagWithinReturningCommand(ms.messageText); ok {
-		return ms.toolReturningInit()
+	borrowID, ok := isIDWithinCommand(ms.messageText)
+	if ok && borrowID > 0 {
+		return ms.toolReturningInit(borrowID)
 	}
 
 	if len(ms.chatSessionDetails) > 0 {
@@ -1049,19 +1050,6 @@ func (ms *MessageService) ReturnTool() error {
 	}
 
 	return ms.currentlyBorrowedTools()
-}
-
-func isFlagWithinReturningCommand(s string) bool {
-	ss := strings.Split(s, " ")
-	if len(ss) != 2 {
-		return false
-	}
-
-	if strings.Contains(ss[1], types.ToolReturningFlag) {
-		return true
-	}
-
-	return false
 }
 
 /* func (ms *MessageService) borrowedTools() error {
@@ -1103,86 +1091,56 @@ func isFlagWithinReturningCommand(s string) bool {
 } */
 
 func (ms *MessageService) currentlyBorrowedTools() error {
-	var message string
-
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
+	borrows, err := ms.borrowService.GetCurrentlyBeingBorrowedByUserID(ms.user.ID)
+	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	if err == sql.ErrNoRows {
-		message += "Saat ini tidak ada alat yang sedang Anda pinjam."
-		reqBody := types.MessageRequest{
-			Text: message,
-		}
-
-		return ms.sendMessage(reqBody)
-	}
-
-	returnDate := borrow.ConfirmedAt.Time.AddDate(0, 0, borrow.Duration)
-	returnDateStr := returnDate.Format(types.BasicDateLayout)
-	message += fmt.Sprintf(
-		"Anda sedang meminjam %s sejak %s.\nJadwal pengembalian pada %s\n\n",
-		borrow.Tool.Name,
-		helper.TranslateDateStringToBahasa(borrow.ConfirmedAt.Time.Format(types.BasicDateLayout)),
-		helper.TranslateDateStringToBahasa(returnDateStr),
-	)
-
-	currentDateTime := time.Now()
-	dayDifference := int(returnDate.Sub(currentDateTime).Hours() / 24)
-
-	if dayDifference < 0 {
-		message += fmt.Sprintf("Anda sudah lewat %d hari dari jadwal pengembalian barang.", -dayDifference)
-	} else if dayDifference == 0 {
-		message += "Hari ini adalah jadwal pengembalian barang."
-	} else {
-		message += fmt.Sprintf("Durasi peminjaman tersisa %d hari lagi.", dayDifference)
-	}
-
-	reqBody := types.MessageRequest{
-		Text: message,
-		ReplyMarkup: types.InlineKeyboardMarkup{
-			InlineKeyboard: [][]types.InlineKeyboardButton{
-				{
-					{
-						Text:         "Ajukan Pengembalian",
-						CallbackData: fmt.Sprintf("/%s %s", types.CommandReturn, types.ToolReturningFlag),
-					},
-				},
-			},
-		},
-	}
-
-	return ms.sendMessage(reqBody)
-}
-
-func (ms *MessageService) toolReturningInit() error {
-	_, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return ms.Error()
-	}
-
-	if err == sql.ErrNoRows {
+	if len(borrows) == 0 {
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Saat ini tidak ada alat yang sedang Anda pinjam.",
 		})
 	}
 
-	_, err = ms.toolReturningService.FindOnProgressByUserID(ms.user.ID)
+	message := "Berikut ini daftar alat yang sedang Anda pinjam.\n\n"
+	message += helper.BuildBorrowedMessage(borrows)
+	message += fmt.Sprintf("\nUntuk mengajukan pengembalian ketik perintah\n\"/%s [id_peminjaman]\"\n\n", types.CommandReturn)
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
+}
+
+func (ms *MessageService) toolReturningInit(borrowID int64) error {
+	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
+		log.Println("[ERR][toolReturningInit][FindBorrowByID]", err)
 		return ms.Error()
 	}
 
-	if err != sql.ErrNoRows {
+	if err == sql.ErrNoRows || borrow.Status != types.GetBorrowStatus("progress") || borrow.UserID != ms.user.ID {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Maaf, Anda sudah mengajukan pengembalian sebelumnya. Silahkan tunggu hingga pengurus menanggapi pengajuan tersebut.",
+			Text: "ID peminjaman tidak ditemukan.",
 		})
 	}
 
-	if err := ms.saveChatSessionDetail(types.Topic["tool_returning_init"], ""); err != nil {
+	rets, err := ms.toolReturningService.GetCurrentlyBeingRequested(ms.user.ID, borrowID)
+	if err != nil {
+		log.Println("[ERR][toolReturningInit][GetCurrentlyBeingRequestedByUserID]", err)
+		return ms.Error()
+	}
+
+	if len(rets) > 0 {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Maaf, Anda sudah mengajukan pengembalian barang yang sama. Silahkan tunggu hingga pengurus menanggapi pengajuan tersebut.",
+		})
+	}
+
+	sessionDataGenerator := helper.NewSessionDataGenerator()
+	generatedSessionData := sessionDataGenerator.ToolReturningInit(borrowID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["tool_returning_init"], generatedSessionData); err != nil {
 		log.Println("[ERR][toolReturningInit][saveChatSessionDetail]", err)
 		return err
 	}
@@ -1193,18 +1151,30 @@ func (ms *MessageService) toolReturningInit() error {
 }
 
 func (ms *MessageService) toolReturningConfirm() error {
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return err
+	toolReturningSession, found := helper.GetChatSessionDetailByTopic(ms.chatSessionDetails, types.Topic["tool_returning_init"])
+	if !found {
+		return ms.Unknown()
 	}
 
-	if err == sql.ErrNoRows {
-		reqBody := types.MessageRequest{
-			Text: "Saat ini tidak ada alat yang sedang Anda pinjam.",
-		}
+	dataParsed, err := gabs.ParseJSON([]byte(toolReturningSession.Data))
+	if err != nil {
+		log.Println("[ERR][toolReturningConfirm][ParseJSON]", err)
+		return ms.Error()
+	}
 
-		return ms.sendMessage(reqBody)
+	var borrowID int64
+	bID, ok := dataParsed.Path("borrow_id").Data().(float64)
+	if !ok {
+		log.Println("[ERR][toolReturningConfirm][Path] borrow_id not found")
+		return ms.Error()
+	}
+
+	borrowID = int64(bID)
+
+	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
+	if err != nil {
+		log.Println("[ERR][toolReturningConfirm][FindBorrowByID]", err)
+		return ms.Error()
 	}
 
 	message := fmt.Sprintf(`Nama peminjam: %s
@@ -1299,8 +1269,26 @@ func (ms *MessageService) toolReturningComplete() error {
 }
 
 func (ms *MessageService) toolReturningCompletePositive() error {
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
+	toolReturningSession, found := helper.GetChatSessionDetailByTopic(ms.chatSessionDetails, types.Topic["tool_returning_init"])
+	if !found {
+		return errors.New("session not found")
+	}
+
+	dataParsed, err := gabs.ParseJSON([]byte(toolReturningSession.Data))
+	if err != nil {
+		return err
+	}
+
+	var borrowID int64
+	bID, ok := dataParsed.Path("borrow_id").Data().(float64)
+	if !ok {
+		return errors.New("borrow_id not found")
+	}
+
+	borrowID = int64(bID)
+
+	_, err = ms.borrowService.FindBorrowByID(borrowID)
+	if err != nil {
 		return err
 	}
 
@@ -1318,7 +1306,7 @@ func (ms *MessageService) toolReturningCompletePositive() error {
 	}
 
 	toolReturning := types.ToolReturning{
-		BorrowID:       borrow.ID,
+		BorrowID:       borrowID,
 		Status:         types.GetToolReturningStatus("request"),
 		AdditionalInfo: additionalInfo,
 	}
@@ -1718,21 +1706,21 @@ func (ms *MessageService) respondToolReturningComplete() error {
 	}
 
 	if err := ms.toolReturningService.UpdateToolReturningConfirm(toolReturning.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
-		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningConfirmedAt]", err)
+		log.Println("[ERR][respondToolReturningComplete][UpdateToolReturningConfirmedAt]", err)
 		return ms.Error()
 	}
 
 	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
 	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
-		log.Println("[ERR][respondToolReturningPositive][UpdateChatSessionStatus]", err)
+		log.Println("[ERR][respondToolReturningComplete][UpdateChatSessionStatus]", err)
 		return ms.Error()
 	}
 
 	if userResponse == "yes" {
-		return ms.respondToolReturningPositive(toolReturning)
+		return ms.respondToolReturningApprove(toolReturning)
 	}
 
-	return ms.respondToolReturningNegative(toolReturning)
+	return ms.respondToolReturningReject(toolReturning)
 }
 
 func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolReturning) error {
@@ -1769,15 +1757,15 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 	})
 }
 
-func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolReturning) error {
-	borrow, err := ms.borrowService.FindCurrentlyBeingBorrowedByUserID(toolReturning.Borrow.UserID)
+func (ms *MessageService) respondToolReturningApprove(toolReturning types.ToolReturning) error {
+	borrow, err := ms.borrowService.FindBorrowByID(toolReturning.BorrowID)
 	if err != nil {
-		log.Println("[ERR][respondToolReturningPositive][FindCurrentlyBeingBorrowedByUserID]", err)
+		log.Println("[ERR][respondToolReturningApprove][FindBorrowByID]", err)
 		return ms.Error()
 	}
 
 	if err := ms.borrowService.UpdateBorrowStatus(borrow.ID, types.GetBorrowStatus("returned")); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][UpdateBorrowStatus]", err)
+		log.Println("[ERR][sendToolReturningApprove][UpdateBorrowStatus]", err)
 		return ms.Error()
 	}
 
@@ -1787,7 +1775,7 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 	}
 
 	if err := ms.toolService.IncreaseStock(toolReturning.Borrow.ToolID, borrow.Amount); err != nil {
-		log.Println("[ERR][respondToolReturningPositive][IncreaseStock]", err)
+		log.Println("[ERR][respondToolReturningApprove][IncreaseStock]", err)
 		return ms.Error()
 	}
 
@@ -1805,9 +1793,9 @@ func (ms *MessageService) respondToolReturningPositive(toolReturning types.ToolR
 	})
 }
 
-func (ms *MessageService) respondToolReturningNegative(toolReturning types.ToolReturning) error {
+func (ms *MessageService) respondToolReturningReject(toolReturning types.ToolReturning) error {
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("reject")); err != nil {
-		log.Println("[ERR][respondToolReturningNegative][UpdateToolReturningStatus]", err)
+		log.Println("[ERR][respondToolReturningReject][UpdateToolReturningStatus]", err)
 		return ms.Error()
 	}
 

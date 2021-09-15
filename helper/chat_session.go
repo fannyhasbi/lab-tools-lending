@@ -60,6 +60,12 @@ func (sdc SessionDataContainer) BorrowConfirmation(userResponse bool) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) ToolReturningInit(borrowID int64) string {
+	sdc.container.Set(types.Topic["tool_returning_init"], "type")
+	sdc.container.Set(borrowID, "borrow_id")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) ToolReturningConfirm(additionalInfo string) string {
 	sdc.container.Set(types.Topic["tool_returning_confirm"], "type")
 	sdc.container.Set(additionalInfo, "additional_info")

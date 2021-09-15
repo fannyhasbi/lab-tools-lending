@@ -65,30 +65,44 @@ func TestCanFindToolReturningByUserIDAndStatus(t *testing.T) {
 	query := NewToolReturningQueryPostgres(db)
 
 	var userID int64 = 555
-	toolReturning := types.ToolReturning{
-		ID:       123,
-		BorrowID: 111,
-		Borrow: types.Borrow{
-			UserID: userID,
+	rets := []types.ToolReturning{
+		{
+			ID:       123,
+			BorrowID: 111,
+			Borrow: types.Borrow{
+				UserID: userID,
+			},
+			Status:         types.GetToolReturningStatus("request"),
+			CreatedAt:      timeNowString(),
+			AdditionalInfo: "test additional info 1",
 		},
-		Status:         types.GetToolReturningStatus("request"),
-		CreatedAt:      timeNowString(),
-		AdditionalInfo: "test additional info",
+		{
+			ID:       321,
+			BorrowID: 222,
+			Borrow: types.Borrow{
+				UserID: userID,
+			},
+			Status:         types.GetToolReturningStatus("request"),
+			CreatedAt:      timeNowString(),
+			AdditionalInfo: "test additional info 2",
+		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "borrow_id", "status", "created_at", "additional_info", "user_id"}).
-		AddRow(toolReturning.ID, toolReturning.BorrowID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo, toolReturning.Borrow.UserID)
+	rows := sqlmock.NewRows([]string{"id", "borrow_id", "status", "created_at", "additional_info", "user_id"})
+	for _, v := range rets {
+		rows.AddRow(v.ID, v.BorrowID, v.Status, v.CreatedAt, v.AdditionalInfo, v.Borrow.UserID)
+	}
 
-	mock.ExpectQuery("^SELECT .+ FROM tool_returning tr INNER JOIN borrows b .+ WHERE b.user_id = .+ AND tr.status = .+ ORDER BY tr.id DESC").
+	mock.ExpectQuery("^SELECT .+ FROM tool_returning tr INNER JOIN borrows b .+ WHERE b.user_id = .+ AND tr.status = .+ ORDER BY tr.id ASC").
 		WithArgs(userID, types.GetToolReturningStatus("request")).
 		WillReturnRows(rows)
 
-	result := query.FindByUserIDAndStatus(userID, types.GetToolReturningStatus("request"))
+	result := query.GetByUserIDAndStatus(userID, types.GetToolReturningStatus("request"))
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 	assert.NotPanics(t, func() {
-		r := result.Result.(types.ToolReturning)
-		assert.Equal(t, toolReturning, r)
+		r := result.Result.([]types.ToolReturning)
+		assert.Equal(t, rets, r)
 	})
 }
 

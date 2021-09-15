@@ -8,7 +8,7 @@ import (
 
 type ToolReturningQuery interface {
 	FindByID(id int64) QueryResult
-	FindByUserIDAndStatus(id int64, status types.ToolReturningStatus) QueryResult
+	GetByUserIDAndStatus(id int64, status types.ToolReturningStatus) QueryResult
 	GetByStatus(status types.ToolReturningStatus) QueryResult
 	GetReport(year, month int) QueryResult
 }

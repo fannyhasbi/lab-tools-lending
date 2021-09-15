@@ -30,8 +30,12 @@ func GetBorrowsByStatus(borrows []types.Borrow, status types.BorrowStatus) []typ
 
 func BuildBorrowedMessage(borrows []types.Borrow) string {
 	var message string
+	layout := "02/01/2006"
 	for _, borrow := range borrows {
-		message = fmt.Sprintf("%s* %s (%s)\n", message, borrow.Tool.Name, TranslateDateStringToBahasa(borrow.CreatedAt))
+		since := borrow.ConfirmedAt.Time.Format(layout)
+		until := borrow.ConfirmedAt.Time.AddDate(0, 0, borrow.Duration).Format(layout)
+
+		message = fmt.Sprintf("%s[%d] %s (%s - %s)\n", message, borrow.ID, borrow.Tool.Name, since, until)
 	}
 	return message
 }

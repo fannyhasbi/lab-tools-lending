@@ -60,13 +60,22 @@ func (trs ToolReturningService) FindToolReturningByID(id int64) (types.ToolRetur
 	return result.Result.(types.ToolReturning), nil
 }
 
-func (trs ToolReturningService) FindOnProgressByUserID(id int64) (types.ToolReturning, error) {
-	result := trs.Query.FindByUserIDAndStatus(id, types.GetToolReturningStatus("request"))
+func (trs ToolReturningService) GetCurrentlyBeingRequested(userID, borrowID int64) ([]types.ToolReturning, error) {
+	result := trs.Query.GetByUserIDAndStatus(userID, types.GetToolReturningStatus("request"))
 	if result.Error != nil {
-		return types.ToolReturning{}, result.Error
+		return []types.ToolReturning{}, result.Error
 	}
 
-	return result.Result.(types.ToolReturning), nil
+	toolReturningResult := result.Result.([]types.ToolReturning)
+
+	var rets []types.ToolReturning
+	for _, ret := range toolReturningResult {
+		if ret.BorrowID == borrowID {
+			rets = append(rets, ret)
+		}
+	}
+
+	return rets, nil
 }
 
 func (trs ToolReturningService) GetToolReturningRequests() ([]types.ToolReturning, error) {

@@ -73,26 +73,37 @@ func TestCanGetBorrowByStatus(t *testing.T) {
 }
 
 func TestBuildBorrowedMessage(t *testing.T) {
-	tt := []types.Borrow{
+	b := []types.Borrow{
 		{
-			CreatedAt: "2021-08-01",
+			ID:       1,
+			Duration: 10,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now(),
+			},
 			Tool: types.Tool{
-				Name: "Tool Name Test 1",
+				Name: "Test Tool Name 1",
 			},
 		},
 		{
-			CreatedAt: time.Now().Format(time.RFC3339),
+			ID:       2,
+			Duration: 13,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now(),
+			},
 			Tool: types.Tool{
-				Name: "Tool Name Test 2",
+				Name: "Test Tool Name 2",
 			},
 		},
 	}
 
-	r := BuildBorrowedMessage(tt)
+	r := BuildBorrowedMessage(b)
 
-	expected := fmt.Sprintf("* %s (%s)\n* %s (%s)\n",
-		tt[0].Tool.Name, TranslateDateStringToBahasa(tt[0].CreatedAt),
-		tt[1].Tool.Name, TranslateDateStringToBahasa(tt[1].CreatedAt))
+	layout := "02/01/2006"
+	expected := fmt.Sprintf("[%d] %s (%s - %s)\n[%d] %s (%s - %s)\n",
+		b[0].ID, b[0].Tool.Name, b[0].ConfirmedAt.Time.Format(layout), b[0].ConfirmedAt.Time.AddDate(0, 0, b[0].Duration).Format(layout),
+		b[1].ID, b[1].Tool.Name, b[1].ConfirmedAt.Time.Format(layout), b[1].ConfirmedAt.Time.AddDate(0, 0, b[1].Duration).Format(layout))
 
 	assert.Equal(t, expected, r)
 }
