@@ -195,7 +195,11 @@ func (ms *MessageService) RecommendRegister() error {
 }
 
 func (ms *MessageService) FirstStart() error {
-	return ms.Help()
+	message := "Selamat Datang di Layanan Chatbot Peminjaman Barang Laboratorium Teknik Komputer!"
+	message += fmt.Sprintf("\n\nSilahkan lakukan registrasi dengan mengirim perintah \"/%s\"", types.CommandRegister)
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) Help() error {
@@ -241,8 +245,8 @@ func (ms *MessageService) Check() error {
 	}
 
 	if err != nil {
-		log.Println(err)
-		return err
+		log.Println("[ERR][Check][GetTools]", err)
+		return ms.Error()
 	}
 
 	if len(tools) < 1 {
@@ -330,7 +334,7 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 func (ms *MessageService) checkDetailPhoto(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
 	if err != nil {
-		log.Println("[ERR][Borrow][FindByID]", err)
+		log.Println("[ERR][checkDetailPhoto][FindByID]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
 		})
@@ -419,8 +423,8 @@ func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionDa
 func (ms *MessageService) Register() error {
 	user, err := ms.userService.FindByID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println(err)
-		return err
+		log.Println("[ERR][Register][FindByID]", err)
+		return ms.Error()
 	}
 
 	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
@@ -474,7 +478,7 @@ func (ms *MessageService) registerInit() error {
 	}
 
 	if err = ms.saveChatSessionDetail(types.Topic["register_init"], ""); err != nil {
-		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
+		log.Println("[ERR][registerIniti][saveChatSessionDetail]", err)
 		return err
 	}
 
@@ -484,7 +488,7 @@ func (ms *MessageService) registerInit() error {
 func (ms *MessageService) registerConfirm() error {
 	registrationMessage, err := getRegistrationMessage(ms.messageText)
 	if err != nil {
-		log.Println("[ERR][Registration][getRegistrationMessage]", err)
+		log.Println("[ERR][registerConfirm][getRegistrationMessage]", err)
 		reqBody := types.MessageRequest{
 			Text: "Format registrasi salah, mohon cek format kembali kemudian kirim ulang.",
 		}
@@ -493,7 +497,7 @@ func (ms *MessageService) registerConfirm() error {
 
 	err = validateRegisterConfirmation(registrationMessage)
 	if err != nil {
-		log.Println("[ERR][Registration][Validation]", err)
+		log.Println("[ERR][registerConfirm][Validation]", err)
 		reqBody := types.MessageRequest{
 			Text: "Format registrasi salah. Mohon cek format kembali, kemudian kirim ulang.",
 		}
@@ -510,7 +514,7 @@ func (ms *MessageService) registerConfirm() error {
 
 	user, err = ms.userService.UpdateUser(user)
 	if err != nil {
-		log.Println("[ERR][Registration[UpdateUser]", err)
+		log.Println("[ERR][registerConfirm[UpdateUser]", err)
 		reqBody := types.MessageRequest{
 			Text: "Terjadi kesalahan, mohon coba beberapa saat lagi.",
 		}
@@ -544,7 +548,7 @@ func (ms *MessageService) registerConfirm() error {
 	}
 
 	if err = ms.saveChatSessionDetail(types.Topic["register_confirm"], ""); err != nil {
-		log.Println("[ERR][Registration][saveChatSessionDetail]", err)
+		log.Println("[ERR][registerConfirm][saveChatSessionDetail]", err)
 		return err
 	}
 
@@ -561,7 +565,7 @@ func (ms *MessageService) registerComplete() error {
 	}
 
 	if err != nil {
-		log.Println("[ERR][Registration][registerComplete]", err)
+		log.Println("[ERR][registerComplete][registerComplete]", err)
 		return err
 	}
 
@@ -669,7 +673,7 @@ func (ms *MessageService) notRegistered() error {
 func (ms *MessageService) Borrow() error {
 	user, err := ms.userService.FindByID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println("[ERR][Borrow]", err)
+		log.Println("[ERR][Borrow][FindByID]", err)
 		return err
 	}
 
@@ -731,7 +735,7 @@ func (ms *MessageService) borrowMechanism() error {
 	}
 
 	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("[ERR][Borrow][sendMessage]", err)
+		log.Println("[ERR][borrowMechanism][sendMessage]", err)
 		return err
 	}
 
@@ -741,7 +745,7 @@ func (ms *MessageService) borrowMechanism() error {
 func (ms *MessageService) borrowInit(toolID int64) error {
 	tool, err := ms.toolService.FindByID(toolID)
 	if err != nil {
-		log.Println("[ERR][Borrow][FindByID]", err)
+		log.Println("[ERR][borrowInit][FindByID]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia.",
 		})
@@ -755,7 +759,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 
 	borrows, err := ms.borrowService.GetCurrentlyBeingBorrowedAndRequestedByUserID(ms.user.ID)
 	if err != nil {
-		log.Println(err)
+		log.Println("[ERR][borrowInit][GetCurrentlyBeingBorrowedAndRequestedByUserID]", err)
 		return ms.Error()
 	}
 
@@ -779,7 +783,7 @@ func (ms *MessageService) borrowInit(toolID int64) error {
 	generatedSessionData := sessionDataGenerator.BorrowInit(tool.ID)
 
 	if err = ms.saveChatSessionDetail(types.Topic["borrow_init"], generatedSessionData); err != nil {
-		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
+		log.Println("[ERR][borrowInit][saveChatSessionDetail]", err)
 		return err
 	}
 
@@ -870,7 +874,7 @@ func (ms *MessageService) borrowAmount() error {
 func (ms *MessageService) borrowDuration() error {
 	duration, err := helper.GetDurationValue(ms.messageText)
 	if err != nil {
-		log.Println("[ERR][Borrow][borrowDuration]", err)
+		log.Println("[ERR][borrowDuration][GetDurationValue]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Mohon sebutkan jumlah hari.",
 		})
@@ -886,7 +890,7 @@ func (ms *MessageService) borrowDuration() error {
 	generatedSessionData := sessionDataGenerator.BorrowDuration(duration)
 
 	if err = ms.saveChatSessionDetail(types.Topic["borrow_date"], generatedSessionData); err != nil {
-		log.Println("[ERR][Borrow][saveChatSessionDetail]", err)
+		log.Println("[ERR][borrowDuration][saveChatSessionDetail]", err)
 		return ms.Error()
 	}
 
@@ -900,7 +904,7 @@ func (ms *MessageService) borrowReason() error {
 
 	tool, err := ms.toolService.FindByID(borrow.ToolID)
 	if err != nil {
-		log.Println("[ERR][Borrow][FindByID]", err)
+		log.Println("[ERR][borrowReason][FindByID]", err)
 		return ms.Error()
 	}
 
@@ -997,7 +1001,7 @@ func (ms *MessageService) borrowConfirm() error {
 func (ms *MessageService) notifyBorrowRequestToAdmin(borrowID int64) error {
 	borrow, err := ms.borrowService.FindBorrowByID(borrowID)
 	if err != nil {
-		log.Println("[ERR][sendBorrowToAdmin][FindBorrowByID]", err)
+		log.Println("[ERR][notifyBorrowRequestToAdmin][FindBorrowByID]", err)
 		return ms.Error()
 	}
 
@@ -1026,7 +1030,7 @@ func (ms *MessageService) notifyBorrowRequestToAdmin(borrowID int64) error {
 func (ms *MessageService) ReturnTool() error {
 	user, err := ms.userService.FindByID(ms.user.ID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Println("[ERR][Borrow]", err)
+		log.Println("[ERR][ReturnTool][FindByID]", err)
 		return err
 	}
 
@@ -1093,7 +1097,7 @@ func (ms *MessageService) ReturnTool() error {
 func (ms *MessageService) currentlyBorrowedTools() error {
 	borrows, err := ms.borrowService.GetCurrentlyBeingBorrowedByUserID(ms.user.ID)
 	if err != nil {
-		log.Println(err)
+		log.Println("[ERR][currentlyBorrowedTools][GetCurrentlyBeingBorrowedByUserID]", err)
 		return err
 	}
 
@@ -1127,7 +1131,7 @@ func (ms *MessageService) toolReturningInit(borrowID int64) error {
 
 	rets, err := ms.toolReturningService.GetCurrentlyBeingRequested(ms.user.ID, borrowID)
 	if err != nil {
-		log.Println("[ERR][toolReturningInit][GetCurrentlyBeingRequestedByUserID]", err)
+		log.Println("[ERR][toolReturningInit][GetCurrentlyBeingRequested]", err)
 		return ms.Error()
 	}
 
@@ -1239,12 +1243,12 @@ func (ms *MessageService) toolReturningComplete() error {
 	generatedSessionData := sessionDataGenerator.ToolReturningComplete(userResponse)
 	err := ms.saveChatSessionDetail(types.Topic["tool_returning_complete"], generatedSessionData)
 	if err != nil {
-		log.Println("[ERR][ReturnTool[saveChatSessionDetail]", err)
+		log.Println("[ERR][toolReturningComplete[saveChatSessionDetail]", err)
 		return err
 	}
 
 	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
-		log.Println("[ERR][ReturnToole][UpdateChatSessionStatus]", err)
+		log.Println("[ERR][toolReturningComplete][UpdateChatSessionStatus]", err)
 		return err
 	}
 
@@ -1261,7 +1265,7 @@ func (ms *MessageService) toolReturningComplete() error {
 
 	err = errs.Wait()
 	if err != nil {
-		log.Println("[ERR][ReturnTool][toolReturningComplete]", err)
+		log.Println("[ERR][toolReturningComplete][toolReturningComplete]", err)
 		return err
 	}
 
@@ -1526,18 +1530,18 @@ func (ms *MessageService) respondBorrowComplete() error {
 	generatedSessionData := sessionDataGenerator.RespondBorrowComplete(ms.messageText)
 
 	if err := ms.saveChatSessionDetail(types.Topic["respond_borrow_complete"], generatedSessionData); err != nil {
-		log.Println("[ERR][respondBorrowPositive][saveChatSessionDetail]", err)
+		log.Println("[ERR][respondBorrowComplete][saveChatSessionDetail]", err)
 		return ms.Error()
 	}
 
 	if err := ms.borrowService.UpdateBorrowConfirm(borrow.ID, time.Now(), ms.message.From.FirstName, ms.message.From.LastName); err != nil {
-		log.Println("[ERR][respondBorrowPositive][UpdateBorrowConfirmedAt]", err)
+		log.Println("[ERR][respondBorrowComplete][UpdateBorrowConfirmedAt]", err)
 		return ms.Error()
 	}
 
 	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
 	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
-		log.Println("[ERR][respondBorrowPositive][UpdateChatSessionStatus]", err)
+		log.Println("[ERR][respondBorrowComplete][UpdateChatSessionStatus]", err)
 		return ms.Error()
 	}
 
@@ -1765,12 +1769,12 @@ func (ms *MessageService) respondToolReturningApprove(toolReturning types.ToolRe
 	}
 
 	if err := ms.borrowService.UpdateBorrowStatus(borrow.ID, types.GetBorrowStatus("returned")); err != nil {
-		log.Println("[ERR][sendToolReturningApprove][UpdateBorrowStatus]", err)
+		log.Println("[ERR][respondToolReturningApprove][UpdateBorrowStatus]", err)
 		return ms.Error()
 	}
 
 	if err := ms.toolReturningService.UpdateToolReturningStatus(toolReturning.ID, types.GetToolReturningStatus("complete")); err != nil {
-		log.Println("[ERR][sendToolReturningToAdmin][UpdateToolReturningStatus]", err)
+		log.Println("[ERR][respondToolReturningToAdmin][UpdateToolReturningStatus]", err)
 		return ms.Error()
 	}
 
@@ -2259,7 +2263,7 @@ func (ms *MessageService) manageEditComplete() error {
 	}
 
 	if err := ms.toolService.UpdateTool(updatedTool); err != nil {
-		log.Println("[ERR][manageEditConfirm][UpdateTool]", err)
+		log.Println("[ERR][manageEditComplete][UpdateTool]", err)
 		return ms.sendMessage(types.MessageRequest{
 			Text: fmt.Sprintf("Terjadi kesalahan. Barang dengan ID %d gagal diubah.", tool.ID),
 		})
@@ -2267,7 +2271,7 @@ func (ms *MessageService) manageEditComplete() error {
 
 	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
 	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
-		log.Println("[ERR][manageEditConfirm][UpdateChatSessionStatus]", err)
+		log.Println("[ERR][manageEditComplete][UpdateChatSessionStatus]", err)
 		return ms.Error()
 	}
 
@@ -2402,7 +2406,7 @@ func (ms *MessageService) managePhotoConfirm() error {
 	photos := helper.GetToolPhotosFromChatSessionDetails(ms.chatSessionDetails)
 
 	if err := ms.toolService.UpdatePhotos(tool.ID, photos); err != nil {
-		log.Println("[ERR][managePhotoConfirm][SaveToolPhotos]", err)
+		log.Println("[ERR][managePhotoConfirm][UpdatePhotos]", err)
 		return ms.Error()
 	}
 
