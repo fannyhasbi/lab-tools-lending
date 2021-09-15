@@ -165,6 +165,7 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 
 func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 	var toolID int64 = 123
+	var amount int = 3
 	var duration int = 23
 	var reason string = "test borrow reason"
 
@@ -173,6 +174,10 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 			{
 				Topic: types.Topic["borrow_init"],
 				Data:  NewSessionDataGenerator().BorrowInit(toolID),
+			},
+			{
+				Topic: types.Topic["borrow_amount"],
+				Data:  NewSessionDataGenerator().BorrowAmount(amount),
 			},
 			{
 				Topic: types.Topic["borrow_date"],
@@ -188,6 +193,7 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 
 		expected := types.Borrow{
 			ToolID:   toolID,
+			Amount:   amount,
 			Duration: duration,
 			Reason: sql.NullString{
 				Valid:  true,
@@ -210,6 +216,7 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 
 		expected := types.Borrow{
 			ToolID:   toolID,
+			Amount:   0,
 			Duration: 0,
 			Reason: sql.NullString{
 				Valid:  false,

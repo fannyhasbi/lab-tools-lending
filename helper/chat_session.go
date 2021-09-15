@@ -36,6 +36,12 @@ func (sdc SessionDataContainer) BorrowInit(toolID int64) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) BorrowAmount(amount int) string {
+	sdc.container.Set(types.Topic["borrow_amount"], "type")
+	sdc.container.Set(amount, "amount")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) BorrowDuration(dateDuration int) string {
 	sdc.container.Set(types.Topic["borrow_date"], "type")
 	sdc.container.Set(dateDuration, "duration")

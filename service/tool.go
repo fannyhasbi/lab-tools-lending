@@ -52,12 +52,12 @@ func (ts ToolService) UpdatePhotos(toolID int64, photos []types.TelePhotoSize) e
 	return ts.Repository.SavePhotos(toolID, photos)
 }
 
-func (ts ToolService) IncreaseStock(id int64) error {
-	return ts.Repository.IncreaseStock(id)
+func (ts ToolService) IncreaseStock(id int64, amount int) error {
+	return ts.Repository.IncreaseStock(id, amount)
 }
 
-func (ts ToolService) DecreaseStock(id int64) error {
-	return ts.Repository.DecreaseStock(id)
+func (ts ToolService) DecreaseStock(id int64, amount int) error {
+	return ts.Repository.DecreaseStock(id, amount)
 }
 
 func (ts ToolService) FindByID(id int64) (types.Tool, error) {

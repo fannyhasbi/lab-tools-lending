@@ -85,12 +85,12 @@ func (tr *ToolRepositoryPostgres) DeletePhotos(toolID int64) error {
 	return err
 }
 
-func (tr *ToolRepositoryPostgres) IncreaseStock(toolID int64) error {
-	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock + 1 WHERE id = $1`, toolID)
+func (tr *ToolRepositoryPostgres) IncreaseStock(toolID int64, amount int) error {
+	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock + $1 WHERE id = $2`, amount, toolID)
 	return err
 }
 
-func (tr *ToolRepositoryPostgres) DecreaseStock(toolID int64) error {
-	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock - 1 WHERE id = $1`, toolID)
+func (tr *ToolRepositoryPostgres) DecreaseStock(toolID int64, amount int) error {
+	_, err := tr.DB.Exec(`UPDATE tools SET stock = stock - $1 WHERE id = $2`, amount, toolID)
 	return err
 }

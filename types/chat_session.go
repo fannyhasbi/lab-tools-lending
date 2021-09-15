@@ -33,6 +33,7 @@ var (
 		"register_complete": "RGR_complete",
 
 		"borrow_init":    "BRW_init",
+		"borrow_amount":  "BRW_amount",
 		"borrow_date":    "BRW_date",
 		"borrow_reason":  "BRW_reason",
 		"borrow_confirm": "BRW_confirm",

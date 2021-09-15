@@ -25,7 +25,9 @@ func TestCanFindToolReturningByID(t *testing.T) {
 		AdditionalInfo: "test additional info",
 		Borrow: types.Borrow{
 			UserID:   321,
+			Amount:   3,
 			Duration: 18,
+			ToolID:   999,
 			ConfirmedAt: sql.NullTime{
 				Valid: true,
 				Time:  time.Now(),
@@ -40,8 +42,8 @@ func TestCanFindToolReturningByID(t *testing.T) {
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "borrow_id", "status", "created_at", "additional_info", "duration", "borrow_confirmed_at", "tool_name", "user_id", "user_name", "nim"}).
-		AddRow(toolReturning.ID, toolReturning.BorrowID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo, toolReturning.Borrow.Duration, toolReturning.Borrow.ConfirmedAt, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.UserID, toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM)
+	rows := sqlmock.NewRows([]string{"id", "borrow_id", "status", "created_at", "additional_info", "amount", "duration", "tool_id", "borrow_confirmed_at", "tool_name", "user_id", "user_name", "nim"}).
+		AddRow(toolReturning.ID, toolReturning.BorrowID, toolReturning.Status, toolReturning.CreatedAt, toolReturning.AdditionalInfo, toolReturning.Borrow.Amount, toolReturning.Borrow.Duration, toolReturning.Borrow.ToolID, toolReturning.Borrow.ConfirmedAt, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.UserID, toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM)
 
 	mock.ExpectQuery("^SELECT .+ FROM tool_returning tr INNER JOIN borrows b .+ INNER JOIN tools t .+ INNER JOIN users u .+ WHERE tr.id = .+").
 		WithArgs(id).

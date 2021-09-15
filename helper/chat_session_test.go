@@ -62,6 +62,15 @@ func TestSessionGeneratorBorrowInit(t *testing.T) {
 	assert.JSONEq(t, expected, r)
 }
 
+func TestSessionGeneratorBorrowAmount(t *testing.T) {
+	amount := 3
+	gen := NewSessionDataGenerator()
+	r := gen.BorrowAmount(amount)
+
+	expected := fmt.Sprintf(`{"type":"%s","amount":%d}`, string(types.Topic["borrow_amount"]), amount)
+	assert.JSONEq(t, expected, r)
+}
+
 func TestSessionGeneratorBorrowDuration(t *testing.T) {
 	duration := 30
 	gen := NewSessionDataGenerator()

@@ -65,6 +65,9 @@ func GetBorrowFromChatSessionDetail(details []types.ChatSessionDetail) types.Bor
 		case types.Topic["borrow_init"]:
 			toolID, _ := dataParsed.Path("tool_id").Data().(float64)
 			borrow.ToolID = int64(toolID)
+		case types.Topic["borrow_amount"]:
+			amount, _ := dataParsed.Path("amount").Data().(float64)
+			borrow.Amount = int(amount)
 		case types.Topic["borrow_date"]:
 			duration, _ := dataParsed.Path("duration").Data().(float64)
 			borrow.Duration = int(duration)

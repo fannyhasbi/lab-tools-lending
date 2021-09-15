@@ -19,7 +19,7 @@ func NewToolReturningQueryPostgres(DB *sql.DB) repository.ToolReturningQuery {
 
 func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult {
 	row := trq.DB.QueryRow(`
-		SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.additional_info, b.duration, b.confirmed_at AS borrow_confirmed_at, t.name AS tool_name, b.user_id, u.name AS user_name, u.nim
+		SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.additional_info, b.amount, b.duration, b.tool_id, b.confirmed_at AS borrow_confirmed_at, t.name AS tool_name, b.user_id, u.name AS user_name, u.nim
 		FROM tool_returning tr
 		INNER JOIN borrows b
 			ON b.id = tr.borrow_id
@@ -39,7 +39,9 @@ func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult 
 		&ret.Status,
 		&ret.CreatedAt,
 		&ret.AdditionalInfo,
+		&ret.Borrow.Amount,
 		&ret.Borrow.Duration,
+		&ret.Borrow.ToolID,
 		&ret.Borrow.ConfirmedAt,
 		&ret.Borrow.Tool.Name,
 		&ret.Borrow.UserID,
