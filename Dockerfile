@@ -1,3 +1,4 @@
+# using multiple stage to make the image small in size
 FROM golang:alpine as builder
 
 RUN apk update && apk add --no-cache git

@@ -12,7 +12,6 @@ services:
     networks:
       - fullstack
 
-
   db:
     image: postgres:latest
     environment:
