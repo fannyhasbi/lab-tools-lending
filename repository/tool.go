@@ -14,6 +14,6 @@ type ToolRepository interface {
 	Update(tool *types.Tool) error
 	SavePhotos(toolID int64, photos []types.TelePhotoSize) error
 	DeletePhotos(toolID int64) error
-	IncreaseStock(toolID int64) error
-	DecreaseStock(toolID int64) error
+	IncreaseStock(toolID int64, amount int) error
+	DecreaseStock(toolID int64, amount int) error
 }

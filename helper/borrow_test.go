@@ -73,26 +73,37 @@ func TestCanGetBorrowByStatus(t *testing.T) {
 }
 
 func TestBuildBorrowedMessage(t *testing.T) {
-	tt := []types.Borrow{
+	b := []types.Borrow{
 		{
-			CreatedAt: "2021-08-01",
+			ID:       1,
+			Duration: 10,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now(),
+			},
 			Tool: types.Tool{
-				Name: "Tool Name Test 1",
+				Name: "Test Tool Name 1",
 			},
 		},
 		{
-			CreatedAt: time.Now().Format(time.RFC3339),
+			ID:       2,
+			Duration: 13,
+			ConfirmedAt: sql.NullTime{
+				Valid: true,
+				Time:  time.Now(),
+			},
 			Tool: types.Tool{
-				Name: "Tool Name Test 2",
+				Name: "Test Tool Name 2",
 			},
 		},
 	}
 
-	r := BuildBorrowedMessage(tt)
+	r := BuildBorrowedMessage(b)
 
-	expected := fmt.Sprintf("* %s (%s)\n* %s (%s)\n",
-		tt[0].Tool.Name, TranslateDateStringToBahasa(tt[0].CreatedAt),
-		tt[1].Tool.Name, TranslateDateStringToBahasa(tt[1].CreatedAt))
+	layout := "02/01/2006"
+	expected := fmt.Sprintf("[%d] %s (%s - %s)\n[%d] %s (%s - %s)\n",
+		b[0].ID, b[0].Tool.Name, b[0].ConfirmedAt.Time.Format(layout), b[0].ConfirmedAt.Time.AddDate(0, 0, b[0].Duration).Format(layout),
+		b[1].ID, b[1].Tool.Name, b[1].ConfirmedAt.Time.Format(layout), b[1].ConfirmedAt.Time.AddDate(0, 0, b[1].Duration).Format(layout))
 
 	assert.Equal(t, expected, r)
 }
@@ -132,20 +143,24 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 	rets := []types.ToolReturning{
 		{
 			ID: 123,
-			Tool: types.Tool{
-				Name: "Test Tool Name 1",
-			},
-			User: types.User{
-				Name: "Test Name 1",
+			Borrow: types.Borrow{
+				Tool: types.Tool{
+					Name: "Test Tool Name 1",
+				},
+				User: types.User{
+					Name: "Test Name 1",
+				},
 			},
 		},
 		{
 			ID: 321,
-			Tool: types.Tool{
-				Name: "Test Tool Name 2",
-			},
-			User: types.User{
-				Name: "Test Name 2",
+			Borrow: types.Borrow{
+				Tool: types.Tool{
+					Name: "Test Tool Name 2",
+				},
+				User: types.User{
+					Name: "Test Name 2",
+				},
 			},
 		},
 	}
@@ -153,14 +168,15 @@ func TestBuildToolReturningRequestMessage(t *testing.T) {
 	r := BuildToolReturningRequestListMessage(rets)
 
 	expected := fmt.Sprintf("[%d] %s - %s\n[%d] %s - %s\n",
-		rets[0].ID, rets[0].User.Name, rets[0].Tool.Name,
-		rets[1].ID, rets[1].User.Name, rets[1].Tool.Name)
+		rets[0].ID, rets[0].Borrow.User.Name, rets[0].Borrow.Tool.Name,
+		rets[1].ID, rets[1].Borrow.User.Name, rets[1].Borrow.Tool.Name)
 
 	assert.Equal(t, expected, r)
 }
 
 func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 	var toolID int64 = 123
+	var amount int = 3
 	var duration int = 23
 	var reason string = "test borrow reason"
 
@@ -169,6 +185,10 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 			{
 				Topic: types.Topic["borrow_init"],
 				Data:  NewSessionDataGenerator().BorrowInit(toolID),
+			},
+			{
+				Topic: types.Topic["borrow_amount"],
+				Data:  NewSessionDataGenerator().BorrowAmount(amount),
 			},
 			{
 				Topic: types.Topic["borrow_date"],
@@ -184,6 +204,7 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 
 		expected := types.Borrow{
 			ToolID:   toolID,
+			Amount:   amount,
 			Duration: duration,
 			Reason: sql.NullString{
 				Valid:  true,
@@ -206,6 +227,7 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 
 		expected := types.Borrow{
 			ToolID:   toolID,
+			Amount:   0,
 			Duration: 0,
 			Reason: sql.NullString{
 				Valid:  false,
@@ -214,6 +236,43 @@ func TestGetBorrowFromChatSessionDetail(t *testing.T) {
 		}
 
 		assert.Equal(t, expected, r)
+	})
+}
+
+func TestCanGetSameBorrow(t *testing.T) {
+	t.Run("same", func(t *testing.T) {
+		var toolID int64 = 123
+		borrows := []types.Borrow{
+			{
+				ToolID: 333,
+				Status: types.GetBorrowStatus("progress"),
+			},
+			{
+				ToolID: toolID,
+				Status: types.GetBorrowStatus("request"),
+			},
+		}
+
+		r, same := GetSameBorrow(borrows, toolID)
+		assert.True(t, same)
+		assert.Equal(t, types.GetBorrowStatus("request"), r)
+	})
+	t.Run("not same", func(t *testing.T) {
+		var toolID int64 = 123
+		borrows := []types.Borrow{
+			{
+				ToolID: 111,
+				Status: types.GetBorrowStatus("progress"),
+			},
+			{
+				ToolID: 999,
+				Status: types.GetBorrowStatus("request"),
+			},
+		}
+
+		r, same := GetSameBorrow(borrows, toolID)
+		assert.False(t, same)
+		assert.Equal(t, types.BorrowStatus(""), r)
 	})
 }
 

@@ -155,7 +155,7 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 	switch topic {
 	case types.Topic["register_init"], types.Topic["register_confirm"], types.Topic["register_complete"]:
 		return ms.Register()
-	case types.Topic["borrow_init"], types.Topic["borrow_date"], types.Topic["borrow_reason"], types.Topic["borrow_confirm"]:
+	case types.Topic["borrow_init"], types.Topic["borrow_amount"], types.Topic["borrow_date"], types.Topic["borrow_reason"], types.Topic["borrow_confirm"]:
 		return ms.Borrow()
 	case types.Topic["tool_returning_init"], types.Topic["tool_returning_confirm"]:
 		return ms.ReturnTool()
@@ -165,7 +165,7 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 		return ms.RespondToolReturning()
 	case types.Topic["manage_add_init"], types.Topic["manage_add_name"], types.Topic["manage_add_brand"], types.Topic["manage_add_type"], types.Topic["manage_add_weight"], types.Topic["manage_add_stock"], types.Topic["manage_add_info"], types.Topic["manage_add_photo"], types.Topic["manage_add_confirm"]:
 		return ms.ManageAdd()
-	case types.Topic["manage_edit_init"], types.Topic["manage_edit_name"], types.Topic["manage_edit_brand"], types.Topic["manage_edit_type"], types.Topic["manage_edit_weight"], types.Topic["manage_edit_stock"], types.Topic["manage_edit_info"], types.Topic["manage_add_confirm"]:
+	case types.Topic["manage_edit_init"], types.Topic["manage_edit_field"], types.Topic["manage_edit_complete"]:
 		return ms.ManageEdit()
 	case types.Topic["manage_photo_init"], types.Topic["manage_photo_upload"], types.Topic["manage_photo_confirm"]:
 		return ms.ManagePhoto()

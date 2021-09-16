@@ -36,6 +36,12 @@ func (sdc SessionDataContainer) BorrowInit(toolID int64) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) BorrowAmount(amount int) string {
+	sdc.container.Set(types.Topic["borrow_amount"], "type")
+	sdc.container.Set(amount, "amount")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) BorrowDuration(dateDuration int) string {
 	sdc.container.Set(types.Topic["borrow_date"], "type")
 	sdc.container.Set(dateDuration, "duration")
@@ -51,6 +57,12 @@ func (sdc SessionDataContainer) BorrowReason(reason string) string {
 func (sdc SessionDataContainer) BorrowConfirmation(userResponse bool) string {
 	sdc.container.Set(types.Topic["borrow_confirm"], "type")
 	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ToolReturningInit(borrowID int64) string {
+	sdc.container.Set(types.Topic["tool_returning_init"], "type")
+	sdc.container.Set(borrowID, "borrow_id")
 	return sdc.container.String()
 }
 
@@ -92,36 +104,6 @@ func (sdc SessionDataContainer) RespondToolReturningComplete(description string)
 	return sdc.container.String()
 }
 
-func (sdc SessionDataContainer) manageName(topic types.TopicType, name string) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(name, "name")
-}
-
-func (sdc SessionDataContainer) manageBrand(topic types.TopicType, brand string) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(brand, "brand")
-}
-
-func (sdc SessionDataContainer) manageProductType(topic types.TopicType, productType string) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(productType, "product_type")
-}
-
-func (sdc SessionDataContainer) manageWeight(topic types.TopicType, weight float32) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(weight, "weight")
-}
-
-func (sdc SessionDataContainer) manageStock(topic types.TopicType, stock int64) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(stock, "stock")
-}
-
-func (sdc SessionDataContainer) manageInfo(topic types.TopicType, info string) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(info, "info")
-}
-
 func (sdc SessionDataContainer) managePhoto(topic types.TopicType, mediaGroupID, fileID, fileUniqueID string) {
 	sdc.container.Set(topic, "type")
 	sdc.container.Set(mediaGroupID, "media_group_id")
@@ -129,38 +111,39 @@ func (sdc SessionDataContainer) managePhoto(topic types.TopicType, mediaGroupID,
 	sdc.container.Set(fileUniqueID, "file_unique_id")
 }
 
-func (sdc SessionDataContainer) manageConfirm(topic types.TopicType, userResponse bool) {
-	sdc.container.Set(topic, "type")
-	sdc.container.Set(userResponse, "user_response")
-}
-
 func (sdc SessionDataContainer) ManageAddName(name string) string {
-	sdc.manageName(types.Topic["manage_add_name"], name)
+	sdc.container.Set(types.Topic["manage_add_name"], "type")
+	sdc.container.Set(name, "name")
 	return sdc.container.String()
 }
 
 func (sdc SessionDataContainer) ManageAddBrand(brand string) string {
-	sdc.manageBrand(types.Topic["manage_add_brand"], brand)
+	sdc.container.Set(types.Topic["manage_add_brand"], "type")
+	sdc.container.Set(brand, "brand")
 	return sdc.container.String()
 }
 
 func (sdc SessionDataContainer) ManageAddProductType(productType string) string {
-	sdc.manageProductType(types.Topic["manage_add_type"], productType)
+	sdc.container.Set(types.Topic["manage_add_type"], "type")
+	sdc.container.Set(productType, "product_type")
 	return sdc.container.String()
 }
 
 func (sdc SessionDataContainer) ManageAddWeight(weight float32) string {
-	sdc.manageWeight(types.Topic["manage_add_weight"], weight)
+	sdc.container.Set(types.Topic["manage_add_weight"], "type")
+	sdc.container.Set(weight, "weight")
 	return sdc.container.String()
 }
 
 func (sdc SessionDataContainer) ManageAddStock(stock int64) string {
-	sdc.manageStock(types.Topic["manage_add_stock"], stock)
+	sdc.container.Set(types.Topic["manage_add_stock"], "type")
+	sdc.container.Set(stock, "stock")
 	return sdc.container.String()
 }
 
 func (sdc SessionDataContainer) ManageAddInfo(info string) string {
-	sdc.manageInfo(types.Topic["manage_add_info"], info)
+	sdc.container.Set(types.Topic["manage_add_info"], "type")
+	sdc.container.Set(info, "info")
 	return sdc.container.String()
 }
 
@@ -170,7 +153,8 @@ func (sdc SessionDataContainer) ManageAddPhoto(mediaGroupID, fileID, fileUniqueI
 }
 
 func (sdc SessionDataContainer) ManageAddConfirm(userResponse bool) string {
-	sdc.manageConfirm(types.Topic["manage_add_confirm"], userResponse)
+	sdc.container.Set(types.Topic["manage_add_confirm"], "type")
+	sdc.container.Set(userResponse, "user_response")
 	return sdc.container.String()
 }
 
@@ -180,38 +164,15 @@ func (sdc SessionDataContainer) ManageEditInit(toolID int64) string {
 	return sdc.container.String()
 }
 
-func (sdc SessionDataContainer) ManageEditName(name string) string {
-	sdc.manageName(types.Topic["manage_edit_name"], name)
+func (sdc SessionDataContainer) ManageEditField(field string) string {
+	sdc.container.Set(types.Topic["manage_edit_field"], "type")
+	sdc.container.Set(field, "field")
 	return sdc.container.String()
 }
 
-func (sdc SessionDataContainer) ManageEditBrand(brand string) string {
-	sdc.manageBrand(types.Topic["manage_edit_brand"], brand)
-	return sdc.container.String()
-}
-
-func (sdc SessionDataContainer) ManageEditProductType(productType string) string {
-	sdc.manageProductType(types.Topic["manage_edit_type"], productType)
-	return sdc.container.String()
-}
-
-func (sdc SessionDataContainer) ManageEditWeight(weight float32) string {
-	sdc.manageWeight(types.Topic["manage_edit_weight"], weight)
-	return sdc.container.String()
-}
-
-func (sdc SessionDataContainer) ManageEditStock(stock int64) string {
-	sdc.manageStock(types.Topic["manage_edit_stock"], stock)
-	return sdc.container.String()
-}
-
-func (sdc SessionDataContainer) ManageEditInfo(info string) string {
-	sdc.manageInfo(types.Topic["manage_edit_info"], info)
-	return sdc.container.String()
-}
-
-func (sdc SessionDataContainer) ManageEditConfirm(userResponse bool) string {
-	sdc.manageConfirm(types.Topic["manage_edit_confirm"], userResponse)
+func (sdc SessionDataContainer) ManageEditComplete(newData string) string {
+	sdc.container.Set(types.Topic["manage_edit_complete"], "type")
+	sdc.container.Set(newData, "new_data")
 	return sdc.container.String()
 }
 

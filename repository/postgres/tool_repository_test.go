@@ -116,12 +116,13 @@ func TestCanIncreaseStock(t *testing.T) {
 	defer db.Close()
 
 	var id int64 = 123
+	amount := 3
 	repository := NewToolRepositoryPostgres(db)
 
-	mock.ExpectExec("^UPDATE tools SET stock = stock \\+ 1 WHERE id = .+").
-		WithArgs(id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("^UPDATE tools SET stock = stock \\+ .+ WHERE id = .+").
+		WithArgs(amount, id).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := repository.IncreaseStock(id)
+	err := repository.IncreaseStock(id, amount)
 	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
@@ -132,12 +133,13 @@ func TestCanDecreaseStock(t *testing.T) {
 	defer db.Close()
 
 	var id int64 = 123
+	amount := 3
 	repository := NewToolRepositoryPostgres(db)
 
-	mock.ExpectExec("^UPDATE tools SET stock = stock - 1 WHERE id = .+").
-		WithArgs(id).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("^UPDATE tools SET stock = stock - .+ WHERE id = .+").
+		WithArgs(amount, id).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := repository.DecreaseStock(id)
+	err := repository.DecreaseStock(id, amount)
 	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)

@@ -30,8 +30,12 @@ func GetBorrowsByStatus(borrows []types.Borrow, status types.BorrowStatus) []typ
 
 func BuildBorrowedMessage(borrows []types.Borrow) string {
 	var message string
+	layout := "02/01/2006"
 	for _, borrow := range borrows {
-		message = fmt.Sprintf("%s* %s (%s)\n", message, borrow.Tool.Name, TranslateDateStringToBahasa(borrow.CreatedAt))
+		since := borrow.ConfirmedAt.Time.Format(layout)
+		until := borrow.ConfirmedAt.Time.AddDate(0, 0, borrow.Duration).Format(layout)
+
+		message = fmt.Sprintf("%s[%d] %s (%s - %s)\n", message, borrow.ID, borrow.Tool.Name, since, until)
 	}
 	return message
 }
@@ -47,7 +51,7 @@ func BuildBorrowRequestListMessage(borrows []types.Borrow) string {
 func BuildToolReturningRequestListMessage(rets []types.ToolReturning) string {
 	var message string
 	for _, ret := range rets {
-		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.User.Name, ret.Tool.Name)
+		message = fmt.Sprintf("%s[%d] %s - %s\n", message, ret.ID, ret.Borrow.User.Name, ret.Borrow.Tool.Name)
 	}
 	return message
 }
@@ -65,6 +69,9 @@ func GetBorrowFromChatSessionDetail(details []types.ChatSessionDetail) types.Bor
 		case types.Topic["borrow_init"]:
 			toolID, _ := dataParsed.Path("tool_id").Data().(float64)
 			borrow.ToolID = int64(toolID)
+		case types.Topic["borrow_amount"]:
+			amount, _ := dataParsed.Path("amount").Data().(float64)
+			borrow.Amount = int(amount)
 		case types.Topic["borrow_date"]:
 			duration, _ := dataParsed.Path("duration").Data().(float64)
 			borrow.Duration = int(duration)
@@ -75,6 +82,16 @@ func GetBorrowFromChatSessionDetail(details []types.ChatSessionDetail) types.Bor
 	}
 
 	return borrow
+}
+
+func GetSameBorrow(borrows []types.Borrow, toolID int64) (types.BorrowStatus, bool) {
+	for _, b := range borrows {
+		if b.ToolID == toolID {
+			return b.Status, true
+		}
+	}
+
+	return "", false
 }
 
 func BuildBorrowReportMessage(borrows []types.Borrow) string {

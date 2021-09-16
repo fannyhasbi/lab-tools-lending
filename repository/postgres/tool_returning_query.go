@@ -19,12 +19,14 @@ func NewToolReturningQueryPostgres(DB *sql.DB) repository.ToolReturningQuery {
 
 func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult {
 	row := trq.DB.QueryRow(`
-		SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name, u.nim
+		SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.additional_info, b.amount, b.duration, b.tool_id, b.confirmed_at AS borrow_confirmed_at, t.name AS tool_name, b.user_id, u.name AS user_name, u.nim
 		FROM tool_returning tr
+		INNER JOIN borrows b
+			ON b.id = tr.borrow_id
 		INNER JOIN tools t
-			ON t.id = tr.tool_id
+			ON t.id = b.tool_id
 		INNER JOIN users u
-			ON u.id = tr.user_id
+			ON u.id = b.user_id
 		WHERE tr.id = $1
 	`, id)
 
@@ -33,14 +35,18 @@ func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult 
 
 	err := row.Scan(
 		&ret.ID,
-		&ret.UserID,
-		&ret.ToolID,
+		&ret.BorrowID,
 		&ret.Status,
 		&ret.CreatedAt,
 		&ret.AdditionalInfo,
-		&ret.Tool.Name,
-		&ret.User.Name,
-		&ret.User.NIM,
+		&ret.Borrow.Amount,
+		&ret.Borrow.Duration,
+		&ret.Borrow.ToolID,
+		&ret.Borrow.ConfirmedAt,
+		&ret.Borrow.Tool.Name,
+		&ret.Borrow.UserID,
+		&ret.Borrow.User.Name,
+		&ret.Borrow.User.NIM,
 	)
 
 	if err != nil {
@@ -52,43 +58,52 @@ func (trq ToolReturningQueryPostgres) FindByID(id int64) repository.QueryResult 
 	return result
 }
 
-func (trq ToolReturningQueryPostgres) FindByUserIDAndStatus(id int64, status types.ToolReturningStatus) repository.QueryResult {
-	row := trq.DB.QueryRow(`
-		SELECT id, user_id, tool_id, status, created_at, additional_info
-		FROM tool_returning
-		WHERE user_id = $1 AND status = $2
-		ORDER BY id DESC
+func (trq ToolReturningQueryPostgres) GetByUserIDAndStatus(id int64, status types.ToolReturningStatus) repository.QueryResult {
+	rows, err := trq.DB.Query(`
+		SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.additional_info, b.user_id
+		FROM tool_returning tr
+		INNER JOIN borrows b
+			ON b.id = tr.borrow_id
+		WHERE b.user_id = $1 AND tr.status = $2
+		ORDER BY tr.id ASC
 	`, id, status)
 
-	ret := types.ToolReturning{}
+	rets := []types.ToolReturning{}
 	result := repository.QueryResult{}
-
-	err := row.Scan(
-		&ret.ID,
-		&ret.UserID,
-		&ret.ToolID,
-		&ret.Status,
-		&ret.CreatedAt,
-		&ret.AdditionalInfo,
-	)
 
 	if err != nil {
 		result.Error = err
-		return result
+	} else {
+		for rows.Next() {
+			temp := types.ToolReturning{}
+			rows.Scan(
+				&temp.ID,
+				&temp.BorrowID,
+				&temp.Status,
+				&temp.CreatedAt,
+				&temp.AdditionalInfo,
+				&temp.Borrow.UserID,
+			)
+
+			rets = append(rets, temp)
+		}
+		result.Result = rets
 	}
 
-	result.Result = ret
+	result.Result = rets
 	return result
 }
 
 func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStatus) repository.QueryResult {
 	rows, err := trq.DB.Query(`
-		SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name
+		SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.additional_info, t.name AS tool_name, u.name AS user_name
 		FROM tool_returning tr
+		INNER JOIN borrows b
+			ON b.id = tr.borrow_id
 		INNER JOIN tools t
-			ON t.id = tr.tool_id
+			ON t.id = b.tool_id
 		INNER JOIN users u
-			ON u.id = tr.user_id
+			ON u.id = b.user_id
 		WHERE tr.status = $1
 		ORDER BY tr.id ASC
 	`, status)
@@ -103,13 +118,12 @@ func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStat
 			temp := types.ToolReturning{}
 			rows.Scan(
 				&temp.ID,
-				&temp.UserID,
-				&temp.ToolID,
+				&temp.BorrowID,
 				&temp.Status,
 				&temp.CreatedAt,
 				&temp.AdditionalInfo,
-				&temp.Tool.Name,
-				&temp.User.Name,
+				&temp.Borrow.Tool.Name,
+				&temp.Borrow.User.Name,
 			)
 
 			rets = append(rets, temp)
@@ -120,12 +134,14 @@ func (trq ToolReturningQueryPostgres) GetByStatus(status types.ToolReturningStat
 }
 
 func (trq ToolReturningQueryPostgres) GetReport(year, month int) repository.QueryResult {
-	rows, err := trq.DB.Query(`SELECT tr.id, tr.user_id, tr.tool_id, tr.status, tr.created_at, tr.confirmed_at, tr.confirmed_by, t.name AS tool_name, u.name AS user_name
+	rows, err := trq.DB.Query(`SELECT tr.id, tr.borrow_id, tr.status, tr.created_at, tr.confirmed_at, tr.confirmed_by, t.name AS tool_name, u.name AS user_name
 		FROM tool_returning tr
+		INNER JOIN borrows b
+			ON b.id = tr.borrow_id
 		INNER JOIN tools t
-			ON t.id = tr.tool_id
+			ON t.id = b.tool_id
 		INNER JOIN users u
-			ON u.id = tr.user_id
+			ON u.id = b.user_id
 		WHERE tr.status = $1
 			AND DATE_PART('year', tr.confirmed_at) = $2
 			AND DATE_PART('month', tr.confirmed_at) = $3
@@ -142,14 +158,13 @@ func (trq ToolReturningQueryPostgres) GetReport(year, month int) repository.Quer
 			temp := types.ToolReturning{}
 			rows.Scan(
 				&temp.ID,
-				&temp.UserID,
-				&temp.ToolID,
+				&temp.BorrowID,
 				&temp.Status,
 				&temp.CreatedAt,
 				&temp.ConfirmedAt,
 				&temp.ConfirmedBy,
-				&temp.Tool.Name,
-				&temp.User.Name,
+				&temp.Borrow.Tool.Name,
+				&temp.Borrow.User.Name,
 			)
 
 			rets = append(rets, temp)
