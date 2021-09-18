@@ -12,24 +12,26 @@ func TestCanSaveChatSession(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
+	requestType := types.RequestTypePrivate
 	chatSession := types.ChatSession{
-		ID:        123,
-		Status:    types.ChatSessionStatus["progress"],
-		UserID:    321,
-		CreatedAt: timeNowString(),
-		UpdatedAt: timeNowString(),
+		ID:          123,
+		Status:      types.ChatSessionStatus["progress"],
+		UserID:      321,
+		CreatedAt:   timeNowString(),
+		UpdatedAt:   timeNowString(),
+		RequestType: requestType,
 	}
 
 	repository := NewChatSessionRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "status", "user_id", "created_at", "updated_at"}).
-		AddRow(chatSession.ID, chatSession.Status, chatSession.UserID, chatSession.CreatedAt, chatSession.UpdatedAt)
+	rows := sqlmock.NewRows([]string{"id", "status", "user_id", "created_at", "updated_at", "request_type"}).
+		AddRow(chatSession.ID, chatSession.Status, chatSession.UserID, chatSession.CreatedAt, chatSession.UpdatedAt, chatSession.RequestType)
 
 	mock.ExpectQuery("^INSERT INTO chat_sessions (.+) VALUES (.+) RETURNING (.+)").
-		WithArgs(chatSession.Status, chatSession.UserID).
+		WithArgs(chatSession.Status, chatSession.UserID, requestType).
 		WillReturnRows(rows)
 
-	result, err := repository.Save(&chatSession)
+	result, err := repository.Save(&chatSession, requestType)
 	assert.NoError(t, err)
 	assert.Equal(t, chatSession, result)
 

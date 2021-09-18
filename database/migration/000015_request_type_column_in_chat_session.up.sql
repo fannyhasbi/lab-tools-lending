@@ -1,0 +1,1 @@
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS request_type VARCHAR(20) NOT NULL DEFAULT 'private';

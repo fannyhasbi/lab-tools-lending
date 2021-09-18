@@ -382,7 +382,7 @@ func (ms *MessageService) checkDetailPhoto(toolID int64) error {
 }
 
 func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
-	chatSession, err := ms.chatSessionService.GetChatSession(ms.user)
+	chatSession, err := ms.chatSessionService.GetChatSession(ms.user, ms.requestType)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -393,7 +393,7 @@ func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionDa
 			UserID: ms.user.ID,
 		}
 
-		chatSession, err = ms.chatSessionService.SaveChatSession(chatSessionParam)
+		chatSession, err = ms.chatSessionService.SaveChatSession(chatSessionParam, ms.requestType)
 		if err != nil {
 			return err
 		}

@@ -12,20 +12,21 @@ func TestCanGetChatSession(t *testing.T) {
 	db, mock, _ := sqlmock.New()
 	defer db.Close()
 
+	requestType := types.RequestTypePrivate
 	user := types.User{
 		ID: 123,
 	}
 
 	query := NewChatSessionQueryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "status", "created_at"}).
-		AddRow(1, types.ChatSessionStatus["progress"], timeNowString())
+	rows := sqlmock.NewRows([]string{"id", "status", "created_at", "request_type"}).
+		AddRow(1, types.ChatSessionStatus["progress"], timeNowString(), requestType)
 
 	mock.ExpectQuery("^SELECT(.+)FROM chat_sessions(.+)WHERE user_id = (.+) ORDER BY id DESC").
-		WithArgs(user.ID, types.ChatSessionStatus["progress"]).
+		WithArgs(user.ID, types.ChatSessionStatus["progress"], requestType).
 		WillReturnRows(rows)
 
-	result := query.Get(user)
+	result := query.Get(user, types.RequestTypePrivate)
 	assert.NoError(t, result.Error)
 	assert.NotEmpty(t, result.Result)
 }

@@ -73,7 +73,7 @@ func WebhookHandler(c echo.Context) error {
 	user := types.User{ID: senderID}
 
 	chatSessionService = service.NewChatSessionService()
-	chatSession, err := chatSessionService.GetChatSession(user)
+	chatSession, err := chatSessionService.GetChatSession(user, requestType)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return messageService.Error()

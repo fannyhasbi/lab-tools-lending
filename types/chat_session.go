@@ -5,11 +5,12 @@ type (
 	TopicType             string
 
 	ChatSession struct {
-		ID        int64                 `json:"id"`
-		Status    ChatSessionStatusType `json:"status"`
-		UserID    int64                 `json:"user_id"`
-		CreatedAt string                `json:"created_at"`
-		UpdatedAt string                `json:"updated_at"`
+		ID          int64                 `json:"id"`
+		Status      ChatSessionStatusType `json:"status"`
+		UserID      int64                 `json:"user_id"`
+		CreatedAt   string                `json:"created_at"`
+		UpdatedAt   string                `json:"updated_at"`
+		RequestType RequestType           `json:"request_type"`
 	}
 
 	ChatSessionDetail struct {
