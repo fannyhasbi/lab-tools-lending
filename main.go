@@ -15,13 +15,14 @@ import (
 
 func main() {
 	godotenv.Load()
+	environment := os.Getenv("ENVIRONMENT")
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	e := echo.New()
-
 	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-	if os.Getenv("ENVIRONMENT") == "development" {
+	if environment == "development" || environment == "" || environment == "production" {
 		e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
 			log.Println("REQUEST", string(reqBody))
 			log.Println("RESPONSE", string(resBody))

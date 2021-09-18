@@ -98,8 +98,8 @@ func BuildBorrowReportMessage(borrows []types.Borrow) string {
 	var message string
 	for _, borrow := range borrows {
 		message = fmt.Sprintf(
-			"%s[%d] %s - %s, %s (dikonfirmasi oleh: %s)\n",
-			message, borrow.ID, TranslateDateToBahasa(borrow.ConfirmedAt.Time), borrow.User.Name, borrow.Tool.Name, borrow.ConfirmedBy.String)
+			"%s[%d] %s - %s, %d buah %s (dikonfirmasi oleh: %s)\n",
+			message, borrow.ID, TranslateDateToBahasa(borrow.ConfirmedAt.Time), borrow.User.Name, borrow.Amount, borrow.Tool.Name, borrow.ConfirmedBy.String)
 	}
 	return message
 }

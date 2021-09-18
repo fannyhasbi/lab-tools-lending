@@ -8,7 +8,7 @@ run:
 	@go run main.go
 
 test:
-	go test -v ./...
+	go test -race -v ./...
 
 container:
 	docker-compose build && docker-compose up

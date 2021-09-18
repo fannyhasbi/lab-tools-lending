@@ -2,6 +2,8 @@ package helper
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -104,6 +106,20 @@ func TestCanBuildToolListMessage(t *testing.T) {
 	expected := fmt.Sprintf("[%d] %s\n[%d] %s (stok kosong)\n", tools[0].ID, tools[0].Name, tools[1].ID, tools[1].Name)
 
 	assert.Equal(t, expected, r)
+}
+
+func TestCanGetAdminGroupID(t *testing.T) {
+	var id int64 = -1234
+	err := os.Setenv("ADMIN_GROUP_ID", strconv.FormatInt(id, 10))
+	assert.NoError(t, err)
+
+	adminGroupID := os.Getenv("ADMIN_GROUP_ID")
+	i, err := strconv.ParseInt(adminGroupID, 10, 64)
+	assert.NoError(t, err)
+	assert.Equal(t, id, i)
+
+	r := GetAdminGroupID()
+	assert.Equal(t, id, r)
 }
 
 func TestGetReportTimeFromCommand(t *testing.T) {

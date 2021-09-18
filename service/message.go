@@ -203,27 +203,30 @@ func (ms *MessageService) FirstStart() error {
 }
 
 func (ms *MessageService) Help() error {
-	reqBody := types.MessageRequest{
-		Text: "Halo ini adalah pesan bantuan!",
-	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply:", err)
-		return err
+	message := fmt.Sprintf(`/%s - Mendaftarkan diri agar dapat menggunakan sistem
+		/%s - Cek ketersediaan barang
+		/%s - Mulai pengajuan peminjaman barang
+		/%s - Mulai pengajuan Pengembalian barang
+		/%s - Menampilkan panduan penggunaan bot`, types.CommandRegister, types.CommandCheck, types.CommandBorrow, types.CommandReturn, types.CommandHelp)
+
+	if ms.isEligibleAdmin() {
+		message = fmt.Sprintf(`/%s - Cek ketersediaan barang
+			/%s - Menanggapi pengajuan peminjaman dan pengembalian barang
+			/%s - Menambah dan mengubah data barang
+			/%s - Melihat laporan bulanan
+			/%s - Menampilkan panduan penggunaan bot`, types.CommandCheck, types.CommandRespond, types.CommandManage, types.CommandReport, types.CommandHelp)
 	}
 
-	return nil
+	return ms.sendMessage(types.MessageRequest{
+		Text: helper.RemoveTab(message),
+	})
 }
 
 func (ms *MessageService) Unknown() error {
 	reqBody := types.MessageRequest{
 		Text: "Maaf, perintah tidak dikenali.",
 	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply:", err)
-		return err
-	}
-
-	return nil
+	return ms.sendMessage(reqBody)
 }
 
 func (ms *MessageService) Check() error {
@@ -922,9 +925,11 @@ func (ms *MessageService) borrowReason() error {
 		Jumlah : %d
 		Tanggal Pengembalian : %s (%d hari)
 		Alamat peminjam : %s
+		Alasan:
+		%s
 
 		Pastikan data sudah benar. Tekan "Lanjutkan" untuk mengajukan ke pengurus.
-	`, tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(returnDate), borrow.Duration, ms.user.Address)
+	`, tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(returnDate), borrow.Duration, ms.user.Address, ms.messageText)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -1012,7 +1017,7 @@ func (ms *MessageService) notifyBorrowRequestToAdmin(borrowID int64) error {
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
-		ChatID: types.AdminGroupIDs[0],
+		ChatID: helper.GetAdminGroupID(),
 		Text:   message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
@@ -1350,7 +1355,7 @@ func (ms *MessageService) notifyToolReturningRequestToAdmin(toolReturning types.
 	Barang: %s`, toolReturning.Borrow.User.Name, toolReturning.Borrow.Tool.Name)
 
 	return ms.sendMessage(types.MessageRequest{
-		ChatID: types.AdminGroupIDs[0],
+		ChatID: helper.GetAdminGroupID(),
 		Text:   message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
@@ -1560,9 +1565,12 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 		Jumlah: %d
 		Diajukan pada: %s
 		Durasi peminjaman: %d hari
+		Alamat pemohon:
+		%s
+
 		Alasan peminjaman:
 		%s
-	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.Reason.String)
+	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.User.Address, borrow.Reason.String)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1744,10 +1752,12 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 		Jumlah: %d
 		Dipinjam sejak: %s
 		Durasi peminjaman: %d hari
+		Alamat peminjam:
+		%s
 
 		Keterangan:
 		%s
-	`, toolReturning.ID, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.Amount, helper.TranslateDateToBahasa(toolReturning.Borrow.ConfirmedAt.Time), toolReturning.Borrow.Duration, toolReturning.AdditionalInfo)
+	`, toolReturning.ID, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.Amount, helper.TranslateDateToBahasa(toolReturning.Borrow.ConfirmedAt.Time), toolReturning.Borrow.Duration, toolReturning.Borrow.User.Address, toolReturning.AdditionalInfo)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1839,7 +1849,7 @@ func (ms *MessageService) Manage() error {
 	if manageCommands.Type == types.ManageTypeEdit && manageCommands.ID == 0 {
 		return ms.sendMessage(types.MessageRequest{
 			Text: fmt.Sprintf(
-				"Untuk melakukan pengubahan data dapat dengan mengetikkan perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+				"Untuk melakukan pengubahan data silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
 				types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
 		})
 	}

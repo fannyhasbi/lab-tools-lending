@@ -19,6 +19,7 @@ var dbInstance *sql.DB
 func InitPostgresDB() *sql.DB {
 	var connStr string
 
+	environment := os.Getenv("ENVIRONMENT")
 	DBHost := os.Getenv("DB_HOST")
 	DBDriver := os.Getenv("DB_DRIVER")
 	DBUser := os.Getenv("DB_USER")
@@ -26,7 +27,10 @@ func InitPostgresDB() *sql.DB {
 	DBPort := os.Getenv("DB_PORT")
 	DBName := os.Getenv("DB_NAME")
 
-	connStr = fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable", DBDriver, DBUser, DBPass, DBHost, DBPort, DBName)
+	connStr = fmt.Sprintf("%s://%s:%s@%s:%s/%s", DBDriver, DBUser, DBPass, DBHost, DBPort, DBName)
+	if environment == "development" || environment == "" {
+		connStr += "?sslmode=disable"
+	}
 
 	dbInit.Do(func() {
 		db, err := sql.Open("postgres", connStr)

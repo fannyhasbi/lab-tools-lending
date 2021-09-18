@@ -1,7 +1,11 @@
 # Lab Tools Lending
+
+# Configuration
+Create a new file and name it `.env`. Copy the content from `.env.example` file to `.env` and change the values.
+
 ## Database Configuration
 ### Migration
-This project use [golang-migrate](https://github.com/golang-migrate/migrate) tool to make migration. Please install the tool before running these commands.
+This project use [golang-migrate](https://github.com/golang-migrate/migrate) tool to make migration. Please install the tool before running these commands in development environment.
 
 **Migrating Up**
 ```
@@ -44,3 +48,7 @@ make container
   ```bash
   make change-server URL=https://example.com
   ```
+
+### Production
+1. `heroku container:push web -a app-name`
+2. `heroku container:release web -a app-name`
