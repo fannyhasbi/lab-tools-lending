@@ -73,16 +73,6 @@ func (ms *MessageService) initToolReturningService() {
 	ms.toolReturningService = NewToolReturningService()
 }
 
-func (ms *MessageService) isRegistered() bool {
-	user, err := ms.userService.FindByID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
-		return false
-	}
-
-	ms.user = user
-	return ms.user.IsRegistered()
-}
-
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
 		reqBody.ChatID = ms.chatID
@@ -434,11 +424,16 @@ func (ms *MessageService) Register() error {
 		return ms.Error()
 	}
 
-	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
-		reqBody := types.MessageRequest{
-			Text: "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt),
+	if err != sql.ErrNoRows && len(ms.chatSessionDetails) == 0 {
+		message := "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt)
+
+		if user.UserType == types.UserTypeAdmin {
+			message = "Pengurus tidak bisa melakukan registrasi."
 		}
-		return ms.sendMessage(reqBody)
+
+		return ms.sendMessage(types.MessageRequest{
+			Text: message,
+		})
 	}
 
 	if len(ms.chatSessionDetails) == 0 {
@@ -685,8 +680,14 @@ func (ms *MessageService) Borrow() error {
 	}
 
 	ms.user = user
-	if !ms.user.IsRegistered() {
+	if err == sql.ErrNoRows {
 		return ms.notRegistered()
+	}
+
+	if user.UserType == types.UserTypeAdmin {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengurus tidak dapat melakukan peminjaman barang.",
+		})
 	}
 
 	toolID, ok := isIDWithinCommand(ms.messageText)
@@ -1044,8 +1045,14 @@ func (ms *MessageService) ReturnTool() error {
 	}
 
 	ms.user = user
-	if !ms.user.IsRegistered() {
+	if err == sql.ErrNoRows {
 		return ms.notRegistered()
+	}
+
+	if user.UserType == types.UserTypeAdmin {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengurus tidak dapat melakukan pengembalian barang.",
+		})
 	}
 
 	borrowID, ok := isIDWithinCommand(ms.messageText)
@@ -1385,13 +1392,69 @@ func (ms *MessageService) isEligibleAdmin() bool {
 		return false
 	}
 
-	adminIDs := []int64{284324420}
-	for _, id := range adminIDs {
-		if ms.user.ID == id {
+	user, err := ms.userService.FindByID(ms.user.ID)
+	if err != nil {
+		return false
+	}
+
+	for _, t := range []types.UserType{types.UserTypeAdmin, types.UserTypeBoth} {
+		if user.UserType == t {
 			return true
 		}
 	}
+
 	return false
+}
+
+func (ms *MessageService) BeAdmin() error {
+	if ms.requestType != types.RequestTypeGroup {
+		return ms.Unknown()
+	}
+
+	splittedText := strings.Split(ms.messageText, " ")
+
+	if len(splittedText) != 1 {
+		return ms.Unknown()
+	}
+
+	user, err := ms.userService.FindByID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][BeAdmin][FindByID]", err)
+		return ms.Error()
+	}
+
+	fullName := ms.message.From.FirstName
+	if len(ms.message.From.LastName) > 0 {
+		fullName = fmt.Sprintf("%s %s", ms.message.From.FirstName, ms.message.From.LastName)
+	}
+
+	if err == sql.ErrNoRows {
+		newUser := types.User{
+			ID:       ms.user.ID,
+			Name:     fullName,
+			UserType: types.UserTypeAdmin,
+		}
+		if _, err = ms.userService.SaveUser(newUser); err != nil {
+			log.Println("[ERR][BeAdmin][SaveUser]", err)
+			return ms.Error()
+		}
+	} else {
+		if user.UserType != types.UserTypeStudent {
+			return ms.sendMessage(types.MessageRequest{
+				Text: "Anda sudah terdaftar menjadi pengurus sebelumnya.",
+			})
+		}
+
+		if err = ms.userService.UpdateUserType(ms.user.ID, types.UserTypeBoth); err != nil {
+			log.Println("[ERR][BeAdmin][UpdateUserType]", err)
+			return ms.Error()
+		}
+	}
+
+	message := fmt.Sprintf(`%s berhasil menjadi pengurus.`, fullName)
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) Respond() error {
@@ -1458,7 +1521,7 @@ func (ms *MessageService) ListToRespond() error {
 }
 
 func (ms *MessageService) RespondBorrow() error {
-	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+	if !ms.isEligibleAdmin() {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}
@@ -1650,7 +1713,7 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 }
 
 func (ms *MessageService) RespondToolReturning() error {
-	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+	if !ms.isEligibleAdmin() {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}

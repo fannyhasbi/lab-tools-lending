@@ -9,6 +9,7 @@ const (
 	CommandHelp     = "bantuan"
 
 	// admin stuffs
+	CommandAdmin   = "pengurus"
 	CommandRespond = "tanggapi"
 	CommandManage  = "kelola"
 	CommandReport  = "laporan"

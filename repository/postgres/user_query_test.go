@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/fannyhasbi/lab-tools-lending/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,8 +15,8 @@ func TestCanFindUserByID(t *testing.T) {
 	var id int64 = 123
 	query := NewUserQueryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at"}).
-		AddRow(id, "testname", "2111", 2016, "testaddress", timeNowString())
+	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at", "user_type"}).
+		AddRow(id, "testname", "2111", 2016, "testaddress", timeNowString(), types.UserTypeStudent)
 
 	mock.ExpectQuery("^SELECT(.+)FROM users(.+)WHERE id = (.+)").
 		WithArgs(id).

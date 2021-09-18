@@ -4,6 +4,13 @@ port := 3000
 include .env
 export $(shell sed 's/=.*//' .env)
 
+# migration var
+ifdef N
+DOWN := $(N)
+else
+DOWN := 1
+endif
+
 run:
 	@go run main.go
 
@@ -31,7 +38,7 @@ migrate-up:
 migrate-down:
 	@migrate -path database/migration \
 		-database "postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable" \
-		-verbose down
+		-verbose down ${DOWN}
 
 migrate-force:
 	@migrate -path database/migration \

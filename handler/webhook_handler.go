@@ -124,6 +124,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.Borrow()
 	case types.CommandReturn:
 		return ms.ReturnTool()
+	case types.CommandAdmin:
+		return ms.BeAdmin()
 	case types.CommandRespond:
 		return ms.Respond()
 	case types.CommandManage:
