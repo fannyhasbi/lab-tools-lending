@@ -22,6 +22,8 @@ func GetToolFromChatSessionDetail(manageType types.ManageType, details []types.C
 			extractToolAddBasedOnTopic(&tool, detail.Topic, dataParsed)
 		} else if manageType == types.ManageTypeEdit {
 			extractToolEditBasedOnTopic(&tool, detail.Topic, dataParsed)
+		} else if manageType == types.ManageTypeDelete {
+			extractToolDeleteBasedOnTopic(&tool, detail.Topic, dataParsed)
 		} else if manageType == types.ManageTypePhoto {
 			extractToolPhotoBasedOnTopic(&tool, detail.Topic, dataParsed)
 		}
@@ -57,6 +59,14 @@ func extractToolAddBasedOnTopic(tool *types.Tool, topic types.TopicType, dataPar
 func extractToolEditBasedOnTopic(tool *types.Tool, topic types.TopicType, dataParsed *gabs.Container) {
 	switch topic {
 	case types.Topic["manage_edit_init"]:
+		id, _ := dataParsed.Path("tool_id").Data().(float64)
+		tool.ID = int64(id)
+	}
+}
+
+func extractToolDeleteBasedOnTopic(tool *types.Tool, topic types.TopicType, dataParsed *gabs.Container) {
+	switch topic {
+	case types.Topic["manage_delete_init"]:
 		id, _ := dataParsed.Path("tool_id").Data().(float64)
 		tool.ID = int64(id)
 	}

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -61,6 +62,26 @@ func TestCanUpdateTool(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err := repository.Update(&tool)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+func TestCanDeleteTool(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	currentTime := time.Now()
+	var toolID int64 = 123
+
+	repository := NewToolRepositoryPostgres(db)
+
+	mock.ExpectPrepare("^UPDATE tools SET deleted_at = .* WHERE id = .+").
+		ExpectExec().
+		WithArgs(currentTime, toolID).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repository.Delete(toolID, currentTime)
 	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)

@@ -62,6 +62,9 @@ var (
 		"manage_edit_field":    "MNG_edit_field",
 		"manage_edit_complete": "MNG_edit_complete",
 
+		"manage_delete_init":     "MNG_delete_init",
+		"manage_delete_complete": "MNG_delete_complete",
+
 		"manage_photo_init":    "MNG_photo_init",
 		"manage_photo_upload":  "MNG_photo_upload",
 		"manage_photo_confirm": "MNG_photo_confirm",

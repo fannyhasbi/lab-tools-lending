@@ -93,6 +93,23 @@ func TestGetToolFromChatSessionDetail_Edit(t *testing.T) {
 	})
 }
 
+func TestGetToolFromChatSessionDetail_Delete(t *testing.T) {
+	tool := types.Tool{
+		ID: 999,
+	}
+
+	sessions := []types.ChatSessionDetail{
+		{
+			Topic: types.Topic["manage_delete_init"],
+			Data:  NewSessionDataGenerator().ManageDeleteInit(tool.ID),
+		},
+	}
+
+	r := GetToolFromChatSessionDetail(types.ManageTypeDelete, sessions)
+
+	assert.Equal(t, tool, r)
+}
+
 func TestGetToolFromChatSessionDetail_Photo(t *testing.T) {
 	tool := types.Tool{
 		ID: 123,

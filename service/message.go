@@ -310,6 +310,10 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 				Text:         "Ubah Data",
 				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, tool.ID),
 			}},
+			{{
+				Text:         "Hapus",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeDelete, tool.ID),
+			}},
 		}
 	} else {
 		inlineKeyboard = [][]types.InlineKeyboardButton{
@@ -1846,12 +1850,22 @@ func (ms *MessageService) Manage() error {
 		return ms.manageMenu()
 	}
 
-	if manageCommands.Type == types.ManageTypeEdit && manageCommands.ID == 0 {
-		return ms.sendMessage(types.MessageRequest{
-			Text: fmt.Sprintf(
-				"Untuk melakukan pengubahan data silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
-				types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
-		})
+	if manageCommands.ID == 0 {
+		if manageCommands.Type == types.ManageTypeEdit {
+			return ms.sendMessage(types.MessageRequest{
+				Text: fmt.Sprintf(
+					"Untuk melakukan pengubahan data silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+					types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
+			})
+		}
+
+		if manageCommands.Type == types.ManageTypeDelete {
+			return ms.sendMessage(types.MessageRequest{
+				Text: fmt.Sprintf(
+					"Untuk melakukan penghapusan barang silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+					types.CommandManage, types.ManageTypeDelete, types.CommandManage, types.ManageTypeDelete),
+			})
+		}
 	}
 
 	switch manageCommands.Type {
@@ -1859,6 +1873,8 @@ func (ms *MessageService) Manage() error {
 		return ms.manageAddInit()
 	case types.ManageTypeEdit:
 		return ms.manageEditInit(manageCommands.ID)
+	case types.ManageTypeDelete:
+		return ms.manageDeleteInit(manageCommands.ID)
 	case types.ManageTypePhoto:
 		return ms.managePhotoInit(manageCommands.ID)
 	}
@@ -2305,6 +2321,99 @@ func (ms *MessageService) manageEditComplete() error {
 				},
 			},
 		},
+	})
+}
+
+func (ms *MessageService) manageDeleteInit(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][managedDeleteInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageDeleteInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_delete_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageDeleteInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		Text: fmt.Sprintf("Apakah Anda yakin ingin menghapus %s?", tool.Name),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Yakin",
+						CallbackData: "yes",
+					},
+					{
+						Text:         "Batalkan",
+						CallbackData: "no",
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) ManageDelete() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_delete_init"]:
+			return ms.manageDeleteComplete()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageDeleteComplete() error {
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageDeleteComplete(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_delete_complete"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageDeleteComplete][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][manageDeleteComplete][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Penghapusan barang dibatalkan.",
+		})
+	}
+
+	sessionTool := helper.GetToolFromChatSessionDetail(types.ManageTypeDelete, ms.chatSessionDetails)
+
+	if err := ms.toolService.DeleteTool(sessionTool.ID); err != nil {
+		log.Println("[ERR][manageDeleteComplete][DeleteTool]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: fmt.Sprintf("Barang dengan ID %d berhasil dihapus.", sessionTool.ID),
 	})
 }
 

@@ -250,6 +250,23 @@ func TestSessionGeneratorManageEdit(t *testing.T) {
 	})
 }
 
+func TestSessionGeneratorManageDelete(t *testing.T) {
+	t.Run("init", func(t *testing.T) {
+		var toolID int64 = 123
+		gen := NewSessionDataGenerator()
+		r := gen.ManageDeleteInit(toolID)
+		expected := fmt.Sprintf(`{"type":"%s","tool_id":%d}`, types.Topic["manage_delete_init"], toolID)
+		assert.JSONEq(t, expected, r)
+	})
+	t.Run("complete", func(t *testing.T) {
+		userResponse := false
+		gen := NewSessionDataGenerator()
+		r := gen.ManageDeleteComplete(userResponse)
+		expected := fmt.Sprintf(`{"type":"%s","user_response":%t}`, types.Topic["manage_delete_complete"], userResponse)
+		assert.JSONEq(t, expected, r)
+	})
+}
+
 func TestSessionGeneratorManagePhoto(t *testing.T) {
 	t.Run("init", func(t *testing.T) {
 		var toolID int64 = 321

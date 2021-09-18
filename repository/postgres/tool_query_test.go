@@ -29,7 +29,7 @@ func TestCanFindToolByID(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "brand", "product_type", "weight", "stock", "additional_info", "created_at", "updated_at"}).
 		AddRow(tt.ID, tt.Name, tt.Brand, tt.ProductType, tt.Weight, tt.Stock, tt.AdditionalInformation, tt.CreatedAt, tt.UpdatedAt)
 
-	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE id = (.+)").
+	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE id = (.+) AND deleted_at IS NULL").
 		WithArgs(tt.ID).
 		WillReturnRows(rows)
 
@@ -78,7 +78,7 @@ func TestCanGetTools(t *testing.T) {
 		rows.AddRow(v.ID, v.Name, v.Brand, v.ProductType, v.Weight, v.Stock, v.AdditionalInformation, v.CreatedAt, v.UpdatedAt)
 	}
 
-	mock.ExpectQuery("^SELECT .+ FROM tools ORDER BY id ASC").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT .+ FROM tools WHERE deleted_at IS NULL ORDER BY id ASC").WillReturnRows(rows)
 
 	result := query.Get()
 	assert.NoError(t, result.Error)
@@ -98,7 +98,7 @@ func TestCanGetAvailableTool(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name", "brand", "product_type", "weight", "stock", "additional_info", "created_at", "updated_at"}).
 		AddRow(1, "nametest", "brandtest", "producttypetest", 99.0, 10, "additionaltest", timeNowString(), timeNowString())
 
-	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE stock > 0 ORDER BY id ASC").
+	mock.ExpectQuery("^SELECT (.+) FROM tools WHERE stock > 0 AND deleted_at IS NULL ORDER BY id ASC").
 		WillReturnRows(rows)
 
 	result := query.GetAvailableTools()
@@ -126,7 +126,7 @@ func TestCanGetPhotos(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"file_id", "file_unique_id"}).AddRow(photos[0].FileID, photos[0].FileUniqueID).AddRow(photos[1].FileID, photos[1].FileUniqueID)
 
-	mock.ExpectQuery("^SELECT file_id, file_unique_id FROM tool_photos WHERE tool_id = .+").WithArgs(toolID).WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT p.file_id, p.file_unique_id FROM tool_photos p INNER JOIN tools t .+ WHERE p.tool_id = .+ AND t.deleted_at IS NULL").WithArgs(toolID).WillReturnRows(rows)
 
 	result := query.GetPhotos(toolID)
 	assert.NoError(t, result.Error)

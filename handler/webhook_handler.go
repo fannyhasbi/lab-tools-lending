@@ -167,6 +167,8 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 		return ms.ManageAdd()
 	case types.Topic["manage_edit_init"], types.Topic["manage_edit_field"], types.Topic["manage_edit_complete"]:
 		return ms.ManageEdit()
+	case types.Topic["manage_delete_init"], types.Topic["manage_delete_complete"]:
+		return ms.ManageDelete()
 	case types.Topic["manage_photo_init"], types.Topic["manage_photo_upload"], types.Topic["manage_photo_confirm"]:
 		return ms.ManagePhoto()
 	default:

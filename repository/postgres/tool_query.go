@@ -18,7 +18,7 @@ func NewToolQueryPostgres(DB *sql.DB) repository.ToolQuery {
 }
 
 func (tq ToolQueryPostgres) FindByID(id int64) repository.QueryResult {
-	row := tq.DB.QueryRow(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE id = $1`, id)
+	row := tq.DB.QueryRow(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE id = $1 AND deleted_at IS NULL`, id)
 
 	tool := types.Tool{}
 	result := repository.QueryResult{}
@@ -45,7 +45,7 @@ func (tq ToolQueryPostgres) FindByID(id int64) repository.QueryResult {
 }
 
 func (tq ToolQueryPostgres) Get() repository.QueryResult {
-	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools ORDER BY id ASC`)
+	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE deleted_at IS NULL ORDER BY id ASC`)
 
 	tools := []types.Tool{}
 	result := repository.QueryResult{}
@@ -75,7 +75,7 @@ func (tq ToolQueryPostgres) Get() repository.QueryResult {
 }
 
 func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
-	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0 ORDER BY id ASC`)
+	rows, err := tq.DB.Query(`SELECT id, name, brand, product_type, weight, stock, additional_info, created_at, updated_at FROM tools WHERE stock > 0 AND deleted_at IS NULL ORDER BY id ASC`)
 
 	tools := []types.Tool{}
 	result := repository.QueryResult{}
@@ -105,7 +105,14 @@ func (tq ToolQueryPostgres) GetAvailableTools() repository.QueryResult {
 }
 
 func (tq ToolQueryPostgres) GetPhotos(toolID int64) repository.QueryResult {
-	rows, err := tq.DB.Query(`SELECT file_id, file_unique_id FROM tool_photos WHERE tool_id = $1 ORDER BY id DESC`, toolID)
+	rows, err := tq.DB.Query(`
+		SELECT p.file_id, p.file_unique_id
+		FROM tool_photos p
+		INNER JOIN tools t
+			ON t.id = p.tool_id
+		WHERE p.tool_id = $1 AND t.deleted_at IS NULL
+		ORDER BY p.id ASC
+	`, toolID)
 
 	photos := []types.TelePhotoSize{}
 	result := repository.QueryResult{}

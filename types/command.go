@@ -47,9 +47,10 @@ var (
 	RespondTypeBorrow        RespondType = "pinjam"
 	RespondTypeToolReturning RespondType = "kembali"
 
-	ManageTypeAdd   ManageType = "tambah"
-	ManageTypeEdit  ManageType = "edit"
-	ManageTypePhoto ManageType = "foto"
+	ManageTypeAdd    ManageType = "tambah"
+	ManageTypeEdit   ManageType = "edit"
+	ManageTypeDelete ManageType = "hapus"
+	ManageTypePhoto  ManageType = "foto"
 
 	ReportTypeBorrow        ReportType = "pinjam"
 	ReportTypeToolReturning ReportType = "kembali"
