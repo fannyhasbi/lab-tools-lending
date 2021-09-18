@@ -73,16 +73,6 @@ func (ms *MessageService) initToolReturningService() {
 	ms.toolReturningService = NewToolReturningService()
 }
 
-func (ms *MessageService) isRegistered() bool {
-	user, err := ms.userService.FindByID(ms.user.ID)
-	if err != nil && err != sql.ErrNoRows {
-		return false
-	}
-
-	ms.user = user
-	return ms.user.IsRegistered()
-}
-
 func (ms *MessageService) sendMessage(reqBody types.MessageRequest) error {
 	if reqBody.ChatID == 0 {
 		reqBody.ChatID = ms.chatID
@@ -203,27 +193,30 @@ func (ms *MessageService) FirstStart() error {
 }
 
 func (ms *MessageService) Help() error {
-	reqBody := types.MessageRequest{
-		Text: "Halo ini adalah pesan bantuan!",
-	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply:", err)
-		return err
+	message := fmt.Sprintf(`/%s - Mendaftarkan diri agar dapat menggunakan sistem
+		/%s - Cek ketersediaan barang
+		/%s - Mulai pengajuan peminjaman barang
+		/%s - Mulai pengajuan Pengembalian barang
+		/%s - Menampilkan panduan penggunaan bot`, types.CommandRegister, types.CommandCheck, types.CommandBorrow, types.CommandReturn, types.CommandHelp)
+
+	if ms.isEligibleAdmin() {
+		message = fmt.Sprintf(`/%s - Cek ketersediaan barang
+			/%s - Menanggapi pengajuan peminjaman dan pengembalian barang
+			/%s - Menambah dan mengubah data barang
+			/%s - Melihat laporan bulanan
+			/%s - Menampilkan panduan penggunaan bot`, types.CommandCheck, types.CommandRespond, types.CommandManage, types.CommandReport, types.CommandHelp)
 	}
 
-	return nil
+	return ms.sendMessage(types.MessageRequest{
+		Text: helper.RemoveTab(message),
+	})
 }
 
 func (ms *MessageService) Unknown() error {
 	reqBody := types.MessageRequest{
 		Text: "Maaf, perintah tidak dikenali.",
 	}
-	if err := ms.sendMessage(reqBody); err != nil {
-		log.Println("error in sending reply:", err)
-		return err
-	}
-
-	return nil
+	return ms.sendMessage(reqBody)
 }
 
 func (ms *MessageService) Check() error {
@@ -307,6 +300,10 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 				Text:         "Ubah Data",
 				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeEdit, tool.ID),
 			}},
+			{{
+				Text:         "Hapus",
+				CallbackData: fmt.Sprintf("/%s %s %d", types.CommandManage, types.ManageTypeDelete, tool.ID),
+			}},
 		}
 	} else {
 		inlineKeyboard = [][]types.InlineKeyboardButton{
@@ -385,25 +382,21 @@ func (ms *MessageService) checkDetailPhoto(toolID int64) error {
 }
 
 func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
-	var chatSession types.ChatSession
-
-	chatSessions, err := ms.chatSessionService.GetChatSessions(ms.user)
+	chatSession, err := ms.chatSessionService.GetChatSession(ms.user, ms.requestType)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
-	if len(chatSessions) == 0 {
+	if err == sql.ErrNoRows {
 		chatSessionParam := types.ChatSession{
 			Status: types.ChatSessionStatus["progress"],
 			UserID: ms.user.ID,
 		}
 
-		chatSession, err = ms.chatSessionService.SaveChatSession(chatSessionParam)
+		chatSession, err = ms.chatSessionService.SaveChatSession(chatSessionParam, ms.requestType)
 		if err != nil {
 			return err
 		}
-	} else {
-		chatSession = chatSessions[0]
 	}
 
 	if len(sessionData) == 0 {
@@ -427,11 +420,16 @@ func (ms *MessageService) Register() error {
 		return ms.Error()
 	}
 
-	if user.IsRegistered() && len(ms.chatSessionDetails) == 0 {
-		reqBody := types.MessageRequest{
-			Text: "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt),
+	if err != sql.ErrNoRows && len(ms.chatSessionDetails) == 0 {
+		message := "Tidak bisa melakukan registrasi, Anda sudah terdaftar ke dalam sistem pada " + helper.TranslateDateStringToBahasa(user.CreatedAt)
+
+		if user.UserType == types.UserTypeAdmin {
+			message = "Pengurus tidak bisa melakukan registrasi."
 		}
-		return ms.sendMessage(reqBody)
+
+		return ms.sendMessage(types.MessageRequest{
+			Text: message,
+		})
 	}
 
 	if len(ms.chatSessionDetails) == 0 {
@@ -678,8 +676,14 @@ func (ms *MessageService) Borrow() error {
 	}
 
 	ms.user = user
-	if !ms.user.IsRegistered() {
+	if err == sql.ErrNoRows {
 		return ms.notRegistered()
+	}
+
+	if user.UserType == types.UserTypeAdmin {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengurus tidak dapat melakukan peminjaman barang.",
+		})
 	}
 
 	toolID, ok := isIDWithinCommand(ms.messageText)
@@ -922,9 +926,11 @@ func (ms *MessageService) borrowReason() error {
 		Jumlah : %d
 		Tanggal Pengembalian : %s (%d hari)
 		Alamat peminjam : %s
+		Alasan:
+		%s
 
 		Pastikan data sudah benar. Tekan "Lanjutkan" untuk mengajukan ke pengurus.
-	`, tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(returnDate), borrow.Duration, ms.user.Address)
+	`, tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(returnDate), borrow.Duration, ms.user.Address, ms.messageText)
 	message = helper.RemoveTab(message)
 
 	reqBody := types.MessageRequest{
@@ -1012,7 +1018,7 @@ func (ms *MessageService) notifyBorrowRequestToAdmin(borrowID int64) error {
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
-		ChatID: types.AdminGroupIDs[0],
+		ChatID: helper.GetAdminGroupID(),
 		Text:   message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
@@ -1035,8 +1041,14 @@ func (ms *MessageService) ReturnTool() error {
 	}
 
 	ms.user = user
-	if !ms.user.IsRegistered() {
+	if err == sql.ErrNoRows {
 		return ms.notRegistered()
+	}
+
+	if user.UserType == types.UserTypeAdmin {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Pengurus tidak dapat melakukan pengembalian barang.",
+		})
 	}
 
 	borrowID, ok := isIDWithinCommand(ms.messageText)
@@ -1350,7 +1362,7 @@ func (ms *MessageService) notifyToolReturningRequestToAdmin(toolReturning types.
 	Barang: %s`, toolReturning.Borrow.User.Name, toolReturning.Borrow.Tool.Name)
 
 	return ms.sendMessage(types.MessageRequest{
-		ChatID: types.AdminGroupIDs[0],
+		ChatID: helper.GetAdminGroupID(),
 		Text:   message,
 		ReplyMarkup: types.InlineKeyboardMarkup{
 			InlineKeyboard: [][]types.InlineKeyboardButton{
@@ -1376,13 +1388,73 @@ func (ms *MessageService) isEligibleAdmin() bool {
 		return false
 	}
 
-	adminIDs := []int64{284324420}
-	for _, id := range adminIDs {
-		if ms.user.ID == id {
+	if ms.chatID != helper.GetAdminGroupID() {
+		return false
+	}
+
+	user, err := ms.userService.FindByID(ms.user.ID)
+	if err != nil {
+		return false
+	}
+
+	for _, t := range []types.UserType{types.UserTypeAdmin, types.UserTypeBoth} {
+		if user.UserType == t {
 			return true
 		}
 	}
+
 	return false
+}
+
+func (ms *MessageService) BeAdmin() error {
+	if ms.requestType != types.RequestTypeGroup {
+		return ms.Unknown()
+	}
+
+	splittedText := strings.Split(ms.messageText, " ")
+
+	if len(splittedText) != 1 {
+		return ms.Unknown()
+	}
+
+	user, err := ms.userService.FindByID(ms.user.ID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][BeAdmin][FindByID]", err)
+		return ms.Error()
+	}
+
+	fullName := ms.message.From.FirstName
+	if len(ms.message.From.LastName) > 0 {
+		fullName = fmt.Sprintf("%s %s", ms.message.From.FirstName, ms.message.From.LastName)
+	}
+
+	if err == sql.ErrNoRows {
+		newUser := types.User{
+			ID:       ms.user.ID,
+			Name:     fullName,
+			UserType: types.UserTypeAdmin,
+		}
+		if _, err = ms.userService.SaveUser(newUser); err != nil {
+			log.Println("[ERR][BeAdmin][SaveUser]", err)
+			return ms.Error()
+		}
+	} else {
+		if user.UserType != types.UserTypeStudent {
+			return ms.sendMessage(types.MessageRequest{
+				Text: "Anda sudah terdaftar menjadi pengurus sebelumnya.",
+			})
+		}
+
+		if err = ms.userService.UpdateUserType(ms.user.ID, types.UserTypeBoth); err != nil {
+			log.Println("[ERR][BeAdmin][UpdateUserType]", err)
+			return ms.Error()
+		}
+	}
+
+	message := fmt.Sprintf(`%s berhasil menjadi pengurus.`, fullName)
+	return ms.sendMessage(types.MessageRequest{
+		Text: message,
+	})
 }
 
 func (ms *MessageService) Respond() error {
@@ -1449,7 +1521,7 @@ func (ms *MessageService) ListToRespond() error {
 }
 
 func (ms *MessageService) RespondBorrow() error {
-	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+	if !ms.isEligibleAdmin() {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}
@@ -1560,9 +1632,12 @@ func (ms *MessageService) respondBorrowDetail(borrow types.Borrow) error {
 		Jumlah: %d
 		Diajukan pada: %s
 		Durasi peminjaman: %d hari
+		Alamat pemohon:
+		%s
+
 		Alasan peminjaman:
 		%s
-	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.Reason.String)
+	`, borrow.ID, borrow.User.Name, borrow.User.NIM, borrow.Tool.Name, borrow.Amount, helper.TranslateDateStringToBahasa(borrow.CreatedAt), borrow.Duration, borrow.User.Address, borrow.Reason.String)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1638,7 +1713,7 @@ func (ms *MessageService) respondBorrowNegative(borrow types.Borrow) error {
 }
 
 func (ms *MessageService) RespondToolReturning() error {
-	if !ms.isRegistered() || !ms.isEligibleAdmin() {
+	if !ms.isEligibleAdmin() {
 		log.Println("[INFO] Not eligible user accessing admin command", ms.messageText)
 		return ms.Unknown()
 	}
@@ -1744,10 +1819,12 @@ func (ms *MessageService) respondToolReturningDetail(toolReturning types.ToolRet
 		Jumlah: %d
 		Dipinjam sejak: %s
 		Durasi peminjaman: %d hari
+		Alamat peminjam:
+		%s
 
 		Keterangan:
 		%s
-	`, toolReturning.ID, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.Amount, helper.TranslateDateToBahasa(toolReturning.Borrow.ConfirmedAt.Time), toolReturning.Borrow.Duration, toolReturning.AdditionalInfo)
+	`, toolReturning.ID, helper.TranslateDateStringToBahasa(toolReturning.CreatedAt), toolReturning.Borrow.User.Name, toolReturning.Borrow.User.NIM, toolReturning.Borrow.Tool.Name, toolReturning.Borrow.Amount, helper.TranslateDateToBahasa(toolReturning.Borrow.ConfirmedAt.Time), toolReturning.Borrow.Duration, toolReturning.Borrow.User.Address, toolReturning.AdditionalInfo)
 	message = helper.RemoveTab(message)
 
 	return ms.sendMessage(types.MessageRequest{
@@ -1836,12 +1913,22 @@ func (ms *MessageService) Manage() error {
 		return ms.manageMenu()
 	}
 
-	if manageCommands.Type == types.ManageTypeEdit && manageCommands.ID == 0 {
-		return ms.sendMessage(types.MessageRequest{
-			Text: fmt.Sprintf(
-				"Untuk melakukan pengubahan data dapat dengan mengetikkan perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
-				types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
-		})
+	if manageCommands.ID == 0 {
+		if manageCommands.Type == types.ManageTypeEdit {
+			return ms.sendMessage(types.MessageRequest{
+				Text: fmt.Sprintf(
+					"Untuk melakukan pengubahan data silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+					types.CommandManage, types.ManageTypeEdit, types.CommandManage, types.ManageTypeEdit),
+			})
+		}
+
+		if manageCommands.Type == types.ManageTypeDelete {
+			return ms.sendMessage(types.MessageRequest{
+				Text: fmt.Sprintf(
+					"Untuk melakukan penghapusan barang silahkan kirim perintah\n\"/%s %s [id_barang]\"\n\nContoh: \"/%s %s 5\"",
+					types.CommandManage, types.ManageTypeDelete, types.CommandManage, types.ManageTypeDelete),
+			})
+		}
 	}
 
 	switch manageCommands.Type {
@@ -1849,6 +1936,8 @@ func (ms *MessageService) Manage() error {
 		return ms.manageAddInit()
 	case types.ManageTypeEdit:
 		return ms.manageEditInit(manageCommands.ID)
+	case types.ManageTypeDelete:
+		return ms.manageDeleteInit(manageCommands.ID)
 	case types.ManageTypePhoto:
 		return ms.managePhotoInit(manageCommands.ID)
 	}
@@ -2295,6 +2384,99 @@ func (ms *MessageService) manageEditComplete() error {
 				},
 			},
 		},
+	})
+}
+
+func (ms *MessageService) manageDeleteInit(toolID int64) error {
+	tool, err := ms.toolService.FindByID(toolID)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("[ERR][managedDeleteInit][FindByID]", err)
+		return ms.Error()
+	}
+
+	if err == sql.ErrNoRows {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "ID barang tidak ditemukan.",
+		})
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageDeleteInit(toolID)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_delete_init"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageDeleteInit][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	reqBody := types.MessageRequest{
+		Text: fmt.Sprintf("Apakah Anda yakin ingin menghapus %s?", tool.Name),
+		ReplyMarkup: types.InlineKeyboardMarkup{
+			InlineKeyboard: [][]types.InlineKeyboardButton{
+				{
+					{
+						Text:         "Yakin",
+						CallbackData: "yes",
+					},
+					{
+						Text:         "Batalkan",
+						CallbackData: "no",
+					},
+				},
+			},
+		},
+	}
+
+	return ms.sendMessage(reqBody)
+}
+
+func (ms *MessageService) ManageDelete() error {
+	if len(ms.chatSessionDetails) > 0 {
+		switch ms.chatSessionDetails[0].Topic {
+		case types.Topic["manage_delete_init"]:
+			return ms.manageDeleteComplete()
+		}
+	}
+
+	return ms.Unknown()
+}
+
+func (ms *MessageService) manageDeleteComplete() error {
+	var userResponse bool
+	if ms.messageText == "yes" {
+		userResponse = true
+	} else {
+		userResponse = false
+	}
+
+	gen := helper.NewSessionDataGenerator()
+	generatedSessionData := gen.ManageDeleteComplete(userResponse)
+
+	if err := ms.saveChatSessionDetail(types.Topic["manage_delete_complete"], generatedSessionData); err != nil {
+		log.Println("[ERR][manageDeleteComplete][saveChatSessionDetail]", err)
+		return ms.Error()
+	}
+
+	chatSessionID := ms.chatSessionDetails[0].ChatSessionID
+	if err := ms.chatSessionService.UpdateChatSessionStatus(chatSessionID, types.ChatSessionStatus["complete"]); err != nil {
+		log.Println("[ERR][manageDeleteComplete][UpdateChatSessionStatus]", err)
+		return ms.Error()
+	}
+
+	if !userResponse {
+		return ms.sendMessage(types.MessageRequest{
+			Text: "Penghapusan barang dibatalkan.",
+		})
+	}
+
+	sessionTool := helper.GetToolFromChatSessionDetail(types.ManageTypeDelete, ms.chatSessionDetails)
+
+	if err := ms.toolService.DeleteTool(sessionTool.ID); err != nil {
+		log.Println("[ERR][manageDeleteComplete][DeleteTool]", err)
+		return ms.Error()
+	}
+
+	return ms.sendMessage(types.MessageRequest{
+		Text: fmt.Sprintf("Barang dengan ID %d berhasil dihapus.", sessionTool.ID),
 	})
 }
 

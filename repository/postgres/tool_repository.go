@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/types"
@@ -47,6 +48,16 @@ func (tr *ToolRepositoryPostgres) Update(tool *types.Tool) error {
 	}
 
 	_, err = stmt.Exec(tool.Name, tool.Brand, tool.ProductType, tool.Weight, tool.Stock, tool.AdditionalInformation, tool.ID)
+	return err
+}
+
+func (tr *ToolRepositoryPostgres) Delete(toolID int64, deletedAt time.Time) error {
+	stmt, err := tr.DB.Prepare(`UPDATE tools SET deleted_at = $1 WHERE id = $2`)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(deletedAt, toolID)
 	return err
 }
 

@@ -19,7 +19,7 @@ func NewUserQueryPostgres(DB *sql.DB) repository.UserQuery {
 
 func (uq UserQueryPostgres) FindByID(chatID int64) repository.QueryResult {
 	row := uq.DB.QueryRow(`
-		SELECT id, name, nim, batch, address, created_at
+		SELECT id, name, nim, batch, address, created_at, user_type
 		FROM users
 		WHERE id = $1
 	`, chatID)
@@ -34,6 +34,7 @@ func (uq UserQueryPostgres) FindByID(chatID int64) repository.QueryResult {
 		&user.Batch,
 		&user.Address,
 		&user.CreatedAt,
+		&user.UserType,
 	)
 
 	if err != nil {

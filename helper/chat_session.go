@@ -176,6 +176,18 @@ func (sdc SessionDataContainer) ManageEditComplete(newData string) string {
 	return sdc.container.String()
 }
 
+func (sdc SessionDataContainer) ManageDeleteInit(toolID int64) string {
+	sdc.container.Set(types.Topic["manage_delete_init"], "type")
+	sdc.container.Set(toolID, "tool_id")
+	return sdc.container.String()
+}
+
+func (sdc SessionDataContainer) ManageDeleteComplete(userResponse bool) string {
+	sdc.container.Set(types.Topic["manage_delete_complete"], "type")
+	sdc.container.Set(userResponse, "user_response")
+	return sdc.container.String()
+}
+
 func (sdc SessionDataContainer) ManagePhotoInit(toolID int64) string {
 	sdc.container.Set(types.Topic["manage_photo_init"], "type")
 	sdc.container.Set(toolID, "tool_id")

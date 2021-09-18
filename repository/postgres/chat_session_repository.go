@@ -17,11 +17,9 @@ func NewChatSessionRepositoryPostgres(DB *sql.DB) repository.ChatSessionReposito
 	}
 }
 
-func (csr *ChatSessionRepositoryPostgres) Save(chatSession *types.ChatSession) (types.ChatSession, error) {
-	row := csr.DB.QueryRow(`INSERT INTO chat_sessions (status, user_id) VALUES ($1, $2)
-		RETURNING id, status, user_id, created_at, updated_at`,
-		chatSession.Status,
-		chatSession.UserID)
+func (csr *ChatSessionRepositoryPostgres) Save(chatSession *types.ChatSession, requestType types.RequestType) (types.ChatSession, error) {
+	row := csr.DB.QueryRow(`INSERT INTO chat_sessions (status, user_id, request_type) VALUES ($1, $2, $3)
+		RETURNING id, status, user_id, created_at, updated_at, request_type`, chatSession.Status, chatSession.UserID, requestType)
 
 	cs := types.ChatSession{}
 	err := row.Scan(
@@ -30,6 +28,7 @@ func (csr *ChatSessionRepositoryPostgres) Save(chatSession *types.ChatSession) (
 		&cs.UserID,
 		&cs.CreatedAt,
 		&cs.UpdatedAt,
+		&cs.RequestType,
 	)
 	if err != nil {
 		return types.ChatSession{}, err

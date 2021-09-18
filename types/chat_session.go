@@ -5,11 +5,12 @@ type (
 	TopicType             string
 
 	ChatSession struct {
-		ID        int64                 `json:"id"`
-		Status    ChatSessionStatusType `json:"status"`
-		UserID    int64                 `json:"user_id"`
-		CreatedAt string                `json:"created_at"`
-		UpdatedAt string                `json:"updated_at"`
+		ID          int64                 `json:"id"`
+		Status      ChatSessionStatusType `json:"status"`
+		UserID      int64                 `json:"user_id"`
+		CreatedAt   string                `json:"created_at"`
+		UpdatedAt   string                `json:"updated_at"`
+		RequestType RequestType           `json:"request_type"`
 	}
 
 	ChatSessionDetail struct {
@@ -61,6 +62,9 @@ var (
 		"manage_edit_init":     "MNG_edit_init",
 		"manage_edit_field":    "MNG_edit_field",
 		"manage_edit_complete": "MNG_edit_complete",
+
+		"manage_delete_init":     "MNG_delete_init",
+		"manage_delete_complete": "MNG_delete_complete",
 
 		"manage_photo_init":    "MNG_photo_init",
 		"manage_photo_upload":  "MNG_photo_upload",

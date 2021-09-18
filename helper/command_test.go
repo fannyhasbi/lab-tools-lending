@@ -179,6 +179,14 @@ func TestGetManageCommands(t *testing.T) {
 		assert.Equal(t, types.ManageCommandOrder{Type: types.ManageTypeEdit}, r)
 	})
 
+	t.Run("length equal 2 with type delete", func(t *testing.T) {
+		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypeDelete)
+		r, ok := GetManageCommandOrder(s)
+
+		assert.True(t, ok)
+		assert.Equal(t, types.ManageCommandOrder{Type: types.ManageTypeDelete}, r)
+	})
+
 	t.Run("length equal 2 with type photo", func(t *testing.T) {
 		s := fmt.Sprintf("/%s %s", types.CommandManage, types.ManageTypePhoto)
 		r, ok := GetManageCommandOrder(s)

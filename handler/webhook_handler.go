@@ -73,14 +73,14 @@ func WebhookHandler(c echo.Context) error {
 	user := types.User{ID: senderID}
 
 	chatSessionService = service.NewChatSessionService()
-	chatSessions, err := chatSessionService.GetChatSessions(user)
+	chatSession, err := chatSessionService.GetChatSession(user, requestType)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return messageService.Error()
 	}
 
-	if err != sql.ErrNoRows && len(chatSessions) > 0 && chatSessions[0].Status != types.ChatSessionStatus["complete"] {
-		return sessionProcess(chatSessions[0], messageService, chatSessionService)
+	if err != sql.ErrNoRows && chatSession.Status != types.ChatSessionStatus["complete"] {
+		return sessionProcess(chatSession, messageService, chatSessionService)
 	}
 
 	match, err := regexp.MatchString("^/", messageText)
@@ -124,6 +124,8 @@ func commandHandler(message string, ms *service.MessageService) error {
 		return ms.Borrow()
 	case types.CommandReturn:
 		return ms.ReturnTool()
+	case types.CommandAdmin:
+		return ms.BeAdmin()
 	case types.CommandRespond:
 		return ms.Respond()
 	case types.CommandManage:
@@ -167,6 +169,8 @@ func sessionHandler(topic types.TopicType, ms *service.MessageService) error {
 		return ms.ManageAdd()
 	case types.Topic["manage_edit_init"], types.Topic["manage_edit_field"], types.Topic["manage_edit_complete"]:
 		return ms.ManageEdit()
+	case types.Topic["manage_delete_init"], types.Topic["manage_delete_complete"]:
+		return ms.ManageDelete()
 	case types.Topic["manage_photo_init"], types.Topic["manage_photo_upload"], types.Topic["manage_photo_confirm"]:
 		return ms.ManagePhoto()
 	default:

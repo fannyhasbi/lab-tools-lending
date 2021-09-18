@@ -2,6 +2,7 @@ package helper
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -33,6 +34,16 @@ func BuildToolListMessage(l []types.Tool) string {
 		m += "\n"
 	}
 	return m
+}
+
+func GetAdminGroupID() int64 {
+	adminGroupID := os.Getenv("ADMIN_GROUP_ID")
+	i, err := strconv.ParseInt(adminGroupID, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return i
 }
 
 func GetReportTimeFromCommand(yearmonth string) (int, int, bool) {

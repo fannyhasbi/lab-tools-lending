@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/fannyhasbi/lab-tools-lending/config"
 	"github.com/fannyhasbi/lab-tools-lending/repository"
 	"github.com/fannyhasbi/lab-tools-lending/repository/postgres"
@@ -37,6 +39,11 @@ func (ts ToolService) SaveTool(tool types.Tool) (int64, error) {
 
 func (ts ToolService) UpdateTool(tool types.Tool) error {
 	return ts.Repository.Update(&tool)
+}
+
+func (ts ToolService) DeleteTool(toolID int64) error {
+	currentTime := time.Now()
+	return ts.Repository.Delete(toolID, currentTime)
 }
 
 func (ts ToolService) SaveToolPhotos(toolID int64, photos []types.TelePhotoSize) error {

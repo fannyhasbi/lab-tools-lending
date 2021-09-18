@@ -32,13 +32,14 @@ func TestCanFindBorrowByID(t *testing.T) {
 			Stock: 10,
 		},
 		User: types.User{
-			NIM:  "21120XXXXXXXXX",
-			Name: "Test Name",
+			NIM:     "21120XXXXXXXXX",
+			Name:    "Test Name",
+			Address: "test address",
 		},
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "reason", "tool_name", "tool_stock", "user_name", "nim"}).
-		AddRow(borrow.ID, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.ConfirmedAt, borrow.Reason, borrow.Tool.Name, borrow.Tool.Stock, borrow.User.Name, borrow.User.NIM)
+	rows := sqlmock.NewRows([]string{"id", "amount", "duration", "status", "user_id", "tool_id", "created_at", "confirmed_at", "reason", "tool_name", "tool_stock", "user_name", "nim", "address"}).
+		AddRow(borrow.ID, borrow.Amount, borrow.Duration, borrow.Status, borrow.UserID, borrow.ToolID, borrow.CreatedAt, borrow.ConfirmedAt, borrow.Reason, borrow.Tool.Name, borrow.Tool.Stock, borrow.User.Name, borrow.User.NIM, borrow.User.Address)
 
 	mock.ExpectQuery("^SELECT (.+) FROM borrows .+ INNER JOIN tools .+ INNER JOIN users .+ WHERE .+id = .+").WithArgs(id).WillReturnRows(rows)
 

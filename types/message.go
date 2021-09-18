@@ -32,8 +32,3 @@ type (
 		CallbackData string `json:"callback_data"`
 	}
 )
-
-var (
-	// testing group
-	AdminGroupIDs = []int64{-502157840}
-)

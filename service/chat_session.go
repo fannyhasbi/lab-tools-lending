@@ -26,14 +26,14 @@ func NewChatSessionService() *ChatSessionService {
 	}
 }
 
-func (cs ChatSessionService) GetChatSessions(user types.User) ([]types.ChatSession, error) {
-	result := cs.Query.Get(user)
+func (cs ChatSessionService) GetChatSession(user types.User, requestType types.RequestType) (types.ChatSession, error) {
+	result := cs.Query.Get(user, requestType)
 
 	if result.Error != nil {
-		return []types.ChatSession{}, result.Error
+		return types.ChatSession{}, result.Error
 	}
 
-	return result.Result.([]types.ChatSession), nil
+	return result.Result.(types.ChatSession), nil
 }
 
 func (cs ChatSessionService) GetChatSessionDetails(chatSession types.ChatSession) ([]types.ChatSessionDetail, error) {
@@ -46,8 +46,8 @@ func (cs ChatSessionService) GetChatSessionDetails(chatSession types.ChatSession
 	return result.Result.([]types.ChatSessionDetail), nil
 }
 
-func (cs ChatSessionService) SaveChatSession(chatSession types.ChatSession) (types.ChatSession, error) {
-	result, err := cs.Repository.Save(&chatSession)
+func (cs ChatSessionService) SaveChatSession(chatSession types.ChatSession, requestType types.RequestType) (types.ChatSession, error) {
+	result, err := cs.Repository.Save(&chatSession, requestType)
 	if err != nil {
 		return types.ChatSession{}, err
 	}

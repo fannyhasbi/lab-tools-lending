@@ -19,15 +19,16 @@ func TestCanSaveUser(t *testing.T) {
 		Batch:     2016,
 		Address:   "jalan test message",
 		CreatedAt: timeNowString(),
+		UserType:  types.UserTypeStudent,
 	}
 
 	repository := NewUserRepositoryPostgres(db)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at"}).
-		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt)
+	rows := sqlmock.NewRows([]string{"id", "name", "nim", "batch", "address", "created_at", "user_type"}).
+		AddRow(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.CreatedAt, user.UserType)
 
 	mock.ExpectQuery("^INSERT INTO users (.+) VALUES (.+) RETURNING (.+)").
-		WithArgs(user.ID, user.Name, user.NIM, user.Batch, user.Address).
+		WithArgs(user.ID, user.Name, user.NIM, user.Batch, user.Address, user.UserType).
 		WillReturnRows(rows)
 
 	result, err := repository.Save(&user)
@@ -81,6 +82,25 @@ func TestCanDeleteUser(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err := repository.Delete(id)
+	assert.NoError(t, err)
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
+}
+
+func TestCanUpdateUserType(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	defer db.Close()
+
+	var id int64 = 123
+	userType := types.UserTypeBoth
+
+	repository := NewUserRepositoryPostgres(db)
+
+	mock.ExpectExec("^UPDATE users SET user_type = .+ WHERE id = .+").
+		WithArgs(userType, id).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := repository.UpdateUserType(id, userType)
 	assert.NoError(t, err)
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)

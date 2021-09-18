@@ -68,7 +68,7 @@ func isRespondTypeExists(c types.RespondType) bool {
 }
 
 func isManageTypeExists(c types.ManageType) bool {
-	if c == types.ManageTypeAdd || c == types.ManageTypeEdit || c == types.ManageTypePhoto {
+	if c == types.ManageTypeAdd || c == types.ManageTypeEdit || c == types.ManageTypeDelete || c == types.ManageTypePhoto {
 		return true
 	}
 	return false
@@ -95,7 +95,7 @@ func GetManageCommandOrder(s string) (types.ManageCommandOrder, bool) {
 	}
 
 	if len(ss) == 2 {
-		if manageType == types.ManageTypeAdd || manageType == types.ManageTypeEdit {
+		if manageType == types.ManageTypeAdd || manageType == types.ManageTypeEdit || manageType == types.ManageTypeDelete {
 			return types.ManageCommandOrder{Type: manageType}, true
 		}
 		return types.ManageCommandOrder{}, false

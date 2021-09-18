@@ -50,6 +50,10 @@ func (us UserService) DeleteUser(id int64) error {
 	return us.Repository.Delete(id)
 }
 
+func (us UserService) UpdateUserType(id int64, userType types.UserType) error {
+	return us.Repository.UpdateUserType(id, userType)
+}
+
 func (us UserService) FindByID(id int64) (types.User, error) {
 	result := us.Query.FindByID(id)
 	if result.Error == sql.ErrNoRows {
