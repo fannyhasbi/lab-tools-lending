@@ -73,14 +73,14 @@ func WebhookHandler(c echo.Context) error {
 	user := types.User{ID: senderID}
 
 	chatSessionService = service.NewChatSessionService()
-	chatSessions, err := chatSessionService.GetChatSessions(user)
+	chatSession, err := chatSessionService.GetChatSession(user)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return messageService.Error()
 	}
 
-	if err != sql.ErrNoRows && len(chatSessions) > 0 && chatSessions[0].Status != types.ChatSessionStatus["complete"] {
-		return sessionProcess(chatSessions[0], messageService, chatSessionService)
+	if err != sql.ErrNoRows && chatSession.Status != types.ChatSessionStatus["complete"] {
+		return sessionProcess(chatSession, messageService, chatSessionService)
 	}
 
 	match, err := regexp.MatchString("^/", messageText)

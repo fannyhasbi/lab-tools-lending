@@ -18,7 +18,7 @@ func NewChatSessionQueryPostgres(DB *sql.DB) repository.ChatSessionQuery {
 }
 
 func (csq ChatSessionQueryPostgres) Get(user types.User) repository.QueryResult {
-	rows, err := csq.DB.Query(`
+	row := csq.DB.QueryRow(`
 		SELECT id, status, created_at
 		FROM chat_sessions
 		WHERE user_id = $1
@@ -26,24 +26,21 @@ func (csq ChatSessionQueryPostgres) Get(user types.User) repository.QueryResult 
 		ORDER BY id DESC
 	`, user.ID, types.ChatSessionStatus["progress"])
 
-	chatSessions := []types.ChatSession{}
+	chatSession := types.ChatSession{}
 	result := repository.QueryResult{}
+
+	err := row.Scan(
+		&chatSession.ID,
+		&chatSession.Status,
+		&chatSession.CreatedAt,
+	)
 
 	if err != nil {
 		result.Error = err
-	} else {
-		for rows.Next() {
-			temp := types.ChatSession{}
-			rows.Scan(
-				&temp.ID,
-				&temp.Status,
-				&temp.CreatedAt,
-			)
-
-			chatSessions = append(chatSessions, temp)
-		}
-		result.Result = chatSessions
+		return result
 	}
+
+	result.Result = chatSession
 	return result
 }
 

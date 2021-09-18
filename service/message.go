@@ -382,14 +382,12 @@ func (ms *MessageService) checkDetailPhoto(toolID int64) error {
 }
 
 func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionData string) error {
-	var chatSession types.ChatSession
-
-	chatSessions, err := ms.chatSessionService.GetChatSessions(ms.user)
+	chatSession, err := ms.chatSessionService.GetChatSession(ms.user)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 
-	if len(chatSessions) == 0 {
+	if err == sql.ErrNoRows {
 		chatSessionParam := types.ChatSession{
 			Status: types.ChatSessionStatus["progress"],
 			UserID: ms.user.ID,
@@ -399,8 +397,6 @@ func (ms *MessageService) saveChatSessionDetail(topic types.TopicType, sessionDa
 		if err != nil {
 			return err
 		}
-	} else {
-		chatSession = chatSessions[0]
 	}
 
 	if len(sessionData) == 0 {
@@ -1389,6 +1385,10 @@ func (ms *MessageService) notifyToolReturningRequestToAdmin(toolReturning types.
 
 func (ms *MessageService) isEligibleAdmin() bool {
 	if ms.requestType != types.RequestTypeGroup {
+		return false
+	}
+
+	if ms.chatID != helper.GetAdminGroupID() {
 		return false
 	}
 

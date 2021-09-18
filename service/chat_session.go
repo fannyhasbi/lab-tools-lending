@@ -26,14 +26,14 @@ func NewChatSessionService() *ChatSessionService {
 	}
 }
 
-func (cs ChatSessionService) GetChatSessions(user types.User) ([]types.ChatSession, error) {
+func (cs ChatSessionService) GetChatSession(user types.User) (types.ChatSession, error) {
 	result := cs.Query.Get(user)
 
 	if result.Error != nil {
-		return []types.ChatSession{}, result.Error
+		return types.ChatSession{}, result.Error
 	}
 
-	return result.Result.([]types.ChatSession), nil
+	return result.Result.(types.ChatSession), nil
 }
 
 func (cs ChatSessionService) GetChatSessionDetails(chatSession types.ChatSession) ([]types.ChatSessionDetail, error) {
