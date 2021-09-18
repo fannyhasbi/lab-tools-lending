@@ -1,13 +1,13 @@
 # IDEA
 
 ## Options
-[x] Daftar ke sistem
-[x] Cek ketersediaan alat
-[x] Pinjam barang
-[x] Pengembalian barang
-[x] Help
+- [x] Daftar ke sistem
+- [x] Cek ketersediaan alat
+- [x] Pinjam barang
+- [x] Pengembalian barang
+- [x] Help
 
-## Logic - DONE
+## Logic
 ### Daftar ke sistem - DONE
 1. User akan diarahkan ke halaman web untuk registrasi
 2. Data tersebut disimpan (chatID, nama, NIM, angkatan, dsb)
