@@ -2104,7 +2104,7 @@ func (ms *MessageService) manageAddInfo() error {
 func (ms *MessageService) manageAddPhoto() error {
 	if len(ms.message.Photo) == 0 {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Mohon upload foto barang.",
+			Text: "File selain foto tidak akan disimpan. Mohon upload foto barang.",
 		})
 	}
 
@@ -2522,7 +2522,7 @@ func (ms *MessageService) ManagePhoto() error {
 func (ms *MessageService) managePhotoUpload() error {
 	if len(ms.message.Photo) == 0 {
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Mohon upload foto barang.",
+			Text: "File selain foto tidak akan disimpan. Mohon upload foto barang.",
 		})
 	}
 

@@ -19,7 +19,7 @@ func NewUserRepositoryPostgres(DB *sql.DB) repository.UserRepository {
 
 func (ur *UserRepositoryPostgres) Save(user *types.User) (types.User, error) {
 	row := ur.DB.QueryRow(`INSERT INTO users (id, name, nim, batch, address, user_type)
-		VALUES ($1, $2, $3, $4, $5, &6)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, name, nim, batch, address, created_at, user_type`, user.ID, user.Name, user.NIM, user.Batch, user.Address, user.UserType)
 
 	u := types.User{}
