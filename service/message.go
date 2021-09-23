@@ -266,12 +266,6 @@ func (ms *MessageService) checkDetail(toolID int64) error {
 		})
 	}
 
-	if err == sql.ErrNoRows {
-		return ms.sendMessage(types.MessageRequest{
-			Text: "ID tidak ditemukan.",
-		})
-	}
-
 	if tool.Stock < 1 && !ms.isEligibleAdmin() {
 		return ms.sendMessage(types.MessageRequest{
 			Text: "Maaf, nomor alat yang Anda pilih tidak tersedia",
@@ -470,6 +464,7 @@ func (ms *MessageService) registerInit() error {
 		return err
 	}
 
+	ms.user.UserType = types.UserTypeStudent
 	_, err := ms.userService.SaveUser(ms.user)
 	if err != nil {
 		return err
@@ -486,18 +481,16 @@ func (ms *MessageService) registerInit() error {
 func (ms *MessageService) registerConfirm() error {
 	registrationMessage, err := getRegistrationMessage(ms.messageText)
 	if err != nil {
-		log.Println("[ERR][registerConfirm][getRegistrationMessage]", err)
 		reqBody := types.MessageRequest{
-			Text: "Format registrasi salah, mohon cek format kembali kemudian kirim ulang.",
+			Text: err.Error(),
 		}
 		return ms.sendMessage(reqBody)
 	}
 
 	err = validateRegisterConfirmation(registrationMessage)
 	if err != nil {
-		log.Println("[ERR][registerConfirm][Validation]", err)
 		reqBody := types.MessageRequest{
-			Text: "Format registrasi salah. Mohon cek format kembali, kemudian kirim ulang.",
+			Text: err.Error(),
 		}
 		return ms.sendMessage(reqBody)
 	}
@@ -617,12 +610,12 @@ func getRegistrationMessage(message string) (types.QuestionRegistration, error) 
 
 	splittedMessage := helper.SplitNewLine(message)
 	if len(splittedMessage) != 4 {
-		return registrationMessage, fmt.Errorf("invalid registration format")
+		return registrationMessage, errors.New("format registrasi tidak sesuai")
 	}
 
 	batch, err := strconv.Atoi(splittedMessage[2])
 	if err != nil {
-		return registrationMessage, err
+		return registrationMessage, errors.New("data tahun angkatan salah")
 	}
 
 	registrationMessage.Name = splittedMessage[0]
@@ -639,15 +632,15 @@ func validateRegisterConfirmation(reg types.QuestionRegistration) error {
 	}
 
 	if len(reg.Name) < 4 {
-		return fmt.Errorf("invalid name length")
+		return errors.New("data nama minimal 4 karakter")
 	}
 
 	if len(reg.NIM) < 9 || len(reg.NIM) > 14 {
-		return fmt.Errorf("invalid NIM length")
+		return errors.New("NIM tidak valid")
 	}
 
 	if len(reg.Address) < 5 {
-		return fmt.Errorf("invalid address length")
+		return fmt.Errorf("data alamat minimal 5 karakter")
 	}
 
 	return nil
@@ -656,7 +649,7 @@ func validateRegisterConfirmation(reg types.QuestionRegistration) error {
 func validateRegisterMessageBatch(batch int) error {
 	currentYear := time.Now().Year()
 	if batch < 2008 || batch > currentYear {
-		return fmt.Errorf("batch is beyond the limit")
+		return errors.New("data angkatan melebihi batas")
 	}
 	return nil
 }
@@ -819,7 +812,7 @@ func (ms *MessageService) borrowAmount() error {
 	if err != nil || amount < 1 {
 		log.Println("[ERR][borrowAmount][Atoi]", err)
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Mohon sebutkan jumlah barang dalam angka.",
+			Text: "Mohon sebutkan jumlah barang dalam angka. Minimal 1.",
 		})
 	}
 
@@ -1451,7 +1444,7 @@ func (ms *MessageService) BeAdmin() error {
 		}
 	}
 
-	message := fmt.Sprintf(`%s berhasil menjadi pengurus.`, fullName)
+	message := fmt.Sprintf(`@%s berhasil menjadi pengurus.`, ms.message.From.Username)
 	return ms.sendMessage(types.MessageRequest{
 		Text: message,
 	})
@@ -2046,7 +2039,7 @@ func (ms *MessageService) manageAddWeight() error {
 	if err != nil || i < 0 {
 		log.Println("[ERR][manageAddWeight][ParseFloat]", err)
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Mohon sebutkan berat dalam angka.",
+			Text: "Mohon sebutkan berat dalam angka. Minimal 0.1 gram.",
 		})
 	}
 
@@ -2061,7 +2054,7 @@ func (ms *MessageService) manageAddWeight() error {
 	}
 
 	return ms.sendMessage(types.MessageRequest{
-		Text: "Berapa banyak stok yang tersedia untuk dipinjamkan?",
+		Text: "Berapa banyak stok yang tersedia untuk dipinjamkan? Minimal 1",
 	})
 }
 
@@ -2070,7 +2063,7 @@ func (ms *MessageService) manageAddStock() error {
 	if err != nil || i < 0 {
 		log.Println("[ERR][manageAddStock][ParseInt]", err)
 		return ms.sendMessage(types.MessageRequest{
-			Text: "Mohon sebutkan jumlah stok dalam angka.",
+			Text: "Mohon sebutkan jumlah stok dalam angka. Minimal 1.",
 		})
 	}
 
