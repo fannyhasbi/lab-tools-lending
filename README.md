@@ -1,9 +1,16 @@
 # Lab Tools Lending
+* [Configuration](#configuration)
+  * [Migration](#migration)
+* [Testing](#testing)
+  * [Unit Test](#unit-test)
+  * [HTTP Benchmark](#http-benchmark)
+* [Deployment](#deployment)
+  * [Staging](#staging)
+  * [Production](#production)
 
-# Configuration
+## Configuration
 Create a new file and name it `.env`. Copy the content from `.env.example` file to `.env` and change the values.
 
-## Database Configuration
 ### Migration
 This project use [golang-migrate](https://github.com/golang-migrate/migrate) tool to make migration. Please install the tool before running these commands in development environment.
 
@@ -35,8 +42,8 @@ VERSION=4 make migrate-force
 make test
 ```
 
-### Response Benchmark
-This system using [wg/wrk](https://github.com/wg/wrk) tool to benchmark the HTTP response.
+### HTTP Benchmark
+This system using [wg/wrk](https://github.com/wg/wrk) tool to benchmark the HTTP response. The result of the previous benchmark is manually saved in [BENCHMARK_RESULT.md](BENCHMARK_RESULT.md) file.
 
 Run 1 by 1 for each benchmark file. Change the `USER_ID` and `GROUP_ID` into a correct Telegram user ID and chat ID.
 ```
@@ -55,7 +62,7 @@ make container
   ```
 3. Set the webhook url to the newest ngrok url.
   ```bash
-  make change-server URL=https://example.com
+  make change-server URL=https://ngrok-generated-url
   ```
 
 ### Production
