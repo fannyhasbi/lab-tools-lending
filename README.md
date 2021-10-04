@@ -30,8 +30,17 @@ VERSION=4 make migrate-force
 ```
 
 ## Testing
+### Unit Test
 ```
 make test
+```
+
+### Response Benchmark
+This system using [wg/wrk](https://github.com/wg/wrk) tool to benchmark the HTTP response.
+
+Run 1 by 1 for each benchmark file. Change the `USER_ID` and `GROUP_ID` into a correct Telegram user ID and chat ID.
+```
+USER_ID=1234 GROUP_ID=--4321 wrk -t1 -c1 -d30 -s ./benchmark/help.lua https://example.com
 ```
 
 ## Deployment
